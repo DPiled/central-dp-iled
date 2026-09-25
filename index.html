@@ -107,8 +107,27 @@ main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
 
 /* ---------- início ---------- */
 #v-inicio{overflow-y:auto;padding:40px 44px 60px}
-.hello{font-size:30px;font-weight:700;letter-spacing:-.4px;margin:0}
-.today{color:var(--mut);font-size:15px;margin:6px 0 34px}
+.marca{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.marca svg{position:absolute;right:-4%;bottom:-6%;width:min(62vw,860px);height:auto;opacity:.045}
+@media (max-width:860px){ .marca svg{width:120vw;right:-30%;bottom:-2%;opacity:.05} }
+#v-inicio{z-index:1}
+.hero{position:relative;display:flex;gap:24px;align-items:stretch;justify-content:space-between;flex-wrap:wrap;max-width:1100px;margin:0 0 30px;padding:28px 30px;border-radius:20px;
+  background:radial-gradient(120% 140% at 0% 0%,rgba(225,6,0,.16),transparent 55%),linear-gradient(135deg,#15171f,#101218);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#e10600 0 34%,#ffb020 34% 67%,#2f6fed 67%)}
+.hero-tx{flex:1;min-width:280px;display:flex;flex-direction:column;gap:8px}
+.hero-dia{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#ff8a84}
+.hello{font-size:34px;font-weight:700;letter-spacing:-.5px;margin:0;line-height:1.15}
+.frase{margin:10px 0 0;padding:0 0 0 18px;border-left:3px solid rgba(225,6,0,.7);max-width:640px}
+.frase figcaption{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:4px}
+.frase blockquote{margin:0;font-size:17px;line-height:1.55;color:#e4e6ec;font-style:italic}
+.hero-num{display:grid;grid-template-columns:repeat(3,minmax(110px,1fr));gap:10px;align-self:center}
+.hn{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25);color:var(--txt);cursor:pointer;text-align:left;min-height:84px}
+.hn:hover{border-color:rgba(225,6,0,.5)}
+.hn b{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.hn span{font-size:12.5px;color:var(--mut)}
+.hn.ok b{color:#5fe39a}
+@media (max-width:860px){ .hero{padding:22px 18px} .hello{font-size:27px} .frase blockquote{font-size:15.5px} .hero-num{width:100%;grid-template-columns:repeat(3,1fr)} .hn{padding:12px} .hn b{font-size:22px} }
+.today{display:none}
 .h2{font-size:15px;font-weight:600;color:#fff;margin:0 0 14px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;max-width:1100px}
 .tile{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:20px;border-radius:14px;border:1px solid var(--line);background:var(--panel);
@@ -515,9 +534,28 @@ body.fixo .fixar svg{transform:rotate(180deg)}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Anotação rápida</span></button>
     </div>
     <div id="views">
+      <div class="marca" id="marca" aria-hidden="true"><svg viewBox="0 0 250 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs><filter id="brilho" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <g filter="url(#brilho)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 22V150" stroke="#fff" stroke-width="7"/>
+    <path d="M52 22V150H165a64 64 0 0 0 0-128H92" stroke="#fff" stroke-width="7"/>
+    <path d="M98 86H142" stroke="#e10600" stroke-width="8"/>
+    <path d="M18 176H200" stroke="#fff" stroke-width="4"/>
+    <path d="M204 176h10" stroke="#e10600" stroke-width="4"/><path d="M216 176h10" stroke="#ffb020" stroke-width="4"/><path d="M228 176h10" stroke="#2f6fed" stroke-width="4"/>
+  </g></svg></div>
       <section class="view" id="v-inicio">
-        <h1 class="hello" id="hello">Olá</h1>
-        <p class="today" id="today"></p>
+        <div class="hero">
+          <div class="hero-tx">
+            <span class="hero-dia" id="today"></span>
+            <h1 class="hello" id="hello">Olá</h1>
+            <figure class="frase"><figcaption>Frase do dia</figcaption><blockquote id="fraseTxt"></blockquote></figure>
+          </div>
+          <div class="hero-num" aria-label="Resumo de hoje">
+            <button type="button" class="hn" onclick="document.getElementById('pends').scrollIntoView({behavior:'smooth'})"><b id="hnPend">—</b><span>pendências</span></button>
+            <button type="button" class="hn" onclick="abrir('caderno','agenda')"><b id="hnAg">—</b><span>na agenda hoje</span></button>
+            <button type="button" class="hn" id="hnFechBt" onclick="document.getElementById('blocoFech').scrollIntoView({behavior:'smooth'})"><b id="hnFech">—</b><span>fechamento do mês</span></button>
+          </div>
+        </div>
         <div class="pend-head"><h2 class="h2">O que falta fazer hoje</h2><button type="button" class="pend-upd" onclick="atualizarInicio()">Atualizar</button></div>
         <div class="pends" id="pends"></div>
         <div class="em-dia" id="emDia"></div>
@@ -649,13 +687,78 @@ function sair(){
 }
 
 /* ================= PORTAL ================= */
+var FRASES=[
+ 'Cada detalhe que você cuida hoje é a tranquilidade de alguém no dia do pagamento.',
+ 'Organização não é rigidez: é liberdade para resolver o que realmente importa.',
+ 'Um dia de cada vez, uma pendência de cada vez. Você chega lá.',
+ 'Por trás de cada número da folha existe uma pessoa. Obrigada por cuidar delas.',
+ 'Feito é melhor que perfeito, mas conferido é melhor que feito.',
+ 'Grandes resultados nascem de pequenas rotinas bem feitas.',
+ 'Quem cuida das pessoas cuida do coração da empresa.',
+ 'Respire, priorize e comece pelo que tem prazo. O resto se ajeita.',
+ 'Hoje é um ótimo dia para deixar tudo em dia.',
+ 'A calma de quem se organiza vale mais do que a pressa de quem improvisa.',
+ 'O seu trabalho não aparece quando está certo — e é justamente isso que o torna tão valioso.',
+ 'Toda folha fechada sem erro é uma vitória silenciosa. Comemore as suas.',
+ 'Planejar hoje é evitar correria amanhã.',
+ 'Você não precisa fazer tudo hoje. Precisa fazer o que importa hoje.',
+ 'Confiança se constrói em cada prazo cumprido.',
+ 'Um DP organizado é uma empresa em paz.',
+ 'Persistência transforma o difícil em rotina.',
+ 'Seja gentil com você: o dia rende mais quando a mente está leve.',
+ 'Cada processo que você melhora é tempo que você devolve para si mesma.',
+ 'Pequenos avanços diários somam grandes conquistas no fim do mês.',
+ 'Clareza no processo, tranquilidade no resultado.',
+ 'Você é a pessoa que faz as coisas acontecerem nos bastidores. E isso é enorme.',
+ 'Comece pelo mais importante, termine com orgulho.',
+ 'Erros viram aprendizado; aprendizado vira processo; processo vira excelência.',
+ 'Hoje, faça algo que o seu eu do fechamento vai agradecer.',
+ 'Organização é uma forma de cuidado.',
+ 'Não é sobre ter tempo, é sobre dar prioridade.',
+ 'Um passo firme por vez leva mais longe do que mil passos apressados.',
+ 'Quando o dia apertar, lembre: você já resolveu dias bem mais difíceis.',
+ 'A excelência mora na repetição bem feita.',
+ 'Pessoas bem cuidadas fazem empresas mais fortes. Você faz parte disso.',
+ 'Checklist em dia, cabeça tranquila.',
+ 'Seu cuidado com cada detalhe faz diferença na vida de muita gente.',
+ 'Energia boa no começo do dia contagia o dia inteiro.',
+ 'O segredo não é correr mais, é saber para onde correr.',
+ 'Tudo o que é importante merece atenção, não pressa.',
+ 'Você está construindo algo sólido. Continue.',
+ 'Disciplina é lembrar do que você quer, mesmo nos dias corridos.',
+ 'Hoje é dia de fazer o simples muito bem feito.',
+ 'A melhor forma de prever o fechamento é organizar o mês.',
+ 'Transforme a lista de pendências em lista de conquistas.',
+ 'Coragem também é pedir ajuda e dividir o que pesa.',
+ 'Um sorriso também é produtividade: deixa tudo mais leve.',
+ 'Quem registra, lembra. Quem lembra, resolve.',
+ 'Cada colaborador atendido com atenção é uma relação fortalecida.',
+ 'Constância vence talento quando o talento não é constante.',
+ 'Faça hoje melhor que ontem, e amanhã melhor que hoje.',
+ 'Seu valor está no cuidado que você coloca em tudo o que faz.',
+ 'Às vezes, o progresso é silencioso. Mas ele está acontecendo.',
+ 'Tenha orgulho do caminho, não só da chegada.',
+ 'Processos claros deixam espaço para o que é humano.',
+ 'Nenhum prazo é maior do que a sua capacidade de se organizar.',
+ 'O dia fica mais leve quando a gente começa com propósito.',
+ 'Cuide dos detalhes, e os detalhes cuidarão do resultado.',
+ 'Você faz a diferença, mesmo quando ninguém está vendo.',
+ 'Hoje tem tudo para ser um dia produtivo e tranquilo.',
+ 'Foco no que depende de você; o resto, a gente contorna.',
+ 'Boas escolhas de hoje são tranquilidade amanhã.',
+ 'Que o seu dia seja tão organizado quanto a sua folha no fechamento.',
+ 'Continue: o que você constrói todos os dias está fazendo diferença.'
+];
+function fraseDoDia(){ var d=new Date(), ini=new Date(d.getFullYear(),0,0), dia=Math.floor((d-ini)/86400000); return FRASES[(dia+d.getFullYear())%FRASES.length]; }
 function montarPortal(){
   el('login').classList.add('hidden'); el('app').classList.remove('hidden');
   var primeiro=(EU.nome||'').trim().split(/\s+/)[0]||'';
   primeiro=primeiro.charAt(0).toUpperCase()+primeiro.slice(1).toLowerCase();
   el('meNome').textContent=primeiro||EU.email; el('meAv').textContent=(primeiro||'?').charAt(0);
   el('mePerfil').textContent=EU.master?'Administradora':'Usuária';
-  el('hello').textContent='Olá, '+primeiro;
+  var hr=new Date().getHours(), sd=hr<12?'Bom dia':(hr<18?'Boa tarde':'Boa noite');
+  el('hello').textContent=sd+(primeiro?', '+primeiro:'');
+  el('fraseTxt').textContent=fraseDoDia();
   var d=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   el('today').textContent=d.charAt(0).toUpperCase()+d.slice(1);
   // sub-abas do Painel conforme as permissões
@@ -718,6 +821,7 @@ function abrir(v,sub){
   var voltando=(ATUAL!==v);
   if(sub&&NAVS[v]) ABERTAS[v]=true;
   ATUAL=v; ATUAL_SUB=sub||'';
+  el('marca').classList.toggle('hidden',v!=='inicio');
   ['inicio','cadastro','painel','lancamentos','caderno','nf'].forEach(function(k){ el('v-'+k).classList.toggle('hidden',k!==v); });
   if(v==='inicio') atualizarInicio();
   if(v==='cadastro'){ if(!EU||!EU.master) return; ABERTAS.cadastro=ABERTAS.cadastro!==false; abrirCG(sub||ESTADO.cadastro||'empresas'); }
@@ -1396,6 +1500,7 @@ function carregarPendencias(){
     var comPend=cards.filter(function(c){ return c.erro||c.itens.length; });
     var emDia=cards.filter(function(c){ return !c.erro&&!c.itens.length&&!c.semMes; }).map(function(c){ return c.nome; });
     var semMes=cards.some(function(c){ return c.semMes; });
+    var totP=0; comPend.forEach(function(c){ if(!c.erro) totP+=c.itens.length; }); el('hnPend').textContent=totP; el('hnPend').parentNode.classList.toggle('ok',!totP);
     alvo.innerHTML=comPend.length?comPend.map(cartaoPend).join(''):'<div class="tudo-ok"><b>Tudo em dia hoje</b>Nenhuma pendência nos sistemas. Bom momento para adiantar o que está na agenda.</div>';
     var h='';
     if(emDia.length&&comPend.length) h+='<b>✓ Em dia:</b> '+esc(emDia.join(' · '));
@@ -1452,6 +1557,7 @@ function desenharFechamento(){
       '<span class="fe-ck">'+ICON_OK+'</span><span class="fe-t">'+esc(e.t)+(info?'<small>'+info+'</small>':'')+'</span>'+(e.auto?'<span class="fe-auto" title="Marca sozinho a partir do Lançamentos">automático</span>'+lk:'')+'</li>';
   }).join('');
   var pct=Math.round(feitos/ETAPAS.length*100);
+  el('hnFech').textContent=feitos+'/'+ETAPAS.length; el('hnFechBt').classList.toggle('ok',feitos===ETAPAS.length);
   bx.innerHTML='<div class="bloco-head"><h2 class="h2">Fechamento de '+esc(nomeMes(FECH.mes))+'</h2><span style="font-size:13px;color:'+(feitos===ETAPAS.length?'#3ddc84':'var(--mut)')+';font-weight:600">'+feitos+' de '+ETAPAS.length+'</span></div>'+
     '<div class="fe-bar'+(feitos===ETAPAS.length?' ok':'')+'"><i style="width:'+pct+'%"></i></div><ul class="fe-l">'+lis+'</ul>';
 }
@@ -2162,6 +2268,7 @@ function carregarSemana(){
     });
     var tem=ordem.some(function(d){ return dias[d].length; });
     if(!tem){ ag.innerHTML='<div class="vazio">Nada marcado para os próximos 7 dias. Anote na Agenda do Caderno.</div>'; return; }
+    el('hnAg').textContent=(dias[hj]||[]).length;
     ag.innerHTML='<div class="ag-dia">'+ordem.filter(function(d){ return dias[d].length||d===hj; }).map(function(d){
       var itens=dias[d].sort(function(a,b){ return (a.h||'99')<(b.h||'99')?-1:1; });
       return '<div class="ag-col'+(d===hj?' hj':'')+'"><h4>'+(d===hj?'Hoje':esc(diaSemana(d)))+'</h4>'+
