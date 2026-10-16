@@ -5833,8 +5833,7 @@ function cxExportar(fmt){
     '<table><thead><tr>'+cols.map(function(k){ return '<th>'+esc(k)+'</th>'; }).join('')+'</tr></thead><tbody>'+
     E.lista.map(function(r){ return '<tr>'+cols.map(function(k){ var v=r[k]; if(k==='Valor mensal'&&typeof v==='number') v=moedaBR(v); return '<td>'+esc(v)+'</td>'; }).join('')+'</tr>'; }).join('')+
     '</tbody></table><script>window.onload=function(){ setTimeout(function(){ window.print(); },250); };<\/script></body></html>';
-  var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups para esta página.',true); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  cxImprimirHtml(html);
 }
 /* ================= v53 · Relatórios Comercial e Financeiro (Excel e PDF) ================= */
 CX.relJuntos=true;   // juntar Internos e PJ na mesma planilha (padrão)
@@ -5884,9 +5883,10 @@ function cxRelFiltros(){
   return t.join(' · ');
 }
 function cxRelLog(R,fmt,n){
-  try{ sb.from('dp_logs').insert({id:cxUUID(),tabela:'colaboradores',registro_id:cxUUID(),colaborador:'(exportação)',campo:'exportacao',valor_antigo:'',valor_novo:(R.nome+' · '+fmt.toUpperCase()+' · '+n+' pessoa(s) · '+cxRelFiltros()).slice(0,300),usuario:(EU&&EU.nome)||'',quando:new Date().toISOString()}).then(function(){}); }catch(e){}
+  try{ sb.from('dp_logs').insert({id:cxUUID(),tabela:'colaboradores',registro_id:cxUUID(),colaborador:'(exportação)',campo:'exportacao',valor_antigo:'',valor_novo:(R.nome+' · '+fmt.toUpperCase()+' · '+n+' pessoa(s) · '+cxRelFiltros()).slice(0,300),usuario:(EU&&EU.nome)||'',quando:new Date().toISOString()}).then(function(){},function(){}); }catch(e){}
 }
-function cxRelatorio(modelo,fmt){
+function cxRelatorio(modelo,fmt){ try{ return cxRelatorio2(modelo,fmt); }catch(e){ console.error(e); aviso('Erro ao gerar o relatório: '+((e&&e.message)||e),true); } }
+function cxRelatorio2(modelo,fmt){
   var dd=document.querySelector('.cx-baixar[open]'); if(dd) dd.removeAttribute('open');
   var R=CX_REL[modelo]; if(!R) return;
   if(!cxSens()){ aviso('Este relatório tem CPF, RG, PIX e valores. Só quem tem acesso a dados sensíveis pode baixar.',true); return; }
@@ -5914,7 +5914,7 @@ function cxRelatorio(modelo,fmt){
       var wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,modelo==='comercial'?'Comercial':'Financeiro'); X.utils.book_append_sheet(wb,info,'Sobre');
       X.writeFile(wb,nome+'.xlsx');
       aviso(R.nome+': Excel baixado com '+lista.length+' pessoa(s).');
-    }).catch(function(){ aviso('Não consegui carregar o gerador de Excel. Verifique a internet.',true); });
+    }).catch(function(e){ console.error(e); aviso(e&&e.message==='xlsx'?'Não consegui carregar o gerador de Excel: a internet ou o antivírus da rede está bloqueando. Tente o PDF.':'Erro ao montar o Excel: '+((e&&e.message)||e),true); });
     return;
   }
   var cel=function(k,v){ if(R.moeda.indexOf(k)>=0&&typeof v==='number') return '<td class="n">'+esc(moedaBR(v))+'</td>'; return '<td'+(R.moeda.indexOf(k)>=0?' class="n"':'')+'>'+esc(v)+'</td>'; };
@@ -5928,8 +5928,7 @@ function cxRelatorio(modelo,fmt){
     (total!==null?'<tfoot><tr><td colspan="'+R.cols.length+'">Total ('+lista.length+' pessoas'+(lista.some(function(r){ return r[R.total]==='restrito'; })?', sem os valores restritos':'')+')</td><td class="n">'+esc(moedaBR(total))+'</td></tr></tfoot>':'')+
     '</table><div class="lgpd">🔒 Contém dados pessoais (LGPD). Uso interno, somente para a finalidade do setor. Não repassar nem deixar impresso à vista.</div>'+
     '<script>window.onload=function(){ setTimeout(function(){ window.print(); },250); };<\/script></body></html>';
-  var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups para esta página.',true); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  cxImprimirHtml(html);
 }
 /* menu "Baixar" da lista de colaboradores */
 function cxMenuBaixar(){
@@ -6039,10 +6038,25 @@ function cxDiaPagPJ(c){ return diaOk(c.nf_dia_servico)||(dataOk(c.contrato_cp)?p
 var IMP={linhas:null,analise:null,substituir:false};
 function impCarregarXLSX(){
   if(window.XLSX) return Promise.resolve(window.XLSX);
-  return new Promise(function(ok,erro){
-    var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=function(){ ok(window.XLSX); }; s.onerror=function(){ erro(new Error('xlsx')); }; document.head.appendChild(s);
-  });
+  var urls=['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js','https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'];
+  var tentar=function(i){ return new Promise(function(ok,erro){
+    if(i>=urls.length){ erro(new Error('xlsx')); return; }
+    var sc=document.createElement('script'); sc.src=urls[i];
+    sc.onload=function(){ window.XLSX?ok(window.XLSX):tentar(i+1).then(ok,erro); };
+    sc.onerror=function(){ sc.remove(); tentar(i+1).then(ok,erro); };
+    document.head.appendChild(sc);
+  }); };
+  return tentar(0);
+}
+/* abre o PDF numa janela; se o navegador bloquear, imprime por um quadro escondido (sem pop-up) */
+function cxImprimirHtml(html){
+  var w=null; try{ w=window.open('','_blank'); }catch(e){}
+  if(w){ w.document.open(); w.document.write(html); w.document.close(); return; }
+  var f=document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+  document.body.appendChild(f);
+  var d=f.contentWindow.document; d.open(); d.write(html.split('<script>window.onload')[0]+'</body></html>'); d.close();
+  setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ aviso('Não consegui abrir o PDF: '+e.message,true); } setTimeout(function(){ f.remove(); },60000); },400);
+  aviso('Na janela de impressão, escolha "Salvar como PDF".');
 }
 function impEscolherArquivo(){
   var i=document.createElement('input'); i.type='file'; i.accept='.xlsx,.xls';
