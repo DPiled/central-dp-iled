@@ -10315,33 +10315,33 @@ function e2a(s){ return (''+s).replace(/[^A-Za-z0-9]+/g,'_'); }
 </script>
 <script>
 /* ================= v66 · DOCUMENTOS DAS EMPRESAS (dentro de Cadastro geral → Empresas) =================
-   Cada empresa guarda a sua pasta do Drive e a lista de documentos (contrato social, cartão CNPJ, certidões,
-   alvará, certificado digital…), com validade e link do arquivo. Fica salvo junto com o Cadastro geral
+   Cada empresa guarda o link da sua pasta do Drive e a lista de documentos QUE VENCEM (PCMSO, PGR,
+   certificado digital, certidões, alvará…), só com a data de vencimento: o PDF fica no Drive, não aqui. Fica salvo junto com o Cadastro geral
    (kv_store "cadastro-geral"), sem tabela nova no Supabase. Documento vencido ou vencendo aparece no radar do Início. */
 var DOCS={emp:'',filtro:'todos',edit:null,pend:null,busca:''};
-/* tipos sugeridos · v = validade padrão em dias (só onde a regra é fixa); 0 = sem validade; null = informar à mão */
+/* só documentos que VENCEM · [nome, validade padrão em dias (null = informar a data), grupo, avisar com quantos dias de antecedência] */
 var DOC_TIPOS=[
-  ['Contrato social / alteração',0,'societario'],['Cartão CNPJ',0,'societario'],['Inscrição estadual / distrital',0,'societario'],['Inscrição municipal',0,'societario'],
-  ['Procuração',null,'societario'],['Certificado digital (e-CNPJ)',null,'societario'],
-  ['CND Federal (Receita/PGFN)',180,'certidao'],['CRF · Regularidade do FGTS',30,'certidao'],['CNDT · Débitos trabalhistas',180,'certidao'],
-  ['CND Estadual / Distrital',null,'certidao'],['CND Municipal',null,'certidao'],
-  ['Alvará de funcionamento',null,'licenca'],['Licença do Corpo de Bombeiros (AVCB)',null,'licenca'],['Licença sanitária / ambiental',null,'licenca'],
-  ['PGR · Programa de Gerenciamento de Riscos',null,'sst'],['PCMSO',null,'sst'],['LTCAT',null,'sst'],
-  ['Contrato de aluguel do imóvel',null,'outros'],['Apólice de seguro',null,'outros'],['Outro documento',null,'outros']];
-var DOC_GRUPOS={societario:'Societários e cadastro',certidao:'Certidões',licenca:'Licenças e alvarás',sst:'Saúde e segurança',outros:'Outros'};
-/* o mínimo que toda empresa do grupo deveria ter guardado */
-var DOC_ESSENCIAIS=['Contrato social / alteração','Cartão CNPJ','Certificado digital (e-CNPJ)','CND Federal (Receita/PGFN)','CRF · Regularidade do FGTS','CNDT · Débitos trabalhistas','Alvará de funcionamento'];
-function docTipoInfo(t){ return DOC_TIPOS.find(function(x){ return x[0]===t; })||[t,null,'outros']; }
+  ['PCMSO',365,'sst',60],['PGR · Programa de Gerenciamento de Riscos',730,'sst',60],['LTCAT',null,'sst',60],['AET · Análise Ergonômica do Trabalho',null,'sst',60],
+  ['Certificado digital (e-CNPJ)',null,'empresa',45],['Procuração',null,'empresa',30],['Procuração eletrônica (e-CAC / eSocial)',null,'empresa',30],
+  ['CND Federal (Receita/PGFN)',180,'certidao',15],['CRF · Regularidade do FGTS',30,'certidao',7],['CNDT · Débitos trabalhistas',180,'certidao',15],
+  ['CND Estadual / Distrital',null,'certidao',15],['CND Municipal',null,'certidao',15],
+  ['Alvará de funcionamento',null,'licenca',60],['Licença do Corpo de Bombeiros (AVCB)',null,'licenca',90],['Licença sanitária / ambiental',null,'licenca',60],
+  ['Contrato de aluguel do imóvel',null,'outros',90],['Apólice de seguro',null,'outros',30],['Outro documento',null,'outros',30]];
+var DOC_GRUPOS={sst:'Saúde e segurança do trabalho',empresa:'Certificado e procurações',certidao:'Certidões',licenca:'Licenças e alvarás',outros:'Outros'};
+/* o que toda empresa com empregado CLT precisa ter em dia */
+var DOC_ESSENCIAIS=['PCMSO','PGR · Programa de Gerenciamento de Riscos','Certificado digital (e-CNPJ)'];
+function docTipoInfo(t){ return DOC_TIPOS.find(function(x){ return x[0]===t; })||[t,null,'outros',30]; }
+function docJanela(d){ return docTipoInfo(d.tipo)[3]||30; }
 function docId(){ return 'dc'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function docStatus(d){
-  if(!d.validade||!dataOk(d.validade)) return docTipoInfo(d.tipo)[1]===0?{k:'perm',t:'sem validade',o:4}:{k:'semdata',t:'sem validade informada',o:3};
-  var v=d.validade.slice(0,10), dd=diasAte(v);
-  if(dd<0) return {k:'venc',t:'venceu em '+ddmm(v),o:0,dd:dd};
-  if(dd<=30) return {k:'vence',t:dd===0?'vence hoje':'vence em '+dd+' dia'+(dd>1?'s':''),o:1,dd:dd};
-  return {k:'ok',t:'válido até '+fmtData(v),o:2,dd:dd};
+  if(!d.validade||!dataOk(d.validade)) return {k:'semdata',t:'sem data de vencimento',o:1.5};
+  var v=d.validade.slice(0,10), dd=diasAte(v), jan=docJanela(d);
+  if(dd<0) return {k:'venc',t:'venceu em '+fmtData(v),o:0,dd:dd};
+  if(dd<=jan) return {k:'vence',t:dd===0?'vence hoje':'vence em '+dd+' dia'+(dd>1?'s':''),o:1,dd:dd};
+  return {k:'ok',t:'em dia · vence '+fmtData(v),o:2,dd:dd};
 }
 function docEmpresas(){ return (CG_EDIT&&CG_EDIT.empresas||[]).filter(function(e){ return (e.nome||'').trim(); }); }
-function docResumo(e){ var r={n:0,venc:0,vence:0,semArq:0}; (e.docs||[]).forEach(function(d){ r.n++; var s=docStatus(d).k; if(s==='venc') r.venc++; else if(s==='vence') r.vence++; if(!d.link) r.semArq++; }); return r; }
+function docResumo(e){ var r={n:0,venc:0,vence:0,semData:0}; (e.docs||[]).forEach(function(d){ r.n++; var s=docStatus(d).k; if(s==='venc') r.venc++; else if(s==='vence') r.vence++; else if(s==='semdata') r.semData++; }); return r; }
 function docPodeEditar(){ return !!(EU&&(EU.master||podeAcao('cadastro_geral','editar'))); }
 function docLink(u){ u=(u||'').trim(); if(!u) return ''; return /^https?:\/\//i.test(u)?u:'https://'+u; }
 
@@ -10368,8 +10368,8 @@ function docsAbrir(empId){
 }
 function docNovo(tipo){
   var emp=DOCS.emp||((docEmpresas()[0]||{}).id||'');
-  DOCS.edit={id:'',emp:emp,tipo:tipo||'',desc:'',emissao:'',validade:'',link:'',obs:''}; docDesenhar(true);
-  setTimeout(function(){ var i=el(tipo?'docEmi':'docTipo'); if(i) i.focus(); },60);
+  DOCS.edit={id:'',emp:emp,tipo:tipo||'',emissao:'',validade:'',obs:''}; docDesenhar(true);
+  setTimeout(function(){ var i=el(tipo?'docVal':'docTipo'); if(i) i.focus(); },60);
 }
 function docEditar(empId,id){ var e=docEmpresas().find(function(x){ return x.id===empId; }); var d=e&&(e.docs||[]).find(function(x){ return x.id===id; }); if(!d) return;
   DOCS.edit=Object.assign({emp:empId},copia(d)); docDesenhar(true); }
@@ -10380,12 +10380,14 @@ function docCampo(c,v){ if(!DOCS.edit) return; DOCS.edit[c]=v;
   if(c==='tipo') docDicaVal();
 }
 function docDicaVal(){ var x=el('docDicaV'); if(!x||!DOCS.edit) return; var p=docTipoInfo(DOCS.edit.tipo)[1];
-  x.textContent=p===0?'Este documento não vence (atualize quando houver alteração).':(p?'Validade padrão de '+p+' dias a partir da emissão · preenchida sozinha, pode ajustar.':'Informe a data de validade que está no documento.'); }
+  var j=docTipoInfo(DOCS.edit.tipo)[3]||30, ps=p?(p%365===0?(p/365)+' ano'+(p>365?'s':''):p+' dias'):'';
+  x.textContent=(p?'Vale '+ps+' · se preencher a emissão, o vencimento sai sozinho. ':'Informe o vencimento que está no documento. ')+'Aviso com '+j+' dias de antecedência.'; }
 function docSalvarForm(){
   var d=DOCS.edit; if(!d) return;
   if(!d.emp){ aviso('Escolha a empresa.',true); return; }
   if(!(d.tipo||'').trim()){ aviso('Escolha o tipo de documento.',true); var t=el('docTipo'); if(t) t.focus(); return; }
-  var novo={id:d.id||docId(),tipo:d.tipo.trim(),desc:(d.desc||'').trim(),emissao:d.emissao||'',validade:d.validade||'',link:docLink(d.link),obs:(d.obs||'').trim(),atualizado:new Date().toISOString(),por:(EU&&EU.nome)||''};
+  if(!d.validade||!dataOk(d.validade)){ aviso('Informe a data de vencimento.',true); var iv=el('docVal'); if(iv) iv.focus(); return; }
+  var novo={id:d.id||docId(),tipo:d.tipo.trim(),emissao:d.emissao||'',validade:d.validade||'',obs:(d.obs||'').trim(),atualizado:new Date().toISOString(),por:(EU&&EU.nome)||''};
   var origem=null; if(d.id){ docEmpresas().forEach(function(e){ if((e.docs||[]).some(function(x){ return x.id===d.id; })) origem=e.id; }); }
   var feito=function(ok){ if(ok===false) return; DOCS.edit=null; docDesenhar(); };
   if(origem&&origem!==d.emp){ /* mudou de empresa: tira de uma e põe na outra */
@@ -10396,7 +10398,7 @@ function docSalvarForm(){
 }
 function docExcluir(empId,id){
   var e=docEmpresas().find(function(x){ return x.id===empId; }), d=e&&(e.docs||[]).find(function(x){ return x.id===id; }); if(!d) return;
-  dialogo('Tirar "'+d.tipo+'" da lista de '+e.nome+'?\n\nO arquivo no Google Drive não é apagado: só o registro aqui.',{sim:function(){ docGravar(empId,function(x){ x.docs=(x.docs||[]).filter(function(y){ return y.id!==id; }); },'Documento retirado da lista.'); }});
+  dialogo('Tirar "'+d.tipo+'" da lista de '+e.nome+'?\n\nSó o controle de vencimento sai daqui. Nada no Google Drive é apagado.',{sim:function(){ docGravar(empId,function(x){ x.docs=(x.docs||[]).filter(function(y){ return y.id!==id; }); },'Documento retirado da lista.'); }});
 }
 function docSalvarPasta(empId,v){ docGravar(empId,function(e){ e.pasta=docLink(v); },'Pasta do Drive guardada.'); }
 
@@ -10405,24 +10407,23 @@ function docDesenhar(forcar){
   var emps=docEmpresas(), ed=docPodeEditar(), linhas=[];
   emps.forEach(function(e){ (e.docs||[]).forEach(function(d){ linhas.push({e:e,d:d,s:docStatus(d)}); }); });
   var doEmp=DOCS.emp?linhas.filter(function(x){ return x.e.id===DOCS.emp; }):linhas;
-  var k={venc:0,vence:0,semArq:0}; doEmp.forEach(function(x){ if(x.s.k==='venc') k.venc++; if(x.s.k==='vence') k.vence++; if(!x.d.link) k.semArq++; });
+  var k={venc:0,vence:0,ok:0}; doEmp.forEach(function(x){ if(x.s.k==='venc') k.venc++; else if(x.s.k==='vence') k.vence++; else if(x.s.k==='ok') k.ok++; });
   var b=(DOCS.busca||'').trim().toUpperCase();
   var vis=doEmp.filter(function(x){
     if(DOCS.filtro==='alerta'&&!(x.s.k==='venc'||x.s.k==='vence')) return false;
-    if(DOCS.filtro==='semarq'&&x.d.link) return false;
-    if(b&&(x.d.tipo+' '+(x.d.desc||'')+' '+x.e.nome+' '+(x.d.obs||'')).toUpperCase().indexOf(b)<0) return false;
+    if(b&&(x.d.tipo+' '+x.e.nome+' '+(x.d.obs||'')).toUpperCase().indexOf(b)<0) return false;
     return true; }).sort(function(a,c){ return a.s.o-c.s.o||(a.s.dd||0)-(c.s.dd||0)||a.e.nome.localeCompare(c.e.nome,'pt-BR')||a.d.tipo.localeCompare(c.d.tipo,'pt-BR'); });
   var eSel=DOCS.emp?emps.find(function(e){ return e.id===DOCS.emp; }):null;
 
-  var h='<div class="imp-box doc-box" role="dialog" aria-label="Documentos das empresas"><div class="imp-cab"><div><h2>📁 Documentos das empresas</h2><p>Contrato social, cartão CNPJ, certidões, alvarás e certificado digital de cada CNPJ do grupo · o arquivo fica no <b>Google Drive</b>, aqui você guarda o link e a validade. O que vence em 30 dias aparece no radar do Início.</p></div><button type="button" class="nm-b" aria-label="Fechar" onclick="el(\'docOv\').classList.remove(\'on\')">✕</button></div>';
+  var h='<div class="imp-box doc-box" role="dialog" aria-label="Documentos das empresas"><div class="imp-cab"><div><h2>📁 Documentos das empresas</h2><p>Controle de <b>vencimento</b> dos documentos de cada CNPJ: PCMSO, PGR, certificado digital, certidões, alvarás. O PDF continua no <b>Google Drive</b>: aqui fica só a data e o atalho para a pasta. O que está perto de vencer aparece no radar do Início.</p></div><button type="button" class="nm-b" aria-label="Fechar" onclick="el(\'docOv\').classList.remove(\'on\')">✕</button></div>';
   /* empresas */
   h+='<div class="doc-emps" role="group" aria-label="Empresa"><button type="button" class="'+(!DOCS.emp?'on':'')+'" onclick="DOCS.emp=\'\';DOCS.edit=null;docDesenhar()">Todas <b>'+linhas.length+'</b></button>'+
     emps.map(function(e){ var r=docResumo(e), al=r.venc+r.vence; return '<button type="button" class="'+(DOCS.emp===e.id?'on':'')+(e.ativa===false?' off':'')+'" onclick="DOCS.emp=\''+e.id+'\';DOCS.edit=null;docDesenhar()">'+esc(e.nome)+' <b>'+r.n+'</b>'+(al?'<i class="'+(r.venc?'venc':'vence')+'">'+al+'</i>':'')+'</button>'; }).join('')+'</div>';
   /* KPIs */
-  h+='<div class="imp-kpis"><div class="info"><b>'+doEmp.length+'</b><span>📄 documentos guardados</span></div>'+
+  h+='<div class="imp-kpis"><div class="info"><b>'+doEmp.length+'</b><span>📄 documentos controlados</span></div>'+
     '<div'+(k.venc?' class="warn"':' class="ok"')+'><b'+(k.venc?' style="color:#ff8a84"':'')+'>'+k.venc+'</b><span>🔴 vencidos</span></div>'+
-    '<div class="warn"><b>'+k.vence+'</b><span>🟠 vencem em 30 dias</span></div>'+
-    '<div'+(k.semArq?' class="warn"':' class="ok"')+'><b>'+k.semArq+'</b><span>🔗 sem link do arquivo</span></div></div>';
+    '<div class="warn"><b>'+k.vence+'</b><span>🟠 perto de vencer</span></div>'+
+    '<div class="ok"><b>'+k.ok+'</b><span>🟢 em dia</span></div></div>';
   /* empresa escolhida: pasta do Drive + o que falta */
   if(eSel){
     var tem={}; (eSel.docs||[]).forEach(function(d){ tem[d.tipo]=1; });
@@ -10430,9 +10431,9 @@ function docDesenhar(forcar){
     h+='<div class="doc-emp"><div class="doc-emp-l"><b>'+esc(eSel.nome)+'</b><span>'+(eSel.cnpj?esc(eSel.cnpj):'sem CNPJ')+(eSel.estado?' · '+esc(nomeUF(eSel.estado)):'')+'</span></div>'+
       '<div class="doc-pasta"><label for="docPasta">📂 Pasta da empresa no Drive</label><div><input id="docPasta" placeholder="Cole o link da pasta do Google Drive" value="'+esc(eSel.pasta||'')+'"'+(ed?'':' disabled')+' onkeydown="if(event.key===\'Enter\')docSalvarPasta(\''+eSel.id+'\',this.value)">'+
       (ed?'<button type="button" class="cg-bt sm" onclick="docSalvarPasta(\''+eSel.id+'\',el(\'docPasta\').value)">Guardar</button>':'')+(eSel.pasta?'<a class="cg-bt sm pri" href="'+esc(eSel.pasta)+'" target="_blank" rel="noopener">Abrir pasta ↗</a>':'')+'</div></div></div>';
-    if(falta.length) h+='<div class="doc-falta"><b>🧩 Ainda não cadastrados nesta empresa</b><span>O básico que o DP costuma precisar à mão (licitação, banco, contratos com clientes, fiscalização):</span><div>'+
+    if(falta.length) h+='<div class="doc-falta"><b>🧩 Ainda sem vencimento cadastrado nesta empresa</b><span>Obrigatórios para quem tem empregado CLT (NR-1 e NR-7) e para o eSocial. Toque para cadastrar:</span><div>'+
       falta.map(function(t){ return ed?'<button type="button" onclick="docNovo(\''+esc(t).replace(/'/g,"\\'")+'\')">+ '+esc(t)+'</button>':'<em>'+esc(t)+'</em>'; }).join('')+'</div></div>';
-    else h+='<div class="doc-ok">✅ O básico desta empresa está todo cadastrado.</div>';
+    else h+='<div class="doc-ok">✅ PCMSO, PGR e certificado digital desta empresa estão cadastrados.</div>';
   }
   /* formulário */
   if(DOCS.edit){
@@ -10442,38 +10443,36 @@ function docDesenhar(forcar){
     h+='<div class="doc-form"><h3>'+(f.id?'✏️ Editar documento':'➕ Novo documento')+'</h3><div class="doc-fg">'+
       '<label>Empresa<select onchange="docCampo(\'emp\',this.value)">'+emps.map(function(e){ return '<option value="'+e.id+'"'+(e.id===f.emp?' selected':'')+'>'+esc(e.nome)+'</option>'; }).join('')+'</select></label>'+
       '<label>Tipo de documento<select id="docTipo" onchange="docCampo(\'tipo\',this.value)">'+opTipo+'</select></label>'+
-      '<label class="lg">Descrição <small>(opcional)</small><input placeholder="Ex.: 5ª alteração contratual · certificado A1 da contabilidade" value="'+esc(f.desc||'')+'" oninput="docCampo(\'desc\',this.value)"></label>'+
-      '<label>Emissão<input type="date" id="docEmi" value="'+esc((f.emissao||'').slice(0,10))+'" onchange="docCampo(\'emissao\',this.value)"></label>'+
-      '<label>Validade<input type="date" id="docVal" value="'+esc((f.validade||'').slice(0,10))+'" onchange="DOCS.edit._valManual=true;docCampo(\'validade\',this.value)"><small id="docDicaV"></small></label>'+
-      '<label class="lg">Link do arquivo no Drive<input placeholder="Cole o link do PDF no Google Drive" value="'+esc(f.link||'')+'" oninput="docCampo(\'link\',this.value)"></label>'+
-      '<label class="lg">Observação <small>(opcional)</small><input placeholder="Ex.: renovar pela contabilidade · senha com a Diretoria" value="'+esc(f.obs||'')+'" oninput="docCampo(\'obs\',this.value)"></label>'+
+      '<label>Emissão <small>(opcional)</small><input type="date" id="docEmi" value="'+esc((f.emissao||'').slice(0,10))+'" onchange="docCampo(\'emissao\',this.value)"></label>'+
+      '<label>Vencimento *<input type="date" id="docVal" value="'+esc((f.validade||'').slice(0,10))+'" onchange="DOCS.edit._valManual=true;docCampo(\'validade\',this.value)"></label>'+
+      '<label class="lg">Observação <small>(opcional)</small><input placeholder="Ex.: renova com a empresa de SST · certificado A1 fica com a contabilidade" value="'+esc(f.obs||'')+'" oninput="docCampo(\'obs\',this.value)"></label>'+
+      '<small id="docDicaV" class="doc-dica"></small>'+
       '</div><div class="doc-fbt"><button type="button" class="cg-bt" onclick="DOCS.edit=null;docDesenhar()">Cancelar</button><button type="button" class="cg-bt pri" onclick="docSalvarForm()">'+icone('salvar',16)+(f.id?'Salvar alterações':'Guardar documento')+'</button></div></div>';
   }
   /* barra */
-  h+='<div class="doc-bar"><div class="doc-seg" role="group" aria-label="Filtro">'+[['todos','Todos'],['alerta','Vencidos e vencendo'],['semarq','Sem link']].map(function(x){ return '<button type="button" class="'+(DOCS.filtro===x[0]?'on':'')+'" onclick="DOCS.filtro=\''+x[0]+'\';docDesenhar()">'+x[1]+'</button>'; }).join('')+'</div>'+
+  h+='<div class="doc-bar"><div class="doc-seg" role="group" aria-label="Filtro">'+[['todos','Todos'],['alerta','Vencidos e perto de vencer']].map(function(x){ return '<button type="button" class="'+(DOCS.filtro===x[0]?'on':'')+'" onclick="DOCS.filtro=\''+x[0]+'\';docDesenhar()">'+x[1]+'</button>'; }).join('')+'</div>'+
     '<input class="doc-busca" placeholder="Buscar documento…" value="'+esc(DOCS.busca)+'" oninput="DOCS.busca=this.value;docDesenharLista()">'+
     (ed&&!DOCS.edit?'<button type="button" class="cg-bt pri" onclick="docNovo()">'+icone('mais',16)+'Novo documento</button>':'')+'</div>';
   h+='<div id="docLista">'+docListaHtml(vis,!DOCS.emp,ed)+'</div>';
-  h+='<div class="hab-dica"><b>💡 Boas práticas</b><ul><li><b>Uma pasta por CNPJ no Drive</b>, com subpastas (Societário, Certidões, Licenças, SST) · cole o link da pasta acima e o de cada PDF no documento.</li><li><b>CRF do FGTS vale 30 dias</b> e CND Federal e CNDT valem 180 dias: são as que mais vencem sem ninguém ver.</li><li>O <b>certificado digital</b> parado no vencimento trava eSocial, FGTS Digital e DCTFWeb: renove com uns 30 dias de folga.</li><li>Arquivo sem link é arquivo que alguém vai procurar no WhatsApp: guarde o link sempre.</li></ul></div></div>';
+  h+='<div class="hab-dica"><b>💡 Boas práticas</b><ul><li><b>PCMSO</b> (NR-7) tem relatório anual e <b>PGR</b> (NR-1) revisão a cada 2 anos: a empresa de SST precisa de tempo, por isso o aviso vem <b>60 dias antes</b>.</li><li>Sem PCMSO e PGR em dia, os ASOs ficam sem base e o eSocial (S-2220 e S-2240) fica exposto em fiscalização.</li><li>O <b>certificado digital</b> vencido trava eSocial, FGTS Digital e DCTFWeb na hora: aviso 45 dias antes.</li><li>Renovou? Toque no lápis, troque o vencimento e guarde o PDF novo na pasta da empresa no Drive.</li></ul></div></div>';
   var o=modal2('docOv',h); if(DOCS.edit) docDicaVal(); return o;
 }
 function docListaHtml(vis,mostraEmp,ed){
   if(!vis.length) return '<div class="dm-vazio">'+(DOCS.filtro!=='todos'||DOCS.busca?'Nada com esse filtro.':'Nenhum documento guardado'+(DOCS.emp?' nesta empresa':'')+' ainda.'+(ed?' Toque em <b>Novo documento</b> ou nos atalhos acima.':''))+'</div>';
-  return '<div class="pc-tw"><table class="pcs-t doc-t"><thead><tr><th>Documento</th>'+(mostraEmp?'<th>Empresa</th>':'')+'<th>Emissão</th><th>Situação</th><th class="ctr">Arquivo</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>'+
+  return '<div class="pc-tw"><table class="pcs-t doc-t"><thead><tr><th>Documento</th>'+(mostraEmp?'<th>Empresa</th>':'')+'<th>Emissão</th><th>Vencimento</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>'+
     vis.map(function(x){ var d=x.d;
-      return '<tr><td><b>'+esc(d.tipo)+'</b>'+(d.desc?'<small>'+esc(d.desc)+'</small>':'')+(d.obs?'<small class="doc-obs">📝 '+esc(d.obs)+'</small>':'')+'</td>'+
+      return '<tr><td><b>'+esc(d.tipo)+'</b>'+(d.obs?'<small class="doc-obs">📝 '+esc(d.obs)+'</small>':'')+'</td>'+
         (mostraEmp?'<td><span class="doc-en">'+esc(x.e.nome)+'</span></td>':'')+
         '<td>'+(d.emissao?esc(fmtData(d.emissao.slice(0,10))):'<span class="mut">—</span>')+'</td>'+
         '<td><span class="doc-st '+x.s.k+'">'+esc(x.s.t)+'</span></td>'+
-        '<td class="ctr">'+(d.link?'<a class="doc-ab" href="'+esc(d.link)+'" target="_blank" rel="noopener" title="Abrir no Drive">Abrir ↗</a>':'<span class="doc-sem">sem link</span>')+'</td>'+
         (ed?'<td class="ctr"><span class="doc-acs"><button type="button" class="cg-ic" title="Editar" aria-label="Editar '+esc(d.tipo)+'" onclick="docEditar(\''+x.e.id+'\',\''+d.id+'\')">'+icone('lapis',16)+'</button><button type="button" class="cg-ic lock" title="Tirar da lista" aria-label="Tirar '+esc(d.tipo)+' da lista" onclick="docExcluir(\''+x.e.id+'\',\''+d.id+'\')">'+icone('lixo',16)+'</button></span></td>':'')+'</tr>';
     }).join('')+'</tbody></table></div>';
 }
 function docDesenharLista(){ /* a busca redesenha só a lista, para não perder o foco do campo */
   var emps=docEmpresas(), l=[], b=(DOCS.busca||'').trim().toUpperCase();
   emps.forEach(function(e){ if(DOCS.emp&&e.id!==DOCS.emp) return; (e.docs||[]).forEach(function(d){ var s=docStatus(d);
-    if(DOCS.filtro==='alerta'&&!(s.k==='venc'||s.k==='vence')) return; if(DOCS.filtro==='semarq'&&d.link) return;
-    if(b&&(d.tipo+' '+(d.desc||'')+' '+e.nome+' '+(d.obs||'')).toUpperCase().indexOf(b)<0) return; l.push({e:e,d:d,s:s}); }); });
+    if(DOCS.filtro==='alerta'&&!(s.k==='venc'||s.k==='vence')) return;
+    if(b&&(d.tipo+' '+e.nome+' '+(d.obs||'')).toUpperCase().indexOf(b)<0) return; l.push({e:e,d:d,s:s}); }); });
   l.sort(function(a,c){ return a.s.o-c.s.o||(a.s.dd||0)-(c.s.dd||0)||a.e.nome.localeCompare(c.e.nome,'pt-BR'); });
   var x=el('docLista'); if(x) x.innerHTML=docListaHtml(l,!DOCS.emp,docPodeEditar());
 }
@@ -10496,7 +10495,7 @@ function docDesenharLista(){ /* a busca redesenha só a lista, para não perder 
   '.doc-ok{padding:9px 14px;border-radius:12px;border:1px solid rgba(61,220,132,.3);background:rgba(61,220,132,.06);color:#bfeed3;font-size:13px;margin-bottom:10px}'+
   '.doc-form{padding:14px;border:1px solid rgba(225,6,0,.4);border-radius:12px;background:rgba(225,6,0,.04);margin-bottom:12px}.doc-form h3{margin:0 0 10px!important}'+
   '.doc-fg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}.doc-fg input,.doc-fg select{flex:none;width:100%}.doc-fg label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}.doc-fg label.lg{grid-column:span 2}.doc-fg small{font-size:11px;color:var(--mut2,var(--mut))}'+
-  '.doc-fbt{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}'+
+  '.doc-fbt{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.doc-dica{grid-column:1/-1;font-size:12px;color:var(--mut)}'+
   '.doc-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px}.doc-busca{max-width:260px}'+
   '.doc-seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.doc-seg button{padding:7px 12px;border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;cursor:pointer}.doc-seg button.on{background:rgba(225,6,0,.18);color:#fff}'+
   '.doc-t td small{display:block;color:var(--mut);font-size:11.5px;font-weight:400}.doc-t .doc-obs{color:#c9b98a}.doc-en{font-size:12.5px}'+
@@ -10523,7 +10522,7 @@ function docDesenharLista(){ /* a busca redesenha só a lista, para não perder 
         var c=app.querySelector('.em-card[data-id="'+e.id+'"]'); if(!c) return;
         var rs=docResumo(e); tot.venc+=rs.venc; tot.vence+=rs.vence; tot.n+=rs.n;
         var selo=rs.venc?'<i class="venc">🔴 '+rs.venc+' vencido'+(rs.venc>1?'s':'')+'</i>':'';
-        selo+=rs.vence?'<i class="vence" title="vence(m) nos próximos 30 dias">🟠 '+rs.vence+' a vencer</i>':'';
+        selo+=rs.vence?'<i class="vence" title="perto do vencimento">🟠 '+rs.vence+' a vencer</i>':'';
         if(!selo) selo=rs.n?'<i class="ok">em dia</i>':'<i class="nada">nenhum ainda</i>';
         var div=document.createElement('div'); div.style.cssText='display:flex;flex-direction:column;gap:6px';
         div.innerHTML='<button type="button" class="em-docs" onclick="docsAbrir(\''+e.id+'\')" aria-label="Documentos de '+esc(e.nome||'')+'">📁 <b>'+rs.n+'</b> documento'+(rs.n===1?'':'s')+'<span class="sp"></span>'+selo+'</button>'+
@@ -10534,7 +10533,7 @@ function docDesenharLista(){ /* a busca redesenha só a lista, para não perder 
       var kp=app.querySelector('.em-kpis');
       if(kp){ var al=tot.venc+tot.vence, k=document.createElement('button'); k.type='button'; k.className='pc-k'+(al?' warn':''); k.style.cssText='cursor:pointer;text-align:left;font:inherit;color:inherit';
         k.onclick=function(){ DOCS.emp=''; DOCS.edit=null; DOCS.filtro=al?'alerta':'todos'; DOCS.busca=''; docDesenhar(true); };
-        k.innerHTML='<span>Documentos</span><b>'+(al||tot.n)+'</b><small>'+(al?(tot.venc?tot.venc+' vencido(s) · ':'')+tot.vence+' vence(m) em 30 dias':(tot.n?'todos em dia':'nenhum cadastrado'))+'</small>'; kp.appendChild(k); }
+        k.innerHTML='<span>Documentos</span><b>'+(al||tot.n)+'</b><small>'+(al?(tot.venc?tot.venc+' vencido(s) · ':'')+tot.vence+' perto de vencer':(tot.n?'todos em dia':'nenhum cadastrado'))+'</small>'; kp.appendChild(k); }
       var cab=app.querySelector('.pc-cab');
       if(cab&&!cab.querySelector('.doc-topo')){ var b=document.createElement('button'); b.type='button'; b.className='cg-bt doc-topo'; b.innerHTML='📁 Documentos das empresas'; b.onclick=function(){ docsAbrir(''); };
         var bt=cab.querySelector('button'); if(bt){ var w=document.createElement('div'); w.style.cssText='display:flex;gap:8px;flex-wrap:wrap'; bt.parentNode.insertBefore(w,bt); w.appendChild(b); w.appendChild(bt); } else cab.appendChild(b); }
@@ -10543,12 +10542,12 @@ function docDesenharLista(){ /* a busca redesenha só a lista, para não perder 
     return r;
   };
 
-  /* radar do Início: documento vencido ou vencendo em 30 dias (só quem abre o Cadastro geral) */
+  /* radar do Início: documento vencido ou perto de vencer (cada tipo tem sua antecedência) */
   if(typeof RD_CATS!=='undefined'){ RD_CATS.splice(RD_CATS.length-1,0,['doc','Documentos']); RD_IC.doc='<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'; }
   var DOC_RADAR=null;
   function docRadarItens(cad){
     var l=[]; ((cad&&cad.empresas)||[]).forEach(function(e){ if(e.ativa===false) return; (e.docs||[]).forEach(function(d){ var s=docStatus(d); if(s.k!=='venc'&&s.k!=='vence') return;
-      l.push({cat:'doc',ic:'doc',t:d.tipo+' · '+e.nome,s:(s.k==='venc'?'Documento vencido em ':'Vence em ')+ddmm(d.validade.slice(0,10))+(d.link?' · renovar e trocar o arquivo no Drive':' · renovar e guardar o link do arquivo'),d:d.validade.slice(0,10),abrir:"docsAbrir('"+e.id+"')"}); }); });
+      l.push({cat:'doc',ic:'doc',t:d.tipo+' · '+e.nome,s:(s.k==='venc'?'Vencido em ':'Vence em ')+ddmm(d.validade.slice(0,10))+(d.obs?' · '+d.obs:' · providenciar a renovação'),d:d.validade.slice(0,10),abrir:"docsAbrir('"+e.id+"')"}); }); });
     return l;
   }
   var _dr=desenharRadar;
