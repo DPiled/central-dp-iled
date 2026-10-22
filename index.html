@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="22/10/2026 · v92">
+<meta name="central-versao" content="22/10/2026 · v94">
 <meta name="central-novidades" content="Lembretes e reuniões com aviso, pasta do Drive na ficha, dados cadastrais das empresas e demandas com listas e modelos.">
 
 <meta charset="utf-8">
@@ -12069,6 +12069,7 @@ dmCartao=function(d,mostrarPessoa,motivo,agrupado){
   if(mostrarPessoa) mt.push(nota?esc(dmNomeDe(d.autor_email,d.autor_nome)):(dmResps(d).length>1?'👥 ':'👤 ')+esc(dmNomesResp(d)));
   if(!nota&&d.categoria&&d.categoria!=='Outros') mt.push(esc(d.categoria));
   if(!nota&&d.estado&&d.estado!=='DF e SP') mt.push(esc(d.estado));
+  if(!nota) mt.push('<span class="dm-cri" title="Quem registrou a demanda">✍️ criada por '+esc(dmNomeDe(d.autor_email,d.autor_nome))+(d.criado_em?' em '+ddmm(d.criado_em.slice(0,10)):'')+'</span>');
   var st=d.status||'aberta';
   var sel='<select class="dm-st st-'+esc(st)+'" aria-label="Situação" onchange="dmMudarStatus(\''+id+'\',this.value)"'+(pode?'':' disabled')+'>'+Object.keys(DM_STATUS).filter(function(k){ return !nota||k==='aberta'||k==='concluida'; }).map(function(k){ return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+(nota&&k==='aberta'?'Pendente':DM_STATUS[k])+'</option>'; }).join('')+'</select>';
   var ac='';
@@ -12747,6 +12748,11 @@ function lemIniciar(){
    Itens marcados como "gestora" só aparecem para a gestora (permissões, valores, backup…).
    Para uma versão nova: acrescentar no topo de NOVIDADES. */
 var NOVIDADES=[
+  {v:'v93',data:'22/10/2026',itens:[
+    ['🗂','Demandas com o topo mais limpo','Situação numa fileira só (Abertas, A fazer, Em execução, Aguardando, Atrasadas, Concluídas) e, embaixo, busca + setor + pessoa + agrupar.'],
+    ['✍️','Quem criou e quando','Cada demanda mostra quem registrou e em que dia. Novos filtros: Criada por, Responsável e Data (criação, prazo ou conclusão).'],
+    ['➕','Setores novos','Dá para cadastrar outros setores além de RH, Jurídico, DP e Geral: "➕ Novo setor…" no filtro de setor ou no formulário da demanda.']
+  ]},
   {v:'v92',data:'22/10/2026',itens:[
     ['💰','Pagamentos no "Hoje você tem"','Ao entrar: o que vence hoje, amanhã e o que está vencido sem pagar, direto do Calendário. Também aparece em ⏰ Lembretes.'],
     ['🔁','Demandas automáticas','"Fechamento do mês" nasce sozinho todo dia 1º, já com a lista e as responsáveis. Ajuste em Demandas → 🔁 Automáticas.'],
@@ -13271,6 +13277,171 @@ function v92MenuFicha(){
     '.dma-c2{display:flex;flex-direction:column;gap:6px}.dma-c2 label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}.dma-c2 input{width:90px;padding:6px 8px;border-radius:9px;border:1px solid var(--line2);background:var(--panel);color:var(--txt);font:inherit}'+
     '.dma-c3{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dma-c3>span{width:100%;font-size:12px;color:var(--mut)}'+
     '@media (max-width:760px){.dma-r{grid-template-columns:1fr}}';
+  document.head.appendChild(st);
+})();
+</script>
+<script>
+/* ================= v93 · DEMANDAS: SETORES NOVOS E TOPO SIMPLES =================
+   • Setores: além de RH, Jurídico, DP e Geral, dá para cadastrar outros (nome + cor).
+     "+ Novo setor" no filtro de setor e no formulário; "⚙ Setores" para ver e tirar os criados.
+   • Topo mais limpo, em 2 linhas só:
+     1) situação (uma fileira só, com números): Abertas · A fazer · Em execução · Aguardando · Atrasadas · Concluídas
+     2) busca + setor + pessoa + agrupar, lado a lado.
+     Saíram: as bolinhas de setor em fila, a segunda fileira de situação e o "Só demandas / Só anotações"
+     (anotações têm a aba própria).
+   Salvo em kv_store "dm-setores" (não precisa rodar SQL). */
+var DMS={extra:null};
+var DMS_CORES=['#2dd4bf','#f97316','#22c55e','#e879f9','#38bdf8','#facc15','#fb7185','#94a3b8','#a3e635','#c084fc'];
+function dmsAplicar(l){
+  for(var i=DM_SETORES.length-1;i>=0;i--) if(DM_SETORES[i].extra&&!(l||[]).some(function(s){ return s.id===DM_SETORES[i].id; })) DM_SETORES.splice(i,1);
+  (l||[]).forEach(function(s){ var x=DM_SETORES.find(function(y){ return y.id===s.id; }); if(x){ if(x.extra) x.cor=s.cor; return; } DM_SETORES.push({id:s.id,nome:'Demandas '+s.id,cor:s.cor,cats:['Geral','Outros'],extra:true}); });
+}
+function dmsCarregar(){ return kvLer2('dm-setores',[]).then(function(l){ DMS.extra=Array.isArray(l)?l:[]; dmsAplicar(DMS.extra); return DMS.extra; }).catch(function(){ DMS.extra=DMS.extra||[]; }); }
+function dmsNovo(depois){
+  var usadas=DM_SETORES.map(function(s){ return s.cor; }), cor=DMS_CORES.find(function(c){ return usadas.indexOf(c)<0; })||DMS_CORES[0];
+  DMS.nova={cor:cor,depois:depois||null};
+  var h='<div class="imp-box dms-box" role="dialog" aria-label="Novo setor"><div class="imp-cab"><div><h2>➕ Novo setor de demandas</h2><p>Ex.: Financeiro, Segurança do trabalho, Compras, Operações SP.</p></div><button type="button" class="nm-b" onclick="el(\'dmsOv\').classList.remove(\'on\')">✕</button></div>'+
+    '<label class="dms-l">Nome do setor<input id="dmsNome" maxlength="24" placeholder="Ex.: Financeiro" onkeydown="if(event.key===\'Enter\')dmsSalvarNovo()"></label>'+
+    '<div class="dms-l">Cor<div class="dms-cores">'+DMS_CORES.map(function(c){ return '<button type="button" class="dms-cor'+(c===cor?' on':'')+'" style="--c:'+c+'" aria-label="Cor '+c+'" onclick="DMS.nova.cor=\''+c+'\';document.querySelectorAll(\'.dms-cor\').forEach(function(b){b.classList.remove(\'on\')});this.classList.add(\'on\')"></button>'; }).join('')+'</div></div>'+
+    '<div class="imp-rod"><span>Aparece para toda a equipe.</span><button type="button" class="nm-b" onclick="el(\'dmsOv\').classList.remove(\'on\')">Cancelar</button><button type="button" class="nm-b pri" onclick="dmsSalvarNovo()">💾 Criar setor</button></div></div>';
+  modal2('dmsOv',h); setTimeout(function(){ var i=el('dmsNome'); if(i) i.focus(); },30);
+}
+function dmsSalvarNovo(){
+  var n=((el('dmsNome')||{}).value||'').trim().replace(/\s+/g,' '); if(!n){ var i=el('dmsNome'); if(i){ i.classList.add('falta'); i.focus(); } return; }
+  n=n.charAt(0).toUpperCase()+n.slice(1);
+  if(DM_SETORES.some(function(s){ return chaveNome(s.id)===chaveNome(n); })){ aviso('Já existe o setor "'+n+'".',true); return; }
+  var cor=DMS.nova.cor, depois=DMS.nova.depois;
+  kvLer2('dm-setores',[]).then(function(l){ l=Array.isArray(l)?l:[]; l.push({id:n,cor:cor,criado_por:(EU&&EU.nome)||'',em:hoje()}); return Promise.resolve(kvGravar2('dm-setores',l)).then(function(r){ if(r&&r.error) throw r.error; DMS.extra=l; dmsAplicar(l); }); })
+    .then(function(){ el('dmsOv').classList.remove('on'); aviso('✓ Setor "'+n+'" criado.'); if(depois) depois(n); else dmDesenhar(); })
+    .catch(function(e){ aviso('Não salvou: '+((e&&e.message)||''),true); });
+}
+function dmsGerenciar(){
+  var conta=function(id){ return (DM.dados||[]).filter(function(d){ return d.tipo!=='anotacao'&&dmSetor(d)===id; }).length; };
+  var h='<div class="imp-box dms-box" role="dialog" aria-label="Setores"><div class="imp-cab"><div><h2>⚙ Setores das demandas</h2><p>Os quatro primeiros são fixos. Os que vocês criaram podem sair.</p></div><button type="button" class="nm-b" onclick="el(\'dmsOv\').classList.remove(\'on\')">✕</button></div><div class="dms-lista">'+
+    DM_SETORES.map(function(s){ var n=conta(s.id); return '<div class="dms-it"><i style="background:'+s.cor+'"></i><b>'+esc(s.id)+'</b><span>'+n+' demanda'+(n===1?'':'s')+'</span>'+(s.extra&&dmMaster()?'<button type="button" class="dm-ic del" title="Tirar o setor" onclick="dmsTirar(\''+esc(s.id)+'\','+n+')">🗑</button>':'<small>'+(s.extra?'criado':'fixo')+'</small>')+'</div>'; }).join('')+
+    '</div><button type="button" class="nm-b pri" style="margin-top:12px" onclick="dmsNovo()">➕ Novo setor</button></div>';
+  modal2('dmsOv',h);
+}
+function dmsTirar(id,n){
+  dialogo('Tirar o setor "'+id+'"?'+(n?'\n\nAs '+n+' demanda(s) dele passam a aparecer em Geral (nada é apagado).':''),{sim:function(){
+    kvLer2('dm-setores',[]).then(function(l){ l=(Array.isArray(l)?l:[]).filter(function(s){ return s.id!==id; }); return Promise.resolve(kvGravar2('dm-setores',l)).then(function(){ DMS.extra=l; dmsAplicar(l); }); })
+      .then(function(){ if(DM.fSetor===id) DM.fSetor=''; aviso('Setor tirado.'); dmsGerenciar(); dmDesenhar(); });
+  }});
+}
+
+/* ---------- topo: situação numa fileira só + barra de filtros ---------- */
+function dmSitAtual(){ if(DM.fSt==='atrasadas') return 'atrasadas'; if(DM.fSt==='concluidas') return 'concluidas'; if(DM.fSt==='todas') return 'todas'; return DM.fSit||'abertas'; }
+function dmSitSet(k){
+  if(k==='abertas'){ DM.fSt='abertas'; DM.fSit=''; }
+  else if(k==='aberta'||k==='andamento'||k==='aguardando'){ DM.fSt='abertas'; DM.fSit=k; }
+  else { DM.fSt=k; DM.fSit=''; }
+  dmGuardar(); dmDesenhar();
+}
+dmFiltros=function(comPessoa){
+  var notas=DM.aba==='notas', cur=dmSitAtual();
+  var base=(DM.dados||[]).filter(function(d){ return notas?(d.tipo==='anotacao'&&(d.autor_email||'').toLowerCase()===dmEu()):(d.tipo!=='anotacao'&&(DM.aba!=='minhas'||dmMinha(d))); });
+  if(!notas&&DM.aba==='todas'){ if(DM.fSetor) base=base.filter(function(d){ return dmSetor(d)===DM.fSetor; }); if(DM.fPes&&DM.fPes!=='todas') base=base.filter(function(d){ return dmResps(d).indexOf(DM.fPes)>=0; }); }
+  if(!notas) base=dmFiltroExtra(base);
+  var n=function(f){ return base.filter(f).length; };
+  var ops=notas?[['abertas','Pendentes',n(dmAberta)],['concluidas','Concluídas',n(function(d){ return !dmAberta(d); })],['todas','Todas',base.length]]:
+    [['abertas','Abertas',n(dmAberta),''],['aberta','A fazer',n(function(d){ return (d.status||'aberta')==='aberta'; }),'af'],['andamento','Em execução',n(function(d){ return d.status==='andamento'; }),'ex'],
+     ['aguardando','Aguardando',n(function(d){ return d.status==='aguardando'; }),'ag'],['atrasadas','Atrasadas',n(dmAtrasada),'at'],['concluidas','Concluídas',n(function(d){ return !dmAberta(d); }),'ok']];
+  if(notas&&['abertas','concluidas','todas'].indexOf(cur)<0) cur='abertas';
+  var h='<div class="dm93-sit" role="tablist" aria-label="Situação">'+ops.map(function(o){ return '<button type="button" role="tab" aria-selected="'+(cur===o[0])+'" class="dm93-s '+(o[3]||'')+(cur===o[0]?' on':'')+(o[2]?'':' zero')+'" onclick="dmSitSet(\''+o[0]+'\')">'+(o[3]&&o[0]!=='abertas'?'<i></i>':'')+o[1]+'<b>'+o[2]+'</b></button>'; }).join('')+'</div>';
+  h+='<div class="dm93-bar"><input id="dmBusca" class="dm-filtro busca" type="search" placeholder="🔍 Buscar (título, observação ou código do item)" aria-label="Buscar demanda" value="'+esc(DM.busca)+'" oninput="DM.busca=this.value;DM._focoBusca=true;dmDesenhar()">';
+  if(!notas&&DM.aba==='todas'){
+    var cs={}; (DM.dados||[]).forEach(function(d){ if(d.tipo!=='anotacao'&&dmAberta(d)){ var s=dmSetor(d); cs[s]=(cs[s]||0)+1; } });
+    h+='<label class="dm93-f"><span>Setor</span><select onchange="if(this.value===\'__novo\'){this.value=DM.fSetor||\'\';dmsNovo(function(n){DM.fSetor=n;dmGuardar();dmDesenhar();});return;} DM.fSetor=this.value;dmGuardar();dmDesenhar()"><option value="">Todos</option>'+
+      DM_SETORES.map(function(s){ return '<option value="'+esc(s.id)+'"'+(DM.fSetor===s.id?' selected':'')+'>'+esc(s.id)+(cs[s.id]?' ('+cs[s.id]+')':'')+'</option>'; }).join('')+'<option value="__novo">➕ Novo setor…</option></select></label>';
+    h+='<label class="dm93-f"><span>Responsável</span><select onchange="DM.fPes=this.value;dmGuardar();dmDesenhar()"><option value="todas">Todas</option>'+(DM.usuarios||[]).map(function(u){ var e=(u.email||'').toLowerCase(); return '<option value="'+esc(e)+'"'+(DM.fPes===e?' selected':'')+'>'+esc(dmNomeDe(e,u.nome))+'</option>'; }).join('')+'</select></label>';
+    h+=dmFiltroAutorHtml();
+    h+='<label class="dm93-f"><span>Agrupar</span><select onchange="DM.agrupar=this.value;dmGuardar();dmDesenhar()">'+[['setor','por setor'],['pessoa','por pessoa'],['prazo','por prazo']].map(function(x){ return '<option value="'+x[0]+'"'+((DM.agrupar||'setor')===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>';
+    h+='<button type="button" class="dm-ic dm93-cfg" title="Setores das demandas" aria-label="Setores das demandas" onclick="dmsGerenciar()">⚙</button>';
+  }
+  if(!notas&&DM.aba!=='todas') h+=dmFiltroAutorHtml();
+  if(!notas) h+=dmFiltroDataHtml();
+  h+='</div>';
+  if(!notas&&(DM.fAutor||DM.fData)) h+='<div class="dm94-ativo">Filtrando: '+[DM.fAutor?'criadas por <b>'+esc(dmNomeDe(DM.fAutor))+'</b>':'',DM.fData?'<b>'+esc(dmDataRot())+'</b>':''].filter(Boolean).join(' · ')+' <button type="button" onclick="DM.fAutor=\'\';DM.fData=\'\';dmDesenhar()">× limpar</button></div>';
+  return h;
+};
+(function(){
+  /* "Todas": sai a fileira de bolinhas de setor (o setor agora está no filtro) */
+  var _vt=dmVerTodas;
+  dmVerTodas=function(c){ DM.fTipo='demanda'; var h=_vt.apply(this,arguments); return h.replace(/<div class="dm-sets"[\s\S]*?<\/select><\/span><\/div>/,''); };
+  /* formulário: "+ Novo setor" na lista de setores */
+  var _fh=dmFormHTML;
+  dmFormHTML=function(){ var h=_fh.apply(this,arguments);
+    return h.replace(/(<select id="dmSetor"[^>]*>)([\s\S]*?)(<\/select>)/,function(m,a,b,c){ return a.replace('<select id="dmSetor"','<select id="dmSetor" data-v93="1"')+b+'<option value="__novo">➕ Novo setor…</option>'+c; }); };
+  document.addEventListener('change',function(e){ var s=e.target; if(!s||s.id!=='dmSetor'||s.value!=='__novo') return; var ant=s.getAttribute('data-ant')||'Geral'; s.value=ant;
+    dmsNovo(function(n){ var x=el('dmSetor'); if(x){ var o=document.createElement('option'); o.value=n; o.textContent=n; x.insertBefore(o,x.querySelector('option[value="__novo"]')); x.value=n; try{ dmTrocarSetor(n); }catch(er){} } }); },true);
+  document.addEventListener('focusin',function(e){ var s=e.target; if(s&&s.id==='dmSetor') s.setAttribute('data-ant',s.value); },true);
+  /* carrega os setores criados junto com as demandas */
+  var _cd=carregarDemandas; carregarDemandas=function(){ var a=arguments, me=this; return dmsCarregar().then(function(){ return _cd.apply(me,a); }); };
+  /* tira o filtro de situação antigo (v84) para não ficar duplicado */
+  window.dmSit=function(s){ dmSitSet(s==='concluida'?'concluidas':s); };
+  var st=document.createElement('style');
+  st.textContent='.dm-sit{display:none!important}'+
+    '.dm93-sit{display:flex;flex-wrap:wrap;gap:4px;padding:4px;margin:0 0 10px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);width:fit-content;max-width:100%}'+
+    '.dm93-s{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:0;border-radius:9px;background:none;color:var(--mut);font:inherit;font-size:13px;cursor:pointer}.dm93-s:hover{color:var(--txt);background:rgba(255,255,255,.04)}'+
+    '.dm93-s b{font-variant-numeric:tabular-nums;color:var(--txt);font-size:12.5px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.07)}.dm93-s.zero b{opacity:.5}'+
+    '.dm93-s i{width:8px;height:8px;border-radius:50%;background:#9aa0af}.dm93-s.af i{background:#c9ccd6}.dm93-s.ex i{background:#4d8dff}.dm93-s.ag i{background:#ffb020}.dm93-s.at i{background:#ff5a5f}.dm93-s.ok i{background:#3ddc84}'+
+    '.dm93-s.on{background:var(--panel);color:var(--txt);box-shadow:0 1px 0 rgba(255,255,255,.06),0 0 0 1px var(--line2)}.dm93-s.at.on b{background:rgba(255,90,95,.2);color:#ff8a8d}'+
+    '.dm93-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 16px}.dm93-bar .busca{flex:1 1 260px;min-width:200px}'+
+    '.dm93-f{display:inline-flex;align-items:center;gap:6px;padding:0 4px 0 10px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);font-size:12.5px;color:var(--mut)}.dm93-f select{border:0;background:transparent;color:var(--txt);font:inherit;font-size:13px;padding:8px 4px;cursor:pointer;max-width:170px}.dm93-f select option{background:#14161d}'+
+    '.dms-box{width:min(480px,100%)}.dms-l{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--mut);margin:10px 0}.dms-l input{padding:9px 11px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:inherit;font-size:14px}'+
+    '.dms-cores{display:flex;flex-wrap:wrap;gap:8px}.dms-cor{width:30px;height:30px;border-radius:50%;border:2px solid transparent;background:var(--c);cursor:pointer}.dms-cor.on{border-color:#fff;box-shadow:0 0 0 2px var(--c)}'+
+    '.dms-lista{display:flex;flex-direction:column;gap:4px}.dms-it{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}.dms-it i{width:12px;height:12px;border-radius:50%}.dms-it span{margin-left:auto;font-size:12.5px;color:var(--mut)}.dms-it small{font-size:11px;color:var(--mut2);min-width:40px;text-align:right}'+
+    '@media (max-width:640px){.dm93-sit{width:100%}.dm93-s{padding:6px 9px;font-size:12.5px}}';
+  document.head.appendChild(st);
+  if(typeof EU!=='undefined'&&EU) dmsCarregar();
+})();
+</script>
+<script>
+/* ================= v94 · DEMANDAS: QUEM CRIOU, QUANDO E FILTROS =================
+   • Cartão: "✍️ Mirthes · 21/10" = quem registrou a demanda e em que dia (sempre visível).
+   • Filtros novos: Criada por · Responsável (era "Pessoa") · Data (hoje, 7 dias, este mês,
+     mês passado ou um período escolhido), olhando a data de criação, do prazo ou de conclusão. */
+DM.fAutor=DM.fAutor||''; DM.fData=DM.fData||''; DM.fDataCampo=DM.fDataCampo||'criado_em'; DM.fDe=DM.fDe||''; DM.fAte=DM.fAte||'';
+function dmDataIntervalo(){
+  var h=hoje(), m=h.slice(0,7);
+  if(DM.fData==='hoje') return [h,h];
+  if(DM.fData==='7d') return [somaDias(h,-6),h];
+  if(DM.fData==='mes') return [m+'-01',fimDoMes(m)];
+  if(DM.fData==='mesant'){ var d=new Date(h+'T12:00:00'); d.setDate(1); d.setMonth(d.getMonth()-1); var ma=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2); return [ma+'-01',fimDoMes(ma)]; }
+  if(DM.fData==='per') return [DM.fDe||'0000-01-01',DM.fAte||'9999-12-31'];
+  return null;
+}
+var DM_DATA_CAMPOS={criado_em:'criação',prazo:'prazo',concluido_em:'conclusão'};
+function dmDataRot(){ var r={hoje:'hoje','7d':'últimos 7 dias',mes:'este mês',mesant:'mês passado',per:(DM.fDe?fmtData(DM.fDe):'…')+' a '+(DM.fAte?fmtData(DM.fAte):'…')}[DM.fData]||''; return (DM_DATA_CAMPOS[DM.fDataCampo]||'criação')+': '+r; }
+function dmFiltroExtra(l){
+  if(DM.fAutor) l=l.filter(function(d){ return (d.autor_email||'').toLowerCase()===DM.fAutor; });
+  var iv=dmDataIntervalo();
+  if(iv){ var c=DM.fDataCampo||'criado_em'; l=l.filter(function(d){ var v=(''+(d[c]||'')).slice(0,10); return dataOk(v)&&v>=iv[0]&&v<=iv[1]; }); }
+  return l;
+}
+function dmFiltroAutorHtml(){
+  var au={}; (DM.dados||[]).forEach(function(d){ if(d.tipo!=='anotacao'&&d.autor_email) au[(d.autor_email||'').toLowerCase()]=d.autor_nome||''; });
+  (DM.usuarios||[]).forEach(function(u){ var e=(u.email||'').toLowerCase(); if(e&&!(e in au)) au[e]=u.nome||''; });
+  return '<label class="dm93-f"><span>Criada por</span><select onchange="DM.fAutor=this.value;dmDesenhar()"><option value="">Todas</option>'+
+    Object.keys(au).sort(function(a,b){ return dmNomeDe(a,au[a]).localeCompare(dmNomeDe(b,au[b]),'pt-BR'); }).map(function(e){ return '<option value="'+esc(e)+'"'+(DM.fAutor===e?' selected':'')+'>'+esc(dmNomeDe(e,au[e]))+'</option>'; }).join('')+'</select></label>';
+}
+function dmFiltroDataHtml(){
+  var h='<label class="dm93-f"><span>Data</span><select onchange="DM.fData=this.value;if(this.value===\'per\'&&!DM.fDe){DM.fDe=hoje().slice(0,7)+\'-01\';DM.fAte=hoje();}dmDesenhar()">'+
+    [['','Qualquer'],['hoje','Hoje'],['7d','Últimos 7 dias'],['mes','Este mês'],['mesant','Mês passado'],['per','Escolher período…']].map(function(x){ return '<option value="'+x[0]+'"'+(DM.fData===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>';
+  if(DM.fData){
+    h+='<label class="dm93-f"><span>de</span><select onchange="DM.fDataCampo=this.value;dmDesenhar()">'+Object.keys(DM_DATA_CAMPOS).map(function(k){ return '<option value="'+k+'"'+(DM.fDataCampo===k?' selected':'')+'>'+DM_DATA_CAMPOS[k]+'</option>'; }).join('')+'</select></label>';
+    if(DM.fData==='per') h+='<span class="dm94-per"><input type="date" value="'+esc(DM.fDe)+'" aria-label="De" onchange="DM.fDe=this.value;dmDesenhar()"> até <input type="date" value="'+esc(DM.fAte)+'" aria-label="Até" onchange="DM.fAte=this.value;dmDesenhar()"></span>';
+  }
+  return h;
+}
+(function(){
+  var _f=dmFiltrar;
+  dmFiltrar=function(l){ var r=_f.apply(this,arguments); try{ if(DM.aba!=='notas') r=dmFiltroExtra(r); }catch(e){} return r; };
+  var st=document.createElement('style');
+  st.textContent='.dm-cri{color:var(--mut2)}'+
+    '.dm94-per{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut)}.dm94-per input{padding:7px 9px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:inherit;font-size:13px}'+
+    '.dm94-ativo{margin:-8px 0 14px;font-size:12.5px;color:var(--mut)}.dm94-ativo b{color:var(--txt)}.dm94-ativo button{border:0;background:none;color:#9cc0ff;cursor:pointer;font:inherit;font-size:12.5px}'+
+    '.dm93-bar .busca{flex:1 1 100%}';
   document.head.appendChild(st);
 })();
 </script>
