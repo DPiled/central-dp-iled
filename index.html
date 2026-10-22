@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="22/10/2026 · v96">
+<meta name="central-versao" content="22/10/2026 · v97">
 <meta name="central-novidades" content="Lembretes e reuniões com aviso, pasta do Drive na ficha, dados cadastrais das empresas e demandas com listas e modelos.">
 
 <meta charset="utf-8">
@@ -12748,6 +12748,10 @@ function lemIniciar(){
    Itens marcados como "gestora" só aparecem para a gestora (permissões, valores, backup…).
    Para uma versão nova: acrescentar no topo de NOVIDADES. */
 var NOVIDADES=[
+  {v:'v97',data:'22/10/2026',itens:[
+    ['🗒','Sem cadastro em branco','Ao fechar uma ficha sem nome, a Central pergunta se quer salvar, apagar ou voltar e preencher. Na lista, "🗒 em branco" mostra os que ficaram.'],
+    ['👩‍👧','Nome da mãe e filhos','Na ficha (Pessoa): nome da mãe e filhos menores de 14 anos, com nome e nascimento de cada um.']
+  ]},
   {v:'v95',data:'22/10/2026',itens:[
     ['▦','Demandas em quadro','Quatro colunas: A fazer, Em execução, Aguardando retorno e Concluídas. Cada demanda é um cartão pequeno (título, quem, prazo). Toque para ver tudo; arraste para outra coluna para mudar a situação.'],
     ['📋','Lista e observação no formulário','Em Nova/Editar demanda: "📋 Lista de itens" (marca ✓ feito, ⏳ aguardando e 💬 observação em cada item) e "📝 Observação".'],
@@ -12761,7 +12765,6 @@ var NOVIDADES=[
   {v:'v92',data:'22/10/2026',itens:[
     ['💰','Pagamentos no "Hoje você tem"','Ao entrar: o que vence hoje, amanhã e o que está vencido sem pagar, direto do Calendário. Também aparece em ⏰ Lembretes.'],
     ['🔁','Demandas automáticas','"Fechamento do mês" nasce sozinho todo dia 1º, já com a lista e as responsáveis. Ajuste em Demandas → 🔁 Automáticas.'],
-    ['📋','Admissão e desligamento viram demanda','Ao cadastrar alguém novo ou registrar um desligamento na ficha, a Central oferece criar a demanda com o checklist. Também no menu "Mais ▾" da ficha.'],
     ['📄','Documentos vencendo','PCMSO, PGR, certidões e outros que vencem em até 30 dias aparecem no "Hoje você tem".'],
     ['✎','Última alteração na ficha','Embaixo do nome: quem mexeu por último, quando e em qual campo.']
   ]},
@@ -13208,8 +13211,7 @@ function v92CriarDaFicha(id,tipo){
     var c=(CX.dados||[]).find(function(x){ return x.id===id; }), antes=c?c[key]:null;
     var r=_cs.apply(this,arguments);
     try{ if(c){ var vazio=function(v){ return v==null||(''+v).trim()===''; };
-      if(key==='nome'&&vazio(antes)&&!vazio(val)) setTimeout(function(){ v92OferecerDemanda(Object.assign({},c,{nome:val}),'adm'); },900);
-      if(key==='data_desligamento'&&vazio(antes)&&dataOk(val)) setTimeout(function(){ v92OferecerDemanda(Object.assign({},c,{data_desligamento:val}),'des'); },900);
+      /* 22/10: a gestora pediu para NÃO oferecer demanda de admissão/desligamento pela ficha */
       if(V92L.cache[id]!==undefined&&_cs) setTimeout(function(){ if(c[key]===val||(''+c[key])===(''+val)){ V92L.cache[id]={usuario:(EU&&EU.nome)||'',quando:new Date().toISOString(),campo:key}; v92PintarUltima(); } },1500);
     } }catch(e){}
     return r;
@@ -13232,7 +13234,7 @@ function v92PintarUltima(){
   }catch(e){}
 }
 /* menu "Mais ▾" da ficha: criar as demandas na mão */
-function v92MenuFicha(){
+function v92MenuFicha(){ return; /* 22/10: tirado a pedido da gestora */
   try{ var m=document.querySelector('#cxDrawer .cx-menu'); if(!m||m.querySelector('.v92-mf')||!CX.aberto) return; var id=CX.aberto;
     var a=document.createElement('button'); a.className='v92-mf'; a.textContent='📋 Criar demanda de admissão'; a.onclick=function(){ v92CriarDaFicha(id,'adm'); };
     var d=document.createElement('button'); d.className='v92-mf'; d.textContent='📋 Criar demanda de desligamento'; d.onclick=function(){ v92CriarDaFicha(id,'des'); };
@@ -13704,6 +13706,94 @@ function dm96Sec(s){ var f=DM.form; if(!f) return; f.sec96[s]=!f.sec96[s]; var b
     '.dm96-obs{grid-column:3/-1;font-size:12.5px!important;color:#ffc35a!important;border:1px dashed rgba(255,176,32,.35)!important}'+
     '.dm96-add{width:100%;box-sizing:border-box;margin-top:8px;padding:9px 11px;border-radius:10px;border:1px dashed var(--line2);background:transparent;color:var(--txt);font:inherit;font-size:13.5px;resize:vertical}'+
     '@media (max-width:640px){.dm96-i{grid-template-columns:30px minmax(0,1fr) 28px 28px 28px}.dm96-cod{display:none}.dm96-obs{grid-column:2/-1}}';
+  document.head.appendChild(st);
+})();
+</script>
+<script>
+/* ================= v97 · FICHA: SEM CADASTRO EM BRANCO, NOME DA MÃE E DEPENDENTES =================
+   • A ficha não oferece mais criar demanda de admissão/desligamento (tirado no bloco v92).
+   • Cadastro em branco: ao fechar uma ficha sem nome, a Central pergunta se quer salvar assim,
+     apagar ou voltar e preencher. Na lista, "🗒 N em branco" mostra os que já ficaram e deixa apagar.
+   • Pessoa: "Nome da mãe" e "Filhos menores de 14 anos" (quantos + nomes e nascimentos).
+     Precisa do arquivo 8_COLABORADOR_MAE_DEPENDENTES.sql (rodar uma vez no Supabase). */
+var CX_FILHOS=['Não tem','1','2','3','4','5 ou mais'];
+function cxBranco(c){ if(!c) return false; var nm=(c.nome||'').trim();
+  if(!nm&&CX.aberto===c.id){ var i=document.querySelector('#cxDrawer #cxs1 input'); if(i&&(i.value||'').trim()) nm=i.value.trim(); }
+  return !nm&&!soDig(c.cpf||'').length; }
+function cxApagarBranco(id,depois){
+  var c=(CX.dados||[]).find(function(x){ return x.id===id; }); if(!c) return depois&&depois();
+  sb.from('dp_colaboradores').delete().eq('id',id).then(function(r){ if(r.error) throw r.error;
+    CX.dados=CX.dados.filter(function(x){ return x.id!==id; }); if(CX.aberto===id) CX.aberto=null; aviso('Cadastro em branco apagado.'); if(depois) depois(); else desenharListaCx(); })
+    .catch(function(){ if(typeof excluirColabCx==='function') excluirColabCx(id); else aviso('Não consegui apagar agora.',true); });
+}
+/* pergunta antes de deixar uma ficha em branco */
+function cxPerguntarBranco(id,seguir,podeVoltar){
+  var h='<div class="imp-box cxb-box" role="alertdialog" aria-label="Cadastro em branco"><div class="cxb-ic">🗒</div><h2>Este cadastro está em branco</h2><p>Não tem nome nem CPF. Quer salvar mesmo assim?</p>'+
+    '<div class="cxb-bt">'+(podeVoltar?'<button type="button" class="nm-b" onclick="el(\'cxbOv\').classList.remove(\'on\')">✏️ Voltar e preencher</button>':'')+
+    '<button type="button" class="nm-b" onclick="el(\'cxbOv\').classList.remove(\'on\');cxBrancoSalvar(\''+id+'\')">Salvar em branco</button>'+
+    '<button type="button" class="nm-b pri" onclick="el(\'cxbOv\').classList.remove(\'on\');cxApagarBranco(\''+id+'\',CXB.seguir)">🗑 Não salvar</button></div></div>';
+  CXB.seguir=seguir; var ov=modal2('cxbOv',h); ov.onclick=function(e){ if(e.target===ov&&podeVoltar) ov.classList.remove('on'); };
+}
+var CXB={seguir:null,ok:{}};
+function cxBrancoSalvar(id){ CXB.ok[id]=1; if(CXB.seguir) CXB.seguir(); }
+function cxGuardaBranco(seguir,podeVoltar){
+  var c=CX&&CX.aberto&&(CX.dados||[]).find(function(x){ return x.id===CX.aberto; });
+  if(c&&!CXB.ok[c.id]&&cxBranco(c)){ cxPerguntarBranco(c.id,seguir,podeVoltar); return true; }
+  return false;
+}
+function cxListaBrancos(){
+  var l=(CX.dados||[]).filter(function(c){ return c.id!==CX.aberto&&!(c.nome||'').trim()&&!soDig(c.cpf||'').length; });
+  var h='<div class="imp-box cxb-box" role="dialog" aria-label="Cadastros em branco"><div class="imp-cab"><div><h2>🗒 Cadastros em branco</h2><p>Fichas que foram abertas e ficaram sem nome e sem CPF.</p></div><button type="button" class="nm-b" onclick="el(\'cxbOv\').classList.remove(\'on\')">✕</button></div>'+
+    (l.length?'<div class="cxb-l">'+l.map(function(c){ return '<div class="cxb-it"><span>'+(c.tipo_contrato==='PJ'?'PJ':'Interno')+(c.empresa?' · '+esc(c.empresa):'')+(c.funcao?' · '+esc(c.funcao):'')+(c.atualizado_em?' <small>mexido em '+esc(fmtData(c.atualizado_em))+'</small>':'')+'</span><button type="button" class="nm-b" onclick="el(\'cxbOv\').classList.remove(\'on\');abrirFichaCx(\''+c.id+'\')">Abrir</button><button type="button" class="nm-b pri" onclick="cxApagarBranco(\''+c.id+'\',cxListaBrancos)">🗑 Apagar</button></div>'; }).join('')+'</div>'+
+      (l.length>1?'<button type="button" class="nm-b" style="margin-top:10px" onclick="cxApagarTodosBrancos()">🗑 Apagar todos ('+l.length+')</button>':''):'<div class="dm-vazio">Nenhum cadastro em branco. 👍</div>')+'</div>';
+  modal2('cxbOv',h);
+}
+function cxApagarTodosBrancos(){ var l=(CX.dados||[]).filter(function(c){ return c.id!==CX.aberto&&!(c.nome||'').trim()&&!soDig(c.cpf||'').length; });
+  dialogo('Apagar os '+l.length+' cadastros em branco?',{sim:function(){ var i=0; (function prox(){ if(i>=l.length){ cxListaBrancos(); desenharListaCx(); return; } cxApagarBranco(l[i++].id,prox); })(); }}); }
+
+(function(){
+  /* fechar a ficha, abrir outra ou trocar de tela: pergunta se estiver em branco */
+  var _ff=fecharFichaCx;
+  fecharFichaCx=function(){ var me=this,a=arguments; if(cxGuardaBranco(function(){ _ff.apply(me,a); },true)) return; return _ff.apply(this,arguments); };
+  var _af=abrirFichaCx;
+  abrirFichaCx=function(id){ var me=this,a=arguments; if(CX.aberto&&CX.aberto!==id&&cxGuardaBranco(function(){ _af.apply(me,a); },true)) return; return _af.apply(this,arguments); };
+  var _fg=cxFecharGaveta;
+  cxFecharGaveta=function(){ var c=CX&&CX.aberto&&(CX.dados||[]).find(function(x){ return x.id===CX.aberto; }), r=_fg.apply(this,arguments);
+    try{ if(c&&!CXB.ok[c.id]&&cxBranco(c)) cxPerguntarBranco(c.id,function(){ try{ desenharListaCx(); }catch(e){} },false); }catch(e){} return r; };
+
+  /* lista: aviso dos cadastros em branco */
+  var _lh=cxListaHtml;
+  cxListaHtml=function(compacta){ var h=_lh.apply(this,arguments); try{
+    if(compacta) return h; var tipo=cxTipoDaView(CX.view);
+    var n=(CX.dados||[]).filter(function(c){ return c.id!==CX.aberto&&!(c.nome||'').trim()&&!soDig(c.cpf||'').length&&(equipe(c)||'interna')===tipo; }).length;
+    if(!n) return h;
+    var bt='<button type="button" class="cx-k cxb-k" title="Fichas sem nome e sem CPF" onclick="cxListaBrancos()"><b>'+n+'</b><span>🗒 em branco</span></button>';
+    var i=h.indexOf('<div class="cx-resumo2">'), j=i>=0?h.indexOf('</div>',i):-1; if(j<0) return h; return h.slice(0,j)+bt+h.slice(j);
+  }catch(e){ return h; } };
+
+  /* Pessoa: nome da mãe e filhos menores de 14 anos */
+  var _fh=cxFichaHtml;
+  cxFichaHtml=function(c){
+    var h=_fh.apply(this,arguments);
+    try{
+      var tem=cxColExiste('nome_mae')||Object.prototype.hasOwnProperty.call(c,'nome_mae');
+      var bloco;
+      if(!tem) bloco='<label class="cx-f larg"><span class="cx-lb">Nome da mãe · Filhos menores de 14 anos</span><div class="cx-lock">rode o 8_COLABORADOR_MAE_DEPENDENTES.sql no Supabase</div></label>';
+      else {
+        var nf=c.filhos_menor14||'', temF=nf&&nf!=='Não tem';
+        bloco=cxCampo(c,'nome_mae','Nome da mãe',null,{on:'cxSalvar(\''+c.id+'\',\'nome_mae\',this.value.trim().toUpperCase(),this)'},'meia')+
+          cxCampo(c,'filhos_menor14','Filhos menores de 14 anos','select',{lista:CX_FILHOS,on:'cxSalvar(\''+c.id+'\',\'filhos_menor14\',this.value,this,function(){desenharFichaCx()})'})+
+          (temF?cxCampo(c,'filhos_info','Nome e nascimento de cada filho','textarea',null,true).replace('<textarea rows="3"','<textarea rows="3" placeholder="Ex.: MARIA SILVA · 12/03/2016&#10;JOÃO SILVA · 05/08/2019"'):'');
+      }
+      var m=h.match(/<label class="cx-f larg[^"]*"><span class="cx-lb">Observações(?: <em>[^<]*<\/em>)?<\/span>/);
+      if(m) h=h.replace(m[0],bloco+m[0]);
+    }catch(e){ console.warn('mãe/dependentes',e); }
+    return h;
+  };
+  var st=document.createElement('style');
+  st.textContent='.cxb-box{width:min(520px,100%)}.cxb-ic{font-size:38px;text-align:center}.cxb-box>h2{text-align:center;margin:4px 0}.cxb-box>p{text-align:center;color:var(--mut);margin:0 0 14px}'+
+    '.cxb-bt{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.cxb-l{display:flex;flex-direction:column;gap:6px}.cxb-it{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}.cxb-it span{flex:1;font-size:13px}.cxb-it small{color:var(--mut2);margin-left:6px}'+
+    '.cx-k.cxb-k b{color:#ffc35a}#cxbOv{z-index:9400}';
   document.head.appendChild(st);
 })();
 </script>
