@@ -14694,6 +14694,86 @@ function sincronizarLancamentos(w,manual){
 .lp-bulk{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}.lp-bulk span{color:var(--mut);margin-right:auto}
 .lp-vz{padding:12px 14px;color:var(--mut);font-size:13px}.lp-mais{padding:8px 14px;color:var(--mut);font-size:12px}
 .lp-dica{font-size:12.5px;color:var(--mut);line-height:1.6;margin-top:4px}
+/* v69 · liberação em lote */
+.nm2-lotes{display:flex;flex-direction:column;gap:4px;padding:10px 18px 12px;border-top:1px dashed var(--line2);font-size:12.5px;color:var(--mut)}
+.nm2-lotes b{color:var(--txt);font-size:13px}.nm2-lotes .nm2-link{font-size:12px}
+/* v69 · histórico novo */
+.nm2-tp.t-hi.on{background:rgba(170,120,255,.18);color:#e2d2ff}
+.hi-fil{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}.hi-fil .nm-busca{flex:1;min-width:200px}
+.hi-seg{display:flex;padding:3px;border:1px solid var(--line2);border-radius:10px;background:var(--panel2)}
+.hi-seg button{font:inherit;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--mut);padding:7px 12px;border-radius:8px;cursor:pointer}.hi-seg button.on{background:rgba(255,255,255,.1);color:var(--txt)}
+.hi-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:0 0 16px}
+.hi-chip{font:inherit;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:9px 14px;min-width:140px;border-radius:12px;border:1px solid var(--line2);background:var(--panel);color:var(--txt);cursor:pointer;text-align:left}
+.hi-chip span{font-size:12px;color:var(--mut);font-weight:700}.hi-chip b{font-size:19px}.hi-chip small{font-size:11.5px;color:var(--mut)}
+.hi-chip.on{outline:2px solid var(--red-txt)}.hi-chip.k-pend{border-top:3px solid var(--amber)}.hi-chip.k-rec{border-top:3px solid #3ddc84}.hi-chip.k-fin{border-top:3px solid #4da3ff}.hi-chip.k-paga{border-top:3px solid #1f9d57}.hi-chip.k-semn{border-top:3px solid #ff8a84}
+.hi-tot{margin-left:auto;text-align:right;display:flex;flex-direction:column;justify-content:center}.hi-tot small{font-size:11.5px;color:var(--mut);text-transform:uppercase}.hi-tot b{font-size:22px}.hi-tot span{font-size:12px;color:var(--mut)}
+.hi-grp{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:0 0 14px;overflow:hidden}
+.hi-gh{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}.hi-gh b{font-size:14.5px}.hi-gh span{font-size:12.5px;color:var(--mut)}
+.hi-row{display:grid;grid-template-columns:30px minmax(220px,1fr) 130px 120px 150px 110px;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.hi-gh+.hi-row{border-top:0}.hi-row:hover{background:rgba(255,255,255,.025)}.hi-row.ed{background:rgba(225,6,0,.06)}
+.hi-tp{font-size:17px;text-align:center}.hi-nm{display:flex;flex-direction:column;gap:2px;min-width:0}.hi-nm b{font-size:14px}.hi-nm small{font-size:12px;color:var(--mut)}
+.hi-num{font-size:13px}.hi-v{font-weight:800;text-align:right;white-space:nowrap}.hi-v i{font-weight:400;color:var(--mut2)}
+.hi-rc{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:rgba(170,120,255,.14);color:#cfb2ff}
+.hi-sn{font-size:12px;font-weight:700;color:#ffc35a}.hi-z{font-size:12px;color:var(--mut2)}
+.hi-st{justify-self:start;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.hi-st.k-pend{background:rgba(255,176,32,.14);color:#ffd27a}.hi-st.k-rec{background:rgba(61,220,132,.14);color:#7ee2a3}.hi-st.k-fin{background:rgba(77,163,255,.16);color:#cfe3ff}.hi-st.k-paga{background:rgba(61,220,132,.24);color:#bff3d3}
+.hi-ac{text-align:right}
+.hi-form{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:14px 16px 16px 58px;background:rgba(225,6,0,.05);border-top:1px dashed rgba(225,6,0,.35)}
+.hi-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);font-weight:700}.hi-fb{display:flex;gap:8px;width:100%}
+@media (max-width:900px){ .hi-row{grid-template-columns:26px 1fr auto;gap:6px} .hi-num,.hi-st{grid-column:2} .hi-v{grid-column:3;grid-row:1} .hi-ac{grid-column:3} .hi-tot{margin-left:0;text-align:left} }
+.hi-fil>select.nm-in{width:auto!important;flex:0 0 auto;min-width:190px}.hi-fil>.nm-busca{width:auto!important}
+.hi-num{white-space:nowrap}
+/* v70 */
+.op-snf{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--mut);cursor:pointer;margin-top:2px}
+.op-snf.on{color:#cfb2ff}.op-ns{color:#cfb2ff}
+.nm2-tag.snf{background:rgba(170,120,255,.14);color:#cfb2ff}
+/* v71 · seleção em lote */
+.hi-ck{width:17px;height:17px;accent-color:#e10600;cursor:pointer;vertical-align:middle}
+.hi-gh b .hi-ck{margin-right:8px}
+.hi-row.sel{background:rgba(225,6,0,.08)}
+.hi-todas{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--mut);margin:-4px 0 10px;cursor:pointer}
+.hi-barra{display:none;position:sticky;top:8px;z-index:30;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;border:1px solid rgba(225,6,0,.5);background:var(--panel2);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.hi-barra.on{display:flex}.hi-barra>span{margin-right:auto;font-size:13.5px}
+/* v73 · conferência OP × lançado */
+.op-conf{border:1px solid var(--line2);border-radius:12px;margin:0 0 12px;background:var(--panel);overflow:hidden}
+.op-conf.ok{border-color:rgba(61,220,132,.5)}.op-conf.w{border-color:rgba(255,176,32,.6)}
+.op-conf-h{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 14px;font-size:13.5px}.op-conf-h>b{margin-right:auto}
+.op-conf-st{font-weight:800;padding:3px 10px;border-radius:999px}.op-conf.ok .op-conf-st{background:rgba(61,220,132,.16);color:#7ee2a3}.op-conf.w .op-conf-st{background:rgba(255,176,32,.16);color:#ffc35a}
+.op-conf-l{padding:8px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--mut);line-height:1.5}
+/* v74 · aba Cachê nova */
+.cx2-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}.cx2-bar>select.nm-in{width:auto!important;min-width:230px;font-weight:700}.cx2-bar .nm-busca{flex:1;min-width:200px;width:auto!important}
+.cx2-res{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:0 0 16px;overflow:hidden}
+.cx2-rh,.cx2-rr{display:grid;grid-template-columns:minmax(200px,1.4fr) repeat(4,minmax(110px,1fr));gap:10px;align-items:center;padding:9px 16px;text-align:right}
+.cx2-rh>span:first-child,.cx2-rr>span:first-child{text-align:left}
+.cx2-rh{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut2);background:rgba(255,255,255,.02)}
+.cx2-rr{width:100%;font:inherit;font-size:13.5px;color:var(--txt);background:transparent;border:0;border-top:1px solid var(--line);cursor:pointer}
+.cx2-rr:hover{background:rgba(255,255,255,.03)}.cx2-rr.on{background:rgba(225,6,0,.08)}.cx2-rr small{color:var(--mut);font-size:11.5px;margin-left:4px}.cx2-rr .ok{color:#7ee2a3;font-weight:700}
+.cx2-tot{cursor:default;font-weight:800;background:rgba(255,255,255,.03)}.cx2-tot a{color:var(--red-txt);font-weight:600}
+.cx2-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cx2-bl{border:1px solid var(--line);border-radius:16px;background:var(--panel);margin:0 0 14px;overflow:hidden}
+.cx2-bl.b-rc{border-top:3px solid #aa78ff}.cx2-bl.b-nf{border-top:3px solid var(--amber)}.cx2-bl.b-pr{border-top:3px solid #3ddc84}
+.cx2-bh{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}.cx2-bh>div{flex:1}
+.cx2-bh b{font-size:15.5px}.cx2-bh small{display:block;font-size:12px;color:var(--mut);margin-top:2px}.cx2-bi{font-size:21px}
+.cx2-bh em{font-style:normal;font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;margin-left:4px;background:rgba(255,255,255,.1)}
+.b-rc .cx2-bh em{background:#aa78ff;color:#fff}.b-nf .cx2-bh em{background:var(--amber);color:#111}.b-pr .cx2-bh em{background:#3ddc84;color:#0a0b0f}
+.cx2-bv{font-size:13px;color:var(--mut);font-weight:700;margin-left:6px}
+.cx2-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.cx2-bh+.cx2-row,summary+.cx2-row{border-top:0}.cx2-row:hover{background:rgba(255,255,255,.025)}
+.cx2-nm{display:flex;flex-direction:column;gap:2px;min-width:0}.cx2-nm b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cx2-nm small{font-size:11.5px;color:var(--mut)}
+.cx2-mei{font-style:normal;color:#ffc35a;cursor:help}
+.cx2-v{font-weight:800;white-space:nowrap;font-size:14.5px}.cx2-ac{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.cx2-ac .nm2-tel input{width:150px}
+.cx2-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:12px 16px 14px;background:rgba(225,6,0,.05);border-top:1px dashed rgba(225,6,0,.35)}
+.cx2-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);font-weight:700}.cx2-form small{width:100%;color:var(--mut);font-size:12px}
+.cx2-vz{padding:14px 16px;color:var(--mut);font-size:13px}
+.cx2-lotes{border:1px solid var(--line);border-radius:12px;margin:0 0 14px;background:var(--panel)}
+@media (max-width:1100px){ .cx2-grid{grid-template-columns:1fr} }
+@media (max-width:700px){ .cx2-rh{display:none} .cx2-rr{grid-template-columns:1fr 1fr;text-align:left} .cx2-row{grid-template-columns:1fr auto} .cx2-ac{grid-column:1/-1;justify-content:flex-start} }
+.cx2-grid{align-items:start}
+/* v75 */
+.cx2-pend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px;padding:11px 16px;border-radius:12px;border:1px solid rgba(255,176,32,.55);background:rgba(255,176,32,.08);font-size:13.5px}
+.cx2-pend b{margin-right:auto;font-size:14.5px}.cx2-pend span{color:var(--mut)}
+.cx2-pend.ok{border-color:rgba(61,220,132,.55);background:rgba(61,220,132,.08)}
 </style>
 <script>
 /* ================= v60 · ORDENS DE PAGAMENTO (cachês) =================
@@ -14780,7 +14860,7 @@ function opCarregar(){
     sb.from('nf_ordens_pagamento').select('*').order('periodo_fim',{ascending:false}).order('importada_em',{ascending:false}).limit(80),
     sb.from('nf_op_vinculos').select('*'),
     podeVer('freelancers')?sb.from('dp_freelancers').select('id,nome,cpf,mei,telefone,pix,funcao'):Promise.resolve({data:[]}),
-    podeVer('colaboradores')?sb.from('dp_colaboradores').select('id,nome,cpf,mei,telefone,data_desligamento'):Promise.resolve({data:[]})
+    podeVer('colaboradores')?sb.from('dp_colaboradores').select('id,nome,cpf,mei,telefone,data_desligamento,empresa,funcao,pix'):Promise.resolve({data:[]})
   ]).then(function(rs){
     OP.semTabela=opTabelaFalta(rs[0])||opTabelaFalta(rs[1]);
     OP.lista=(!rs[0].error&&rs[0].data)||[]; OP.vinc={};
@@ -14808,6 +14888,13 @@ function opPessoas(){
     var docs=[soDig(f.cpf),soDig(f.mei)].filter(Boolean);
     if(temDoc(L,docs)||L.some(function(a){ return mesmoNome(a.nome,f.nome); })) return;
     l.push({k:'f:'+f.id,nome:up(f.nome),sub:'freelancer do cadastro · entra nas Notas',f:f});
+  });
+  var hj=hoje(), ja={}; l.forEach(function(x){ ja[chaveNome(x.nome)]=1; });
+  OP.colabs.forEach(function(c){
+    if(!c.nome||(c.data_desligamento&&(''+c.data_desligamento).slice(0,10)<hj)) return;
+    var docs=[soDig(c.cpf),soDig(c.mei)].filter(Boolean);
+    if(temDoc(L,docs)||ja[chaveNome(c.nome)]||L.some(function(a){ return mesmoNome(a.nome,c.nome); })) return;
+    ja[chaveNome(c.nome)]=1; l.push({k:'c:'+c.id,nome:up(c.nome),sub:'colaborador do cadastro · entra nas Notas',c:c});
   });
   l.sort(function(a,b){ return a.nome.localeCompare(b.nome); });
   OP._pess=l; OP._pessDe=NM.dados; return l;
@@ -14862,7 +14949,7 @@ function opArquivo(f){
     });
     linhas.forEach(function(L){
       var v=OP.vinc[L.chave];
-      if(v&&v.ignorar){ L.estado='ign'; L.sel='__ign'; }
+      if(v&&v.ignorar){ var s0=opSugerir(L.nome); L.estado=s0.estado==='igual'?'igual':(s0.k?'sug':'no'); L.sel=s0.k||''; L.cands=s0.cands||[]; L.semNF=true; L._eraFora=true; }
       else if(v&&v.colaborador_id&&opPessoa('p:'+v.colaborador_id)){ L.estado='salvo'; L.sel='p:'+v.colaborador_id; }
       else { var s=opSugerir(L.nome); L.estado=s.estado; L.sel=s.k||''; L.cands=s.cands||[]; }
       opDefaults(L,v);
@@ -14900,6 +14987,8 @@ function opImportar(){
   O.linhas.forEach(function(L){
     if(L.sel==='__ign'){ L.pid=null; return; }
     var pes=opPessoa(L.sel);
+    if(L.sel==='__novo') pes={f:{nome:L.nome,cpf:'',mei:'',pix:'',funcao:''}};
+    else if(pes&&pes.c) pes={f:{nome:pes.c.nome,cpf:pes.c.cpf,mei:pes.c.mei,pix:pes.c.pix,funcao:pes.c.funcao}};
     if(pes.f){
       var f=pes.f, id='nf'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
       novosPrest.push({id:id,nome:up(f.nome),empresa_id:L.empresa_id||null,funcao:f.funcao?up(f.funcao):'FREELANCER',doc:f.mei||f.cpf||null,
@@ -14938,12 +15027,12 @@ function opImportar(){
         var tot=Math.round((porPid[pid]+(outras[pid]||0))*100)/100, n=ex[pid], p=nmPrest(pid);
         if(n){
           notaDe[pid]=n.id;
-          var venc=nmVencT(M,'cache',p.dia_cache||1), mesmoV=Math.abs((parseFloat(n.valor)||0)-tot)<0.01, mesmaD=(n.data_vencimento||'').slice(0,10)===venc;
+          var venc=opVencOP(M,p.dia_cache||1,hoje()), mesmoV=Math.abs((parseFloat(n.valor)||0)-tot)<0.01, mesmaD=(n.data_vencimento||'').slice(0,10)===venc;
           if(mesmoV&&mesmaD) return;
           if(n.travado||n.numero||n.status!=='pendente'){ if(!mesmoV) alertas.push(nomeCurto(p.nome)+': a nota já chegou/foi enviada com '+moedaBR(n.valor||0)+' · na OP o total do mês é '+moedaBR(tot)); return; }
           ups.push({id:n.id,valor:tot,data_vencimento:venc});
         } else {
-          var nn={id:nmId(),colaborador_id:pid,tipo:'cache',mes_referencia:M,numero:null,data_emissao:null,data_envio:null,data_vencimento:nmVencT(M,'cache',p.dia_cache||1),
+          var nn={id:nmId(),colaborador_id:pid,tipo:'cache',mes_referencia:M,numero:null,data_emissao:null,data_envio:null,data_vencimento:opVencOP(M,p.dia_cache||1,hoje()),
             valor:tot,status:'pendente',data_pagamento:null,obs:'Gerada pela '+R.numero,descricao:(NM.desc||{})[pid]||null,pdf_base64:null,pdf_nome:null,travado:false};
           ins.push(nn); notaDe[pid]=nn.id; criada[pid]=1;
         }
@@ -15079,9 +15168,8 @@ function opChip(L){
 }
 function opOpcoes(L){
   var ps=opPessoas(), top=(L.cands||[]).map(opPessoa).filter(Boolean);
-  var op=function(x){ return '<option value="'+esc(x.k)+'"'+(L.sel===x.k?' selected':'')+'>'+esc(x.nome)+(x.f?' · freelancer (novo nas Notas)':'')+'</option>'; };
-  return '<option value="">Escolha a pessoa…</option>'+(top.length?'<optgroup label="Mais parecidos">'+top.map(op).join('')+'</optgroup><optgroup label="Todos">':'')+ps.map(op).join('')+(top.length?'</optgroup>':'')+
-    '<option value="__ign"'+(L.sel==='__ign'?' selected':'')+'>— Não emite NF (ignorar nesta e nas próximas)</option>';
+  var op=function(x){ return '<option value="'+esc(x.k)+'"'+(L.sel===x.k?' selected':'')+'>'+esc(x.nome)+(x.f?' · freelancer (novo nas Notas)':(x.c?' · colaborador do cadastro (novo nas Notas)':''))+'</option>'; };
+  return '<option value="">Escolha a pessoa…</option>'+(top.length?'<optgroup label="Mais parecidos">'+top.map(op).join('')+'</optgroup><optgroup label="Todos">':'')+ps.map(op).join('')+(top.length?'</optgroup>':'')+'<option value="__novo"'+(L.sel==='__novo'?' selected':'')+'>➕ Não está no cadastro: cadastrar com o nome da OP</option>';
 }
 function opEmpresas(sel){
   var E=NM.dados.emp||{}, ids=Object.keys(E).sort(function(a,b){ return (E[a].nome||'').localeCompare(E[b].nome||''); });
@@ -15207,10 +15295,10 @@ function opDesenhar(){
   // carrega junto com as notas o valor que cada nota recebeu das OPs
   var _car=carregarNotasMes; carregarNotasMes=function(){
     NM.opVal=NM.opVal||{}; NM.opOk=false;
-    sb.from('nf_ordens_pagamento').select('id,itens').then(function(r){
+    sb.from('nf_ordens_pagamento').select('id,numero,itens,importada_em,mes_referencia,total').then(function(r){
       if(r.error) return;
-      var m={}; (r.data||[]).forEach(function(o){ (o.itens||[]).forEach(function(i){ if(i.nota_id) m[i.nota_id]=Math.round(((m[i.nota_id]||0)+(+i.valor||0))*100)/100; }); });
-      NM.opVal=m; NM.opOk=true; if(NM.dados&&NM.tela!=='op') desenharNotasMes();
+      var m={}, imp={}; (r.data||[]).forEach(function(o){ (o.itens||[]).forEach(function(i){ if(i.nota_id){ m[i.nota_id]=Math.round(((m[i.nota_id]||0)+(+i.valor||0))*100)/100; var d=(''+(o.importada_em||'')).slice(0,10); if(d&&(!imp[i.nota_id]||d>imp[i.nota_id])) imp[i.nota_id]=d; } }); });
+      NM.opVal=m; NM.opImp=imp; NM.opLista=r.data||[]; NM.opOk=true; if(NM.dados&&NM.tela!=='op') desenharNotasMes();
     },function(){});
     return _car.apply(this,arguments);
   };
@@ -15512,7 +15600,7 @@ function opRelatorioHtml(M,doMes,doAnt,notas,prest,empN,meses){
       var rows=bx.querySelectorAll('.op-prev .op-row:not(.op-hd)');
       OP.lida.linhas.forEach(function(L,i){
         if(L.sel==='__ign'||!L.sel) return; var pes=opPessoa(L.sel); if(!pes) return;
-        var ok=pes.f?opDocOk(pes.f.mei):opDocOk(pes.p.doc); if(ok) return;
+        var ok=pes.f?opDocOk(pes.f.mei):(pes.c?opDocOk(pes.c.mei):opDocOk(pes.p.doc)); if(ok) return;
         var nm=rows[i]&&rows[i].querySelector('.op-nm'); if(nm&&!nm.querySelector('.op-mei')){ var s=document.createElement('span'); s.className='op-mei'; s.title='Pessoa física não emite NF: pagar só com recibo expõe a empresa; o correto é RPA (INSS/IRRF)'; s.textContent='⚠ sem MEI/CNPJ · pede RPA'; nm.appendChild(s); }
       });
     }
@@ -15621,7 +15709,7 @@ function nmCobrancas(id){ var r=(COB.cobradas||{})[id]; return r&&r.n?r:null; }
     var r=_od.apply(this,arguments), bx=el('nmApp'); if(!bx||!OP.lida||!OP.lida.linhas) return r;
     var rows=bx.querySelectorAll('.op-prev .op-row:not(.op-hd)'), novos=0;
     OP.lida.linhas.forEach(function(L,i){
-      if(!L.sel||L.sel==='__ign') return;
+      if(!L.sel||L.sel==='__ign'||(OP.lida.reaberta&&L.estado==='salvo')) return;
       var pid=L.sel.slice(2), ja=L.sel.charAt(0)==='p'&&OP.lista.some(function(o){ return o.id!==OP.lida.R.numero&&(o.itens||[]).some(function(x){ return x.colaborador_id===pid||x.chave===L.chave; }); });
       if(ja) return; novos++;
       var nm=rows[i]&&rows[i].querySelector('.op-nm');
@@ -15847,6 +15935,646 @@ function lpAtualizarTelas(){
     return r;
   };
   var _e=nmEnxugar; nmEnxugar=function(){ var r=_e.apply(this,arguments); try{ var m=document.querySelector('#nmApp .nm2-mais-m'); if(m&&!m.querySelector('.lp-mi')){ var b=document.createElement('button'); b.type='button'; b.className='nm2-mi lp-mi'; b.textContent='🧹 Arrumar as notas (repetidas, testes, sem nº)'; b.onclick=nfLimpezaAbrir; m.insertBefore(b,m.firstChild); } }catch(e){} return r; };
+})();
+
+/* ================= v68 · OP IMPORTADA DEPOIS DA DATA DE PAGAMENTO =================
+   Regra do cachê: dia 01 do mês seguinte (fim de semana/feriado → próximo dia útil).
+   Se a OP entra no sistema nesse dia ou depois, o pagamento vai para o próximo dia útil
+   APÓS a importação (ex.: OP de outubro importada em 04/11 → pagamento 05/11).
+   As notas de cachê da OP que já estavam com data vencida são acertadas sozinhas. */
+function opVencOP(M,dia,importada){
+  var r=nmVencT(M,'cache',dia||1), d=(importada||hoje()).slice(0,10);
+  return d>=r?nmProxUtil(somaDias(d,1)):r;
+}
+(function(){
+  // a conferência de "vencimento fora da regra" não mexe nas notas de cachê da OP
+  var _ve=nmVencErrados; nmVencErrados=function(){ return _ve.apply(this,arguments).filter(function(x){ return !(x.n&&x.n.tipo==='cache'&&(NM.opVal||{})[x.n.id]); }); };
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    var r=_d.apply(this,arguments);
+    if(!NM.dados||!NM.opOk||!NM.opImp||(NM._opVencDe===NM.dados&&NM._opVencImp===NM.opImp)) return r; NM._opVencDe=NM.dados; NM._opVencImp=NM.opImp;
+    var l=(NM.dados.abertas||[]).filter(function(n){
+      if(n.tipo!=='cache'||n.travado||n.status==='enviada'||n.status==='paga'||!NM.opImp[n.id]) return false;
+      var M=(''+n.mes_referencia).slice(0,7), certo=opVencOP(M,1,NM.opImp[n.id]); n._vNovo=certo;
+      return (n.data_vencimento||'').slice(0,10)<certo;
+    });
+    if(!l.length) return r;
+    Promise.all(l.map(function(n){ return sb.from('nf_notas').update({data_vencimento:n._vNovo}).eq('id',n.id).then(function(x){ if(x.error) throw x.error; n.data_vencimento=n._vNovo; }); }))
+      .then(function(){ aviso('📅 '+l.length+' cachê(s) da OP com pagamento acertado para '+nm2Br(l[0]._vNovo)+' (a OP entrou depois da data).'); desenharNotasMes(); })
+      .catch(function(){});
+    return r;
+  };
+})();
+
+/* ================= v69 · RECIBO LIBERA · LIBERAÇÃO EM LOTE · 1º DIA ÚTIL · HISTÓRICO NOVO ================= */
+/* 1) Pagamento do cachê é SEMPRE no 1º dia útil do mês seguinte (não há janela posterior). */
+opVencOP=function(M,dia){ return nmVencT(M,'cache',dia||1); };
+/* 2) Recibo de quitação emitido = pagamento pode ser liberado (vai para "Chegou · liberar"). */
+(function(){
+  var _e=nmEtapa; nmEtapa=function(n){ var e=_e.apply(this,arguments); if(e==='cobrar'&&n&&!n.numero&&typeof recDaNota==='function'&&recDaNota(n.id)) return 'rec'; return e; };
+  var _l=nm2Linha; nm2Linha=function(n,grupo){
+    var h=_l.apply(this,arguments), rc=(!n.numero&&typeof recDaNota==='function')?recDaNota(n.id):null;
+    if(rc&&grupo==='rec') h=h.replace(/NF —/,'🧾 Recibo '+esc(rc.num||'')+(rc.prazoNF?' · NF prometida até '+nm2Br(rc.prazoNF):''));
+    return h;
+  };
+  // mensagem do Financeiro: recibo identificado
+  var _m=opMsgFinCache; opMsgFinCache=function(ns){
+    var t=_m.apply(this,arguments);
+    ns.forEach(function(n){ if(!(n.numero==='RECIBO'||(!n.numero&&recDaNota(n.id)))) return; var nome=String(nmPrest(n.colaborador_id).nome||'').toUpperCase().trim(); t=t.replace(nome+' - '+moedaBR(nmLiquido(n))+'✅',nome+' - '+moedaBR(nmLiquido(n))+' (recibo)✅'); });
+    return t;
+  };
+  // registro dos lotes enviados ao Financeiro
+  var _av=nm2Avisar; nm2Avisar=function(ids){
+    var ns=(Array.isArray(ids)?ids:[ids]).map(nmNota).filter(function(n){ return n&&!n.travado; });
+    if(ns.length){ var msg=nm2Msg(ns), tot=ns.reduce(function(a,n){ return a+nmLiquido(n); },0);
+      NM.lotes=[{em:new Date().toISOString(),n:ns.length,total:Math.round(tot*100)/100,msg:msg,tipo:NM.tipo,por:(EU&&EU.nome)||''}].concat(NM.lotes||[]).slice(0,30);
+      kvSalvar('nf-lotes',NM.lotes).catch(function(){}); }
+    return _av.apply(this,arguments);
+  };
+  var _car=carregarNotasMes; carregarNotasMes=function(){ kvLer('nf-lotes',[]).then(function(l){ NM.lotes=Array.isArray(l)?l:[]; if(NM.dados&&!NM.tela) desenharNotasMes(); },function(){}); return _car.apply(this,arguments); };
+  // bloco "Chegou": botão de liberar sempre visível e últimos lotes
+  var _en=nmEnxugar; nmEnxugar=function(){
+    var r=_en.apply(this,arguments);
+    try{
+      var bx=el('nmApp'), rec=bx&&bx.querySelector('.nm2-bl.b-rec'); if(!rec) return r;
+      var hd=rec.querySelector('.nm2-blh'), ids=[];
+      rec.querySelectorAll('.nm2-row').forEach(function(row){ var m=row.innerHTML.match(/nm2Avisar\('([^']+)'\)/); if(m) ids.push(m[1]); });
+      var b=hd.querySelector('.nm2-b.fin'); if(b) b.remove();
+      if(ids.length){ var nb=document.createElement('button'); nb.type='button'; nb.className='nm2-b fin'; nb.textContent='🔔 Liberar ao Financeiro ('+ids.length+')'; nb.onclick=function(){ nm2Avisar(ids); }; hd.appendChild(nb); }
+      var tr=rec.querySelector('.nm2-blh b'); if(tr&&tr.firstChild) tr.firstChild.nodeValue='Pronto para liberar · NF chegou ou recibo feito ';
+      var sr=rec.querySelector('.nm2-blh small'); if(sr) sr.textContent='junte o dia e libere tudo de uma vez: uma mensagem só para o Financeiro';
+      var ls=(NM.lotes||[]).filter(function(x){ return !x.tipo||x.tipo===NM.tipo; }).slice(0,3);
+      if(ls.length&&!rec.querySelector('.nm2-lotes')){
+        var d=document.createElement('div'); d.className='nm2-lotes';
+        d.innerHTML='<b>📦 Últimas liberações</b>'+ls.map(function(x,i){ var dt=new Date(x.em); return '<span>'+(x.em.slice(0,10)===hoje()?'hoje':nm2Br(x.em.slice(0,10)).slice(0,5))+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+x.n+' pessoa(s) · '+moedaBR(x.total)+
+          ' <button type="button" class="nm2-link" onclick="nm2AbrirWa(null,(NM.lotes.filter(function(y){return !y.tipo||y.tipo===NM.tipo;})['+i+']||{}).msg||\'\')">📋 mandar de novo</button></span>'; }).join('');
+        rec.appendChild(d);
+      }
+    }catch(e){}
+    return r;
+  };
+})();
+/* 3) Lembrete na tela inicial: último dia útil do mês = gerar a OP e mandar a conferência */
+var RADAR_OPM=null;
+function opUltimoUtil(M){ var d=nmUltimoDia(M), g=0; while(!diaUtilBancario(d)&&g++<10) d=somaDias(d,-1); return d; }
+(function(){
+  var _r=desenharRadar; desenharRadar=function(){
+    try{
+      var M=hoje().slice(0,7), ult=opUltimoUtil(M), ant=somaDias(ult,-1), hj=hoje();
+      if(podeNF()&&hj>=ant&&hj<=nmUltimoDia(M)){
+        if(RADAR_OPM===null){ RADAR_OPM='…'; sb.from('nf_ordens_pagamento').select('mes_referencia').eq('mes_referencia',M).then(function(x){ RADAR_OPM=(x&&!x.error&&(x.data||[]).length)?'sim':'nao'; desenharRadar(); },function(){ RADAR_OPM='nao'; }); }
+        if(RADAR_OPM==='nao'&&!(RADAR.itens||[]).some(function(x){ return x.cat==='nf'&&/Fechamento dos cachês/.test(x.t); })){
+          var pg=nmVencT(M,'cache',1), y={cat:'nf',ic:'nf',t:'Fechamento dos cachês de '+nomeMes(M).toLowerCase(),s:'Gerar a OP, subir na Central e mandar a conferência aos meninos · pagamento '+ddmm(pg),d:ult,
+            abrir:"localStorage.setItem('nm_tela','op');NM.tela='op';abrir('notasmes')"};
+          y.dias=diasAte(y.d); y.nivel=rdNivel(y); RADAR.itens=[y].concat(RADAR.itens||[]);
+        }
+      }
+    }catch(e){}
+    return _r.apply(this,arguments);
+  };
+})();
+
+/* 4) HISTÓRICO NOVO (dentro da tela de Notas): bonito, filtrável e com correção na linha */
+var HI={dados:null,mes:'',tipo:'',emp:'',st:'',q:'',ed:null};
+function hiAbrir(){ NM.tela='hist'; try{ localStorage.setItem('nm_tela','hist'); }catch(e){} HI.ed=null; if(!HI.dados) hiCarregar(); desenharNotasMes(); }
+function hiCarregar(){
+  HI.carregando=true;
+  return lpLer().then(function(){ HI.dados=LP.dados; HI.carregando=false; if(!HI.mes){ var ms=hiMeses(); HI.mes=ms.indexOf(nmSomaMes(hoje().slice(0,7),-1))>=0?nmSomaMes(hoje().slice(0,7),-1):(ms[0]||''); } desenharNotasMes(); })
+    .catch(function(){ HI.carregando=false; HI.erro=true; desenharNotasMes(); });
+}
+function hiMeses(){ var m={}; (HI.dados||[]).forEach(function(n){ m[(''+n.mes_referencia).slice(0,7)]=1; }); return Object.keys(m).sort().reverse(); }
+function hiSit(n){
+  if(n.status==='paga') return {k:'paga',t:'💸 Paga'}; if(n.status==='enviada') return {k:'fin',t:'🔔 No Financeiro'};
+  if(n.numero||n.status==='emitida') return {k:'rec',t:'🧾 Recebida'}; return {k:'pend',t:'⏳ Pendente'};
+}
+function hiRec(n){ return !n.numero&&typeof recDaNota==='function'&&recDaNota(n.id); }
+function hiSemN(n){ return (n.status==='paga'||n.status==='enviada')&&!n.numero&&!hiRec(n); }
+function hiTopo(){
+  var T=NM.tipo, tb=function(t){ var x=NM_TIPO[t]; return '<button type="button" class="nm2-tp t-'+t+'" onclick="nmTrocarTipo(\''+t+'\')">'+x.ic+' '+x.nome+'</button>'; };
+  return '<div class="nm2-top"><div><h1>Notas fiscais</h1><p>📚 Histórico · consulte e corrija qualquer nota já lançada</p></div><div class="nm2-tps">'+tb('servico')+tb('cache')+
+    '<button type="button" class="nm2-tp t-op" onclick="opAbrir()">📥 Ordens de Pagamento</button><button type="button" class="nm2-tp t-hi on" onclick="hiAbrir()">📚 Histórico</button></div></div>';
+}
+function hiDesenhar(){
+  var bx=el('nmApp'); if(!bx) return;
+  if(!HI.dados){ bx.innerHTML=hiTopo()+'<div class="op-card"><div class="op-lendo">'+(HI.erro?'Não consegui ler as notas agora. <button class="nm2-b sm" onclick="HI.erro=false;hiCarregar()">Tentar de novo</button>':'Lendo as notas…')+'</div></div>'; if(!HI.carregando&&!HI.erro) hiCarregar(); return; }
+  var e=esc, R=moedaBR, br=nm2Br, q=chaveNome(HI.q||'');
+  var nome=function(n){ return lpNome(n); }, emp=function(n){ return lpEmp(n); };
+  var base=HI.dados.filter(function(n){ return (!HI.mes||(''+n.mes_referencia).slice(0,7)===HI.mes)&&(!HI.tipo||n.tipo===HI.tipo)&&(!HI.emp||emp(n)===HI.emp)&&(!q||chaveNome(nome(n)).indexOf(q)>=0); });
+  var cont={pend:[0,0],rec:[0,0],fin:[0,0],paga:[0,0],semn:[0,0]}, tot=0;
+  base.forEach(function(n){ var s=hiSit(n).k, v=parseFloat(n.valor)||0; cont[s][0]++; cont[s][1]+=v; tot+=v; if(hiSemN(n)){ cont.semn[0]++; cont.semn[1]+=v; } });
+  var lista=base.filter(function(n){ return !HI.st||(HI.st==='semn'?hiSemN(n):hiSit(n).k===HI.st); })
+    .sort(function(a,b){ return emp(a).localeCompare(emp(b))||(a.tipo<b.tipo?-1:(a.tipo>b.tipo?1:0))||nome(a).localeCompare(nome(b)); });
+  var empresas={}; HI.dados.forEach(function(n){ empresas[emp(n)]=1; });
+  var chip=function(k,t,c){ return '<button type="button" class="hi-chip k-'+k+(HI.st===k?' on':'')+'" onclick="HI.st=HI.st===\''+k+'\'?\'\':\''+k+'\';HI.ed=null;desenharNotasMes()"><span>'+t+'</span><b>'+c[0]+'</b><small>'+R(c[1])+'</small></button>'; };
+  var h=hiTopo();
+  h+='<div class="hi-fil hi-filtro"><select class="nm-in" onchange="HI.mes=this.value;HI.ed=null;desenharNotasMes()"><option value="">📅 Todos os meses</option>'+hiMeses().map(function(m){ return '<option value="'+m+'"'+(HI.mes===m?' selected':'')+'>'+e(nomeMes(m))+'</option>'; }).join('')+'</select>'+
+    '<div class="hi-seg">'+[['','Tudo'],['servico','🧾 Serviço'],['cache','🎤 Cachê']].map(function(x){ return '<button type="button" class="'+(HI.tipo===x[0]?'on':'')+'" onclick="HI.tipo=\''+x[0]+'\';HI.ed=null;desenharNotasMes()">'+x[1]+'</button>'; }).join('')+'</div>'+
+    '<select class="nm-in" onchange="HI.emp=this.value;HI.ed=null;desenharNotasMes()"><option value="">🏢 Todas as empresas</option>'+Object.keys(empresas).sort().map(function(x){ return '<option'+(HI.emp===x?' selected':'')+'>'+e(x)+'</option>'; }).join('')+'</select>'+
+    '<input class="nm-busca" placeholder="🔎 Buscar pelo nome" value="'+e(HI.q||'')+'" oninput="HI.q=this.value;hiRedesenharBusca()">'+
+    '<button type="button" class="nm2-b" onclick="nfLimpezaAbrir()">🧹 Arrumar</button><button type="button" class="nm2-b ghost" onclick="hiCsv()">⬇ Planilha</button></div>';
+  h+='<div class="hi-chips">'+chip('pend','⏳ Pendentes',cont.pend)+chip('rec','🧾 Recebidas',cont.rec)+chip('fin','🔔 No Financeiro',cont.fin)+chip('paga','💸 Pagas',cont.paga)+(cont.semn[0]?chip('semn','⚠ Sem nº de NF',cont.semn):'')+
+    '<div class="hi-tot"><small>Total '+(HI.mes?e(nomeMes(HI.mes).toLowerCase()):'geral')+'</small><b>'+R(tot)+'</b><span>'+base.length+' nota(s)</span></div></div>';
+  if(!lista.length) h+='<div class="op-card"><div class="op-lendo">Nenhuma nota com esses filtros.</div></div>';
+  var grupo=null;
+  lista.forEach(function(n){
+    var g=emp(n);
+    if(g!==grupo){ if(grupo!==null) h+='</section>'; grupo=g;
+      var tg=lista.filter(function(x){ return emp(x)===g; }), vg=tg.reduce(function(a,x){ return a+(parseFloat(x.valor)||0); },0);
+      h+='<section class="hi-grp"><div class="hi-gh"><b>🏢 '+e(g)+'</b><span>'+tg.length+' nota(s) · '+R(vg)+'</span></div>'; }
+    var s=hiSit(n), rcb=hiRec(n), num=rcb?'<span class="hi-rc" title="NF prometida até '+e(br(rcb.prazoNF))+' · '+e(rcb.num||'')+'">🧾 recibo</span>':n.numero?(n.numero==='RECIBO'?'<span class="hi-rc">🧾 recibo</span>':'NF <b>'+e(n.numero)+'</b>'):(hiSemN(n)?'<span class="hi-sn">⚠ sem nº</span>':'<span class="hi-z">sem NF</span>');
+    var datas=[n.data_emissao?'emitida '+br(n.data_emissao).slice(0,5):'',n.status==='paga'&&n.data_pagamento?'paga '+br(n.data_pagamento).slice(0,5):(n.data_vencimento?'pagamento '+br(n.data_vencimento).slice(0,5):'')].filter(Boolean).join(' · ');
+    h+='<div class="hi-row s-'+s.k+(HI.ed===n.id?' ed':'')+'"><span class="hi-tp t-'+n.tipo+'">'+(n.tipo==='cache'?'🎤':'🧾')+'</span>'+
+      '<span class="hi-nm"><b>'+e(nome(n))+'</b><small>'+(n.tipo==='cache'?'Cachê':'Serviço')+' · '+e(nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase())+(datas?' · '+datas:'')+'</small></span>'+
+      '<span class="hi-num">'+num+'</span><span class="hi-v">'+(parseFloat(n.valor)?R(n.valor):'<i>sem valor</i>')+'</span><span class="hi-st k-'+s.k+'">'+s.t+'</span>'+
+      '<span class="hi-ac">'+(n.travado?'<span title="Travada">🔒</span>':'<button type="button" class="nm2-b ghost sm" onclick="HI.ed=HI.ed===\''+n.id+'\'?null:\''+n.id+'\';desenharNotasMes()">'+(HI.ed===n.id?'Fechar':'✏️ Corrigir')+'</button>')+'</span></div>';
+    if(HI.ed===n.id) h+='<div class="hi-form"><label>Nº da NF<input class="nm-in" id="hiN" value="'+e(n.numero||'')+'" placeholder="ou RECIBO"></label>'+
+      '<label>Emissão<input class="nm-in" id="hiE" type="date" value="'+e((n.data_emissao||'').slice(0,10))+'"></label>'+
+      '<label>Valor<span class="nm-money"><em>R$</em><input class="nm-in" id="hiV" inputmode="decimal" value="'+e(n.valor!=null?nmMoeda(n.valor):'')+'"></span></label>'+
+      '<label>Situação<select class="nm-in" id="hiS">'+[['pendente','⏳ Pendente'],['emitida','🧾 Recebida'],['enviada','🔔 No Financeiro'],['paga','💸 Paga']].map(function(x){ return '<option value="'+x[0]+'"'+(n.status===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>'+
+      '<label>Data de pagamento<input class="nm-in" id="hiP" type="date" value="'+e(((n.status==='paga'?n.data_pagamento:n.data_vencimento)||'').slice(0,10))+'"></label>'+
+      '<div class="hi-fb"><button type="button" class="nm2-b pri" onclick="hiSalvar(\''+n.id+'\')">💾 Salvar</button><button type="button" class="nm2-b ghost" onclick="HI.ed=null;desenharNotasMes()">Cancelar</button>'+
+      '<button type="button" class="nm2-b ghost" style="color:#ff8a84;margin-left:auto" onclick="hiExcluir(\''+n.id+'\')">🗑 Excluir nota</button></div></div>';
+  });
+  if(grupo!==null) h+='</section>';
+  bx.innerHTML=h;
+  if(HI._foco){ var bi=bx.querySelector('.nm-busca'); if(bi){ bi.focus(); bi.setSelectionRange(bi.value.length,bi.value.length); } HI._foco=false; }
+}
+var _hiT=null; function hiRedesenharBusca(){ clearTimeout(_hiT); _hiT=setTimeout(function(){ HI._foco=true; desenharNotasMes(); },250); }
+function hiSalvar(id){
+  var n=HI.dados.find(function(x){ return x.id===id; }); if(!n) return;
+  var st=el('hiS').value, num=(el('hiN').value||'').trim(), v=nmNum(el('hiV').value), dp=el('hiP').value||null;
+  if((st==='paga'||st==='enviada')&&!num){ aviso('Para "Paga" ou "No Financeiro", informe o nº da NF (ou escreva RECIBO).'); el('hiN').focus(); return; }
+  var p={numero:num?(/^recibo$/i.test(num)?'RECIBO':num):null,data_emissao:el('hiE').value||null,valor:v,status:st};
+  if(st==='paga') p.data_pagamento=dp||hoje(); else { p.data_pagamento=null; if(dp) p.data_vencimento=dp; }
+  if(st==='enviada'&&!n.data_envio) p.data_envio=hoje();
+  sb.from('nf_notas').update(p).eq('id',id).then(function(r){ if(r.error) throw r.error; Object.keys(p).forEach(function(k){ n[k]=p[k]; }); HI.ed=null; aviso('✅ Nota corrigida.'); desenharNotasMes(); lpAtualizarTelas(); })
+    .catch(function(){ aviso('Não consegui salvar agora.',true); });
+}
+function hiExcluir(id){
+  var n=HI.dados.find(function(x){ return x.id===id; }); if(!n) return;
+  dialogo('Excluir a nota de '+lpNome(n)+' ('+(n.tipo==='cache'?'cachê':'serviço')+' de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase()+')? Não dá para desfazer.',{sim:function(){
+    sb.from('nf_notas').delete().eq('id',id).then(function(r){ if(r.error) throw r.error; HI.dados=HI.dados.filter(function(x){ return x.id!==id; }); HI.ed=null; aviso('Nota excluída.'); desenharNotasMes(); lpAtualizarTelas(); })
+      .catch(function(){ aviso('Não consegui excluir agora.',true); });
+  }});
+}
+function hiCsv(){
+  var q=chaveNome(HI.q||''), l=[['Empresa','Pessoa','Tipo','Mês','Nº NF','Emissão','Pagamento','Valor','Situação']];
+  HI.dados.filter(function(n){ return (!HI.mes||(''+n.mes_referencia).slice(0,7)===HI.mes)&&(!HI.tipo||n.tipo===HI.tipo)&&(!HI.emp||lpEmp(n)===HI.emp)&&(!q||chaveNome(lpNome(n)).indexOf(q)>=0)&&(!HI.st||(HI.st==='semn'?hiSemN(n):hiSit(n).k===HI.st)); })
+    .forEach(function(n){ l.push([lpEmp(n),lpNome(n),n.tipo==='cache'?'Cachê':'Serviço',nomeMes((''+n.mes_referencia).slice(0,7)),n.numero||'',nm2Br(n.data_emissao),nm2Br(n.status==='paga'?n.data_pagamento:n.data_vencimento),(parseFloat(n.valor)||0).toFixed(2).replace('.',','),hiSit(n).t.replace(/^\S+\s/,'')]); });
+  var csv='﻿'+l.map(function(r){ return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(';'); }).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='histórico de notas'+(HI.mes?' '+HI.mes:'')+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+(function(){
+  // a tela de Notas passa a ter 4 abas: Serviço · Cachê · OP · Histórico
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    if(NM.tela==='hist') return hiDesenhar();
+    var r=_d.apply(this,arguments);
+    try{ var t=document.querySelector('#nmApp .nm2-tps'); if(t&&!t.querySelector('.t-hi')){ var b=document.createElement('button'); b.type='button'; b.className='nm2-tp t-hi'; b.textContent='📚 Histórico'; b.onclick=hiAbrir; t.appendChild(b); } }catch(e){}
+    try{ document.querySelectorAll('#nmApp .nm2-mi').forEach(function(b){ if(/Histórico de notas/.test(b.textContent)){ b.removeAttribute('onclick'); b.onclick=hiAbrir; } }); }catch(e){}
+    return r;
+  };
+  var _l=lpAtualizarTelas; lpAtualizarTelas=function(){ var r=_l.apply(this,arguments); if(NM.tela!=='hist'&&HI.dados) setTimeout(function(){ lpLer().then(function(){ HI.dados=LP.dados; }); },700); return r; };
+  // o Histórico antigo (sistema completo) abre o novo
+  var _mm=nmMais; nmMais=function(){ NM._arq=true; try{ return _mm.apply(this,arguments); } finally { setTimeout(function(){ NM._arq=false; },0); } };
+  var _ab=abrir; abrir=function(v,sub){ if(v==='nf'&&sub==='notas'&&!NM._arq){ NM.tela='hist'; try{ localStorage.setItem('nm_tela','hist'); }catch(e){} return _ab.call(this,'notasmes'); } return _ab.apply(this,arguments); };
+})();
+
+/* ================= v70 · PESSOA QUE NÃO EMITE NF: PAGA COM RECIBO ASSINADO =================
+   Na conferência da OP, marque "🧾 sem NF · recibo" (fica gravado para a pessoa, kv 'nf-sem-nf').
+   Na aba Cachê essa pessoa não é cobrada: o botão principal é "🧾 Fazer recibo". Recibo feito →
+   vai sozinha para "Pronto para liberar" e entra no CACHÊ LIBERADO como (recibo).
+   "Fora da NF" (ignorar) continua para quem é pago por outro meio (ex.: folha). */
+NM.semNF={};
+function opSemNfLer(){ return kvLer('nf-sem-nf',{}).then(function(v){ NM.semNF=v||{}; return NM.semNF; },function(){ return NM.semNF; }); }
+(function(){
+  var _car=carregarNotasMes; carregarNotasMes=function(){ opSemNfLer().then(function(){ if(NM.dados&&!NM.tela) desenharNotasMes(); }); return _car.apply(this,arguments); };
+  var _oc=opCarregar; opCarregar=function(){ opSemNfLer(); return _oc.apply(this,arguments); };
+  // marca na conferência
+  var _arq=opArquivo; opArquivo=function(f){
+    var r=_arq.apply(this,arguments);
+    var t=setInterval(function(){ if(!OP.lida||OP.lida.lendo) return; clearInterval(t); if(!OP.lida.linhas) return;
+      OP.lida.linhas.forEach(function(L){ if(L.semNF===undefined) L.semNF=!!(L.sel&&L.sel.charAt(0)==='p'&&NM.semNF[L.sel.slice(2)]); }); desenharNotasMes(); },120);
+    setTimeout(function(){ clearInterval(t); },20000);
+    return r;
+  };
+  var _esc=opEscolher; opEscolher=function(i,val){ var L=OP.lida.linhas[i]; L.semNF=!!(L._eraFora||(val&&val.charAt(0)==='p'&&NM.semNF[val.slice(2)])); return _esc.apply(this,arguments); };
+  var _od=opDesenhar; opDesenhar=function(){
+    var r=_od.apply(this,arguments), bx=el('nmApp'); if(!bx||!OP.lida||!OP.lida.linhas) return r;
+    var rows=bx.querySelectorAll('.op-prev .op-row:not(.op-hd)');
+    OP.lida.linhas.forEach(function(L,i){
+      var vk=rows[i]&&rows[i].querySelector('.op-vk'); if(!vk||!L.sel||L.sel==='__ign'||vk.querySelector('.op-snf')) return;
+      var lb=document.createElement('label'); lb.className='op-snf'+(L.semNF?' on':''); lb.title='Não emite NF: recebe com recibo de quitação assinado, autorizado por você';
+      lb.innerHTML='<input type="checkbox"'+(L.semNF?' checked':'')+'> 🧾 sem NF · recibo';
+      lb.querySelector('input').onchange=function(){ L.semNF=this.checked; lb.classList.toggle('on',this.checked); };
+      vk.appendChild(lb);
+    });
+    var cnt=OP.lida.linhas.filter(function(L){ return L.semNF&&L.sel&&L.sel!=='__ign'; }).length, pe=bx.querySelector('.op-pe>span');
+    if(pe&&cnt&&!pe.querySelector('.op-ns')) pe.insertAdjacentHTML('beforeend',' · <b class="op-ns">🧾 '+cnt+' com recibo</b>');
+    // o "ignorar" vira "fora da NF (pago por outro meio)"
+    bx.querySelectorAll('.op-prev option[value="__ign"]').forEach(function(o){ o.textContent='— Fora da NF (pago por outro meio, ex.: folha)'; });
+    bx.querySelectorAll('.op-prev .op-chip.c-ign').forEach(function(c){ c.textContent='⚪ fora da NF'; });
+    return r;
+  };
+  // grava a marcação junto com a importação
+  var _imp=opImportar; opImportar=function(){
+    var O=OP.lida, r=_imp.apply(this,arguments);
+    try{ if(O&&O.linhas){ var mud=false; O.linhas.forEach(function(L){ if(!L.pid) return; if(L.semNF&&!NM.semNF[L.pid]){ NM.semNF[L.pid]=true; mud=true; } else if(!L.semNF&&NM.semNF[L.pid]){ delete NM.semNF[L.pid]; mud=true; } });
+      if(mud) kvSalvar('nf-sem-nf',NM.semNF).catch(function(){ aviso('Não consegui gravar quem é "sem NF".',true); }); } }catch(e){}
+    return r;
+  };
+  // aba Cachê: quem é sem NF não é cobrado; botão principal = fazer o recibo
+  var _l=nm2Linha; nm2Linha=function(n,grupo){
+    var h=_l.apply(this,arguments);
+    if(n&&n.tipo==='cache'&&NM.semNF[n.colaborador_id]&&(grupo==='cob'||grupo==='prox')&&nmEtapa(n)==='cobrar'){
+      h=h.replace(/<button type="button" class="nm2-b wa" onclick="nmWhats\('[^']+'\)">[^<]*<\/button>/,'')
+         .replace(/<span class="nm2-tel">[\s\S]*?<\/span>/,'')
+         .replace(/<button type="button" class="nm2-b" disabled title="Sem telefone[^"]*">[^<]*<\/button>/,'')
+         .replace(/<button type="button" class="nm2-b" onclick="nmReciboDaNota\('([^']+)'\)"[^>]*>[^<]*<\/button>/,'<button type="button" class="nm2-b pri" onclick="nmReciboDaNota(\'$1\')" title="Recibo de pagamento e quitação para a pessoa assinar">🧾 Fazer recibo</button>')
+         .replace(/<button type="button" class="nm2-b pri" onclick="NM\.abrindo=/,'<button type="button" class="nm2-b ghost" onclick="NM.abrindo=')
+         .replace(/(<div class="nm2-quem">[\s\S]*?<\/small>)/,'$1<span class="nm2-tag snf">🧾 sem NF · paga com recibo assinado</span>');
+    }
+    return h;
+  };
+  var _cl=cobLista; cobLista=function(){ return _cl.apply(this,arguments).filter(function(n){ return !(n.tipo==='cache'&&NM.semNF[n.colaborador_id]); }); };
+})();
+
+/* ================= v71 · HISTÓRICO: SELEÇÃO EM LOTE =================
+   Caixinha em cada nota (e por empresa / todas as filtradas) + barra de ações:
+   💸 Marcar como paga · 🧾 Paga com recibo · ⏳ Voltar para pendente · 🗑 Excluir.
+   Antes de excluir baixa uma cópia das notas. Notas travadas não entram. */
+HI.sel={};
+function hiVisiveis(){
+  var q=chaveNome(HI.q||'');
+  return (HI.dados||[]).filter(function(n){ return (!HI.mes||(''+n.mes_referencia).slice(0,7)===HI.mes)&&(!HI.tipo||n.tipo===HI.tipo)&&(!HI.emp||lpEmp(n)===HI.emp)&&(!q||chaveNome(lpNome(n)).indexOf(q)>=0)&&(!HI.st||(HI.st==='semn'?hiSemN(n):hiSit(n).k===HI.st)); });
+}
+function hiSelN(){ var v={}; hiVisiveis().forEach(function(n){ v[n.id]=1; }); Object.keys(HI.sel).forEach(function(id){ if(!v[id]) delete HI.sel[id]; }); return Object.keys(HI.sel).length; }
+function hiMarcar(id,on){ if(on) HI.sel[id]=1; else delete HI.sel[id]; hiBarra(); var r=document.querySelector('.hi-row[data-id="'+id+'"]'); if(r) r.classList.toggle('sel',!!on); }
+function hiMarcarVarios(ids,on){ ids.forEach(function(id){ if(on) HI.sel[id]=1; else delete HI.sel[id]; }); desenharNotasMes(); }
+function hiBarra(){
+  var b=document.getElementById('hiBarra'); if(!b) return; var n=hiSelN();
+  var tot=0; Object.keys(HI.sel).forEach(function(id){ var x=HI.dados.find(function(y){ return y.id===id; }); if(x) tot+=parseFloat(x.valor)||0; });
+  b.classList.toggle('on',n>0);
+  b.innerHTML='<span><b>'+n+'</b> selecionada(s) · '+moedaBR(tot)+'</span>'+
+    '<button type="button" class="nm2-b fin sm" onclick="hiLote(\'paga\')">💸 Marcar como paga</button>'+
+    '<button type="button" class="nm2-b sm" onclick="hiLote(\'recibo\')" title="Sem nº de NF: fica registrado RECIBO">🧾 Paga com recibo</button>'+
+    '<button type="button" class="nm2-b sm" onclick="hiLote(\'pendente\')">⏳ Voltar para pendente</button>'+
+    '<button type="button" class="nm2-b ghost sm" style="color:#ff8a84" onclick="hiLote(\'excluir\')">🗑 Excluir</button>'+
+    '<button type="button" class="nm2-b ghost sm" onclick="HI.sel={};desenharNotasMes()">Limpar</button>';
+}
+function hiLote(acao){
+  var ids=Object.keys(HI.sel), ns=ids.map(function(id){ return HI.dados.find(function(x){ return x.id===id; }); }).filter(function(n){ return n&&!n.travado; });
+  if(!ns.length){ aviso('Nenhuma nota selecionada (travadas não entram).'); return; }
+  var semN=ns.filter(function(n){ return !n.numero; }).length;
+  var txt={paga:'Marcar '+ns.length+' nota(s) como PAGA?'+(semN?' '+semN+' estão sem nº de NF: elas ficam com o aviso "sem nº" (se foram pagas sem NF, use "Paga com recibo").':''),
+    recibo:'Marcar '+ns.length+' nota(s) como paga(s)? As que estão sem nº ficam registradas como RECIBO.',
+    pendente:'Voltar '+ns.length+' nota(s) para PENDENTE? O nº da NF fica guardado.',
+    excluir:'EXCLUIR '+ns.length+' nota(s)? Antes eu baixo uma cópia de todas as notas no seu computador. Não dá para desfazer pela tela.'}[acao];
+  dialogo(txt,{sim:function(){
+    LP.dados=HI.dados;
+    var hj=hoje(), feito=0;
+    var passo=acao==='excluir'?lpCopia().then(function(){ return sb.from('nf_notas').delete().in('id',ns.map(function(n){ return n.id; })).then(function(r){ if(r.error) throw r.error; var del={}; ns.forEach(function(n){ del[n.id]=1; }); HI.dados=HI.dados.filter(function(x){ return !del[x.id]; }); LP.dados=HI.dados; feito=ns.length; }); })
+      :Promise.all(ns.map(function(n){
+        var p=acao==='pendente'?{status:'pendente',data_pagamento:null}:{status:'paga',data_pagamento:n.data_pagamento||(n.data_vencimento||'').slice(0,10)||hj};
+        if(acao==='recibo'&&!n.numero) p.numero='RECIBO';
+        return sb.from('nf_notas').update(p).eq('id',n.id).then(function(r){ if(r.error) throw r.error; Object.keys(p).forEach(function(k){ n[k]=p[k]; }); feito++; });
+      }));
+    passo.then(function(){ HI.sel={}; aviso('✅ '+feito+' nota(s) '+(acao==='excluir'?'excluída(s)':'atualizada(s)')+'.'); desenharNotasMes(); lpAtualizarTelas(); })
+      .catch(function(){ aviso('Não consegui concluir todas ('+feito+' feitas). Tente de novo.',true); desenharNotasMes(); });
+  }});
+}
+(function(){
+  var _hd=hiDesenhar; hiDesenhar=function(){
+    var r=_hd.apply(this,arguments), bx=el('nmApp'); if(!bx||!HI.dados) return r;
+    hiSelN();
+    var vis=hiVisiveis().filter(function(n){ return !n.travado; }).map(function(n){ return n.id; });
+    // caixinha em cada linha (a ordem das linhas é a mesma da lista filtrada e ordenada)
+    var lista=hiVisiveis().sort(function(a,b){ return lpEmp(a).localeCompare(lpEmp(b))||(a.tipo<b.tipo?-1:(a.tipo>b.tipo?1:0))||lpNome(a).localeCompare(lpNome(b)); });
+    bx.querySelectorAll('.hi-row').forEach(function(row,i){
+      var n=lista[i]; if(!n) return; row.setAttribute('data-id',n.id); if(HI.sel[n.id]) row.classList.add('sel');
+      var tp=row.querySelector('.hi-tp');
+      if(tp) tp.innerHTML=n.travado?'🔒':'<input type="checkbox" class="hi-ck filtro-sel"'+(HI.sel[n.id]?' checked':'')+' onchange="hiMarcar(\''+n.id+'\',this.checked)" title="Selecionar">';
+    });
+    bx.querySelectorAll('.hi-grp').forEach(function(g){
+      var ids=[].slice.call(g.querySelectorAll('.hi-row[data-id]')).map(function(x){ return x.getAttribute('data-id'); }).filter(function(id){ return vis.indexOf(id)>=0; });
+      var gh=g.querySelector('.hi-gh b'); if(!gh||!ids.length) return;
+      var todos=ids.every(function(id){ return HI.sel[id]; });
+      var c=document.createElement('input'); c.type='checkbox'; c.className='hi-ck filtro-sel'; c.checked=todos; c.title='Selecionar as notas desta empresa'; c.onchange=function(){ hiMarcarVarios(ids,this.checked); };
+      gh.insertBefore(c,gh.firstChild);
+    });
+    var ch=bx.querySelector('.hi-chips');
+    if(ch&&vis.length){
+      var tudo=vis.every(function(id){ return HI.sel[id]; });
+      var sb2=document.createElement('label'); sb2.className='hi-todas'; sb2.innerHTML='<input type="checkbox" class="filtro-sel"'+(tudo?' checked':'')+'> Selecionar as '+vis.length+' notas da tela';
+      sb2.querySelector('input').onchange=function(){ hiMarcarVarios(vis,this.checked); };
+      ch.parentNode.insertBefore(sb2,ch.nextSibling);
+      var br=document.createElement('div'); br.id='hiBarra'; br.className='hi-barra'; sb2.parentNode.insertBefore(br,sb2.nextSibling); hiBarra();
+    }
+    return r;
+  };
+})();
+
+/* ================= v72 · HISTÓRICO SEMPRE ATUAL + RELATÓRIO QUE FECHA A CONTA =================
+   • O Histórico relê as notas toda vez que é aberto e depois de qualquer importação/alteração.
+   • Relatório: quadro "a conta fecha" = liberado/pago + aguardando + fora da NF = total da OP,
+     com os nomes de quem ficou fora da NF (sem nota, não entra no pagamento pela Central). */
+(function(){
+  hiAbrir=function(){ NM.tela='hist'; try{ localStorage.setItem('nm_tela','hist'); }catch(e){} HI.ed=null; HI.sel={}; HI.dados=null; HI.erro=false; hiCarregar(); desenharNotasMes(); };
+  var _car=carregarNotasMes; carregarNotasMes=function(){ if(NM.tela==='hist'){ HI.dados=null; hiCarregar(); } else HI.dados=null; return _car.apply(this,arguments); };
+  var _hc=hiCarregar; hiCarregar=function(){ if(HI.carregando) return HI._p; HI._p=_hc.apply(this,arguments); return HI._p; };
+  var _lp=lpAtualizarTelas; lpAtualizarTelas=function(){ var r=_lp.apply(this,arguments); if(NM.tela==='hist') setTimeout(function(){ lpLer().then(function(){ HI.dados=LP.dados; desenharNotasMes(); }); },800); return r; };
+})();
+(function(){
+  var _h=opRelatorioHtml; opRelatorioHtml=function(M,doMes,doAnt,notas,prest,empN,meses){
+    var lib=0, ag=0, fora=0, tot=0, foraN=[], agN=[], semNota=0;
+    doMes.forEach(function(o){ (o.itens||[]).forEach(function(i){
+      var v=+i.valor||0; tot+=v; var p=i.colaborador_id?prest(i.colaborador_id):{}, nm=p.nome||i.nome;
+      if(i.ignorar){ fora+=v; foraN.push(nm+' ('+moedaBR(v)+')'); return; }
+      var n=notas[i.nota_id]; if(!n){ semNota+=v; agN.push(nm); return; }
+      if(n.status==='paga'||n.status==='enviada') lib+=v; else { ag+=v; agN.push(nm); }
+    }); });
+    var R=function(v){ return moedaBR(Math.round(v*100)/100); }, ok=Math.abs(lib+ag+fora+semNota-tot)<0.01;
+    var quadro='<h2>A conta do mês</h2><table><tbody>'+
+      '<tr><td>💸 Liberado ao Financeiro / pago</td><td class="r">'+R(lib)+'</td></tr>'+
+      '<tr><td>⏳ Aguardando NF ou recibo'+(agN.length?'<br><small>'+esc(agN.join(', '))+'</small>':'')+'</td><td class="r">'+R(ag+semNota)+'</td></tr>'+
+      '<tr><td>⚪ Fora da NF (sem nota na Central)'+(foraN.length?'<br><small>'+esc(foraN.join(', '))+'</small>':'')+'</td><td class="r">'+R(fora)+'</td></tr>'+
+      '<tr class="tot"><td>Total das OPs do mês '+(ok?'✓ confere':'⚠ não confere')+'</td><td class="r">'+R(tot)+'</td></tr></tbody></table>'+
+      (fora?'<div class="al"><b>⚠ '+foraN.length+' pessoa(s) "fora da NF"</b> somam '+R(fora)+'. Se elas recebem pela OP com recibo assinado, suba a OP de novo na Central, troque "Fora da NF" pela pessoa e marque <b>🧾 sem NF · recibo</b>: assim entram no pagamento e no CACHÊ LIBERADO.</div>':'');
+    var wo=window.open;
+    window.open=function(){ var w=wo.apply(window,arguments); if(!w) return w; var dw=w.document.write;
+      w.document.write=function(html){
+        html=html.replace('<h2>Por empresa</h2>',quadro+'<h2>Por empresa</h2>')
+          .replace(/sem NF \(não emite\)/g,'fora da NF');
+        return dw.call(w.document,html); };
+      return w; };
+    try{ return _h.apply(this,arguments); } finally { window.open=wo; }
+  };
+})();
+/* aba da OP: avisa no cartão quem ficou "fora da NF" */
+(function(){
+  var _b=opBlocoOP; opBlocoOP=function(o,oi){
+    var h=_b.apply(this,arguments), fora=(o.itens||[]).filter(function(i){ return i.ignorar; });
+    if(fora.length){ var v=fora.reduce(function(a,i){ return a+(+i.valor||0); },0);
+      h=h.replace('<div class="op-acts">','<div class="nm2-alerta" style="margin:10px 18px 0">⚪ <span><b>'+fora.length+' fora da NF</b> ('+esc(fora.map(function(i){ return i.nome; }).join(', '))+') · '+moedaBR(v)+'. Não geram nota nem entram no pagamento. Se recebem com recibo, suba esta OP de novo e marque <b>🧾 sem NF · recibo</b>.</span></div><div class="op-acts">'); }
+    return h;
+  };
+})();
+
+/* ================= v73 · TODO MUNDO DA OP NO SISTEMA + CONFERÊNCIA OP × LANÇADO =================
+   • Não existe mais "fora da NF": cada linha da OP precisa de uma pessoa e vira nota de cachê
+     (quem não emite NF vai como "🧾 sem NF · recibo").
+   • "🔗 Completar a OP": reabre uma OP já importada, sem subir o PDF, para vincular quem ficou de fora.
+   • Conferência por mês: total das OPs × total lançado nas notas de cachê, com as diferenças. */
+function opReabrir(oi){
+  var o=OP.lista[oi]; if(!o) return;
+  var its=(o.itens||[]);
+  var R={numero:o.numero,emitida:o.emitida_em||'',ini:o.periodo_ini||'',fim:o.periodo_fim||'',grupos:o.grupos||[],total:+o.total||0,avisos:[],subtotais:{},
+    itens:its.map(function(i){ return {nome:i.nome,valor:+i.valor||0,situacao:i.situacao||'',grupo:(i.grupo||'').split(' + ')[0]}; })};
+  R.soma=Math.round(R.itens.reduce(function(a,i){ return a+i.valor; },0)*100)/100;
+  var linhas=its.map(function(i){
+    var L={nome:i.nome,chave:i.chave,valor:+i.valor||0,situacao:i.situacao||'',grupos:String(i.grupo||'').split(' + ').filter(Boolean)};
+    if(!L.grupos.length) L.grupos=[''];
+    if(i.colaborador_id&&opPessoa('p:'+i.colaborador_id)){ L.estado='salvo'; L.sel='p:'+i.colaborador_id; L.semNF=!!NM.semNF[i.colaborador_id]; }
+    else { var s=opSugerir(L.nome); L.estado=s.estado==='igual'?'igual':(s.k?'sug':'no'); L.sel=s.k||''; L.cands=s.cands||[]; L.semNF=true; L._eraFora=true; }
+    L.empresa_id=i.empresa_id||''; L.telefone=i.telefone||'';
+    if(!L.empresa_id||!L.telefone){ var t={}; opDefaults(t.L=Object.assign({},L),OP.vinc[L.chave]); if(!L.empresa_id) L.empresa_id=t.L.empresa_id; if(!L.telefone) L.telefone=t.L.telefone; }
+    return L;
+  });
+  OP.lida={R:R,arquivo:o.arquivo_nome||'',linhas:linhas,reaberta:true};
+  desenharNotasMes(); try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(e){}
+}
+function opConfMes(M){
+  var ops=OP.lista.filter(function(o){ return o.mes_referencia===M; }), totOP=0, porPid={}, sem=[], notas={};
+  ops.forEach(function(o){ (o.itens||[]).forEach(function(i){ var v=+i.valor||0; totOP+=v;
+    if(!i.colaborador_id||i.ignorar||!i.nota_id){ sem.push({nome:i.nome,v:v,op:o.numero}); return; }
+    var k=i.colaborador_id; porPid[k]=porPid[k]||{v:0,nota:i.nota_id,nome:i.nome}; porPid[k].v+=v; notas[i.nota_id]=1; }); });
+  var lanc=0, dif=[];
+  Object.keys(porPid).forEach(function(k){ var x=porPid[k], n=OP.notas[x.nota];
+    if(!n){ sem.push({nome:x.nome,v:x.v,op:'nota apagada'}); return; }
+    var vn=parseFloat(n.valor)||0; lanc+=vn; if(Math.abs(vn-x.v)>=0.01) dif.push({nome:nmPrest(k).nome||x.nome,op:x.v,nota:vn}); });
+  return {M:M,ops:ops.length,totOP:Math.round(totOP*100)/100,lanc:Math.round(lanc*100)/100,sem:sem,dif:dif,ok:!sem.length&&!dif.length&&Math.abs(totOP-lanc)<0.01};
+}
+function opConfHtml(c){
+  var R=moedaBR, h='<div class="op-conf '+(c.ok?'ok':'w')+'"><div class="op-conf-h"><b>🧮 Conferência de '+esc(nomeMes(c.M).toLowerCase())+'</b>'+
+    '<span>'+c.ops+' OP(s): <b>'+R(c.totOP)+'</b></span><span>Lançado no sistema: <b>'+R(c.lanc)+'</b></span>'+
+    '<span class="op-conf-st">'+(c.ok?'✓ bate':'⚠ diferença de '+R(Math.abs(c.totOP-c.lanc)))+'</span></div>';
+  if(c.sem.length) h+='<div class="op-conf-l">⚪ <b>'+c.sem.length+' sem lançamento</b> (sem pessoa vinculada): '+esc(c.sem.map(function(x){ return x.nome+' '+R(x.v); }).join(' · '))+'</div>';
+  if(c.dif.length) h+='<div class="op-conf-l">✏️ <b>'+c.dif.length+' com valor diferente da OP</b>: '+esc(c.dif.map(function(x){ return x.nome+' (OP '+R(x.op)+' · lançado '+R(x.nota)+')'; }).join(' · '))+'</div>';
+  return h+'</div>';
+}
+(function(){
+  // cartão da OP: botão para completar quem ficou sem pessoa
+  var _b=opBlocoOP; opBlocoOP=function(o,oi){
+    var h=_b.apply(this,arguments), fora=(o.itens||[]).filter(function(i){ return i.ignorar||!i.colaborador_id; });
+    h=h.replace(/<div class="nm2-alerta" style="margin:10px 18px 0">⚪[\s\S]*?<\/div>(?=<div class="op-acts">)/,'');
+    if(fora.length) h=h.replace('<div class="op-acts">','<div class="nm2-alerta" style="margin:10px 18px 0">⚠️ <span><b>'+fora.length+' pessoa(s) sem lançamento</b> ('+esc(fora.map(function(i){ return i.nome; }).join(', '))+') · '+moedaBR(fora.reduce(function(a,i){ return a+(+i.valor||0); },0))+'. Vincule para o valor da OP bater com o sistema.</span><button type="button" class="nm2-b pri sm" onclick="opReabrir('+oi+')">🔗 Completar a OP</button></div><div class="op-acts">');
+    return h;
+  };
+  // conferência por mês no topo da lista de OPs + aviso na conferência reaberta
+  var _od=opDesenhar; opDesenhar=function(){
+    var r=_od.apply(this,arguments), bx=el('nmApp'); if(!bx||!OP.carregado) return r;
+    var tit=bx.querySelector('.op-tit');
+    if(tit&&OP.lista.length&&!bx.querySelector('.op-conf')){
+      var ms=[]; OP.lista.forEach(function(o){ if(ms.indexOf(o.mes_referencia)<0) ms.push(o.mes_referencia); }); ms.sort().reverse();
+      var d=document.createElement('div'); d.innerHTML=ms.slice(0,3).map(function(m){ return opConfHtml(opConfMes(m)); }).join('');
+      tit.parentNode.insertBefore(d,tit.nextSibling);
+    }
+    if(OP.lida&&OP.lida.reaberta){ var cab=bx.querySelector('.op-prev .op-cab small'); if(cab) cab.textContent='Completar a OP já importada · vincule quem está sem pessoa';  var bt=document.getElementById('opBtImp'); if(bt&&!bt.disabled) bt.textContent='💾 Salvar a OP completa'; bx.querySelectorAll('.op-prev .nm2-alerta').forEach(function(x){ if(/já foi importada/.test(x.textContent)) x.remove(); }); }
+    bx.querySelectorAll('.op-prev option[value="__ign"]').forEach(function(o){ o.remove(); });
+    return r;
+  };
+  // o arquivo da OP reaberta não precisa ser lido de novo; a importação é a mesma
+})();
+/* Histórico: linha de conferência OP × lançado do mês escolhido */
+(function(){
+  var _hc=hiCarregar; hiCarregar=function(){
+    var p=_hc.apply(this,arguments);
+    sb.from('nf_ordens_pagamento').select('mes_referencia,total,itens').then(function(r){ HI.ops=(!r.error&&r.data)||[]; if(NM.tela==='hist'&&HI.dados) desenharNotasMes(); },function(){});
+    return p;
+  };
+  var _hd=hiDesenhar; hiDesenhar=function(){
+    var r=_hd.apply(this,arguments), bx=el('nmApp'); if(!bx||!HI.dados||!HI.ops||!HI.mes||HI.tipo==='servico') return r;
+    var ops=HI.ops.filter(function(o){ return o.mes_referencia===HI.mes; }); if(!ops.length) return r;
+    var tOP=0, ids={}; ops.forEach(function(o){ tOP+=+o.total||0; (o.itens||[]).forEach(function(i){ if(i.nota_id) ids[i.nota_id]=1; }); });
+    var cache=HI.dados.filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===HI.mes; });
+    var tL=cache.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0), fora=cache.filter(function(n){ return !ids[n.id]; });
+    var ok=Math.abs(tOP-tL)<0.01, d=document.createElement('div'); d.className='op-conf '+(ok?'ok':'w');
+    d.innerHTML='<div class="op-conf-h"><b>🧮 OPs de '+esc(nomeMes(HI.mes).toLowerCase())+'</b><span>'+ops.length+' OP(s): <b>'+moedaBR(tOP)+'</b></span><span>Cachês lançados: <b>'+moedaBR(tL)+'</b></span><span class="op-conf-st">'+(ok?'✓ bate':'⚠ diferença de '+moedaBR(Math.abs(tOP-tL)))+'</span></div>'+
+      (!ok?'<div class="op-conf-l">'+(fora.length?'Cachês lançados sem OP: '+esc(fora.map(function(n){ return lpNome(n)+' '+moedaBR(n.valor||0); }).join(' · '))+'. ':'')+'Veja o detalhe na aba <b>📥 Ordens de Pagamento</b> (🔗 Completar a OP).</div>':'');
+    var ch=bx.querySelector('.hi-chips'); if(ch) ch.parentNode.insertBefore(d,ch);
+    return r;
+  };
+})();
+
+/* ================= v74 · ABA 🎤 CACHÊ NOVA (simples, por mês) =================
+   Conferência OP × lançado no topo, resumo por empresa e por tipo (NF / recibo) e 3 filas:
+   🧾 Recibo para fazer · 📨 NF para cobrar · ✅ Pronto para liberar (+ ✔️ Liberado, recolhido). */
+var CX2={mes:'',emp:'',abre:null,verLib:false};
+function cx2Meses(){
+  var m={}; (NM.dados.abertas||[]).concat(NM.dados.pagas||[]).forEach(function(n){ if(n.tipo==='cache') m[(''+n.mes_referencia).slice(0,7)]=1; });
+  (NM.opLista||[]).forEach(function(o){ m[o.mes_referencia]=1; });
+  return Object.keys(m).sort().reverse();
+}
+function cx2Mes(){
+  if(CX2.mes) return CX2.mes;
+  var ms=cx2Meses(), ant=nmSomaMes(nmMesAtual(),-1);
+  CX2.mes=ms.indexOf(ant)>=0?ant:(ms[0]||ant); return CX2.mes;
+}
+function cx2TrocarMes(M){ CX2.mes=M; CX2.abre=null; if(NM.mesPagas!==M){ NM.mesPagas=M; carregarNotasMes(); } else desenharNotasMes(); }
+function cx2Emp(n){ var p=nmPrest(n.colaborador_id); return ((NM.dados.emp||{})[p.empresa_id]||{}).nome||'Sem empresa'; }
+function cx2Fila(n){
+  if(n.status==='enviada'||n.status==='paga') return 'lib';
+  if(nmEtapa(n)==='rec') return 'pronto';
+  return (NM.semNF||{})[n.colaborador_id]?'recibo':'nf';
+}
+function cx2Desenhar(){
+  var bx=el('nmApp'); if(!bx||!NM.dados) return;
+  var M=cx2Mes();
+  if(NM.mesPagas!==M){ NM.mesPagas=M; carregarNotasMes(); return; }
+  var e=esc, R=moedaBR, br=nm2Br, q=chaveNome(NM.busca||'');
+  var vistos={}, todas=(NM.dados.abertas||[]).concat(NM.dados.pagas||[]).filter(function(n){ if(vistos[n.id]) return false; vistos[n.id]=1; return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===M&&!nmZerada(n); });
+  var doFiltro=todas.filter(function(n){ return (!CX2.emp||cx2Emp(n)===CX2.emp)&&(!q||chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)>=0); });
+  var nome=function(n){ return nmPrest(n.colaborador_id).nome||'—'; };
+  var ord=function(a,b){ return cx2Emp(a).localeCompare(cx2Emp(b))||nome(a).localeCompare(nome(b)); };
+  var F={recibo:[],nf:[],pronto:[],lib:[]}; doFiltro.forEach(function(n){ F[cx2Fila(n)].push(n); });
+  Object.keys(F).forEach(function(k){ F[k].sort(ord); });
+  var soma=function(l){ return l.reduce(function(a,n){ return a+nmLiquido(n); },0); };
+  // conferência OP × lançado
+  var ops=(NM.opLista||[]).filter(function(o){ return o.mes_referencia===M; }), tOP=0, semLanc=[];
+  ops.forEach(function(o){ tOP+=+o.total||0; (o.itens||[]).forEach(function(i){ if(i.ignorar||!i.colaborador_id||!i.nota_id) semLanc.push(i.nome+' '+R(+i.valor||0)); }); });
+  var tL=todas.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0), bate=ops.length&&Math.abs(tOP-tL)<0.01;
+  // resumo por empresa e tipo
+  var emp={}; todas.forEach(function(n){ var k=cx2Emp(n), x=emp[k]=emp[k]||{nf:0,rc:0,lib:0,t:0,n:0}, v=parseFloat(n.valor)||0, rc=(NM.semNF||{})[n.colaborador_id]||(!n.numero&&recDaNota(n.id));
+    x.t+=v; x.n++; if(rc) x.rc+=v; else x.nf+=v; if(n.status==='enviada'||n.status==='paga') x.lib+=v; });
+  var ek=Object.keys(emp).sort(), tt={nf:0,rc:0,lib:0,t:0,n:0}; ek.forEach(function(k){ ['nf','rc','lib','t','n'].forEach(function(c){ tt[c]+=emp[k][c]; }); });
+  var tb=function(t){ var x=NM_TIPO[t]; return '<button type="button" class="nm2-tp t-'+t+(t==='cache'?' on':'')+'" onclick="nmTrocarTipo(\''+t+'\')">'+x.ic+' '+x.nome+'</button>'; };
+  var h='<div class="nm2-top"><div><h1>Notas fiscais</h1><p>🎤 Cachês do mês · 🧾 recibo ou 📨 NF <span>›</span> ✅ pronto <span>›</span> 🔔 liberar ao Financeiro</p></div><div class="nm2-tps">'+tb('servico')+tb('cache')+
+    '<button type="button" class="nm2-tp t-op" onclick="opAbrir()">📥 Ordens de Pagamento</button><button type="button" class="nm2-tp t-hi" onclick="hiAbrir()">📚 Histórico</button></div></div>';
+  h+='<div class="cx2-bar hi-filtro"><select class="nm-in" onchange="cx2TrocarMes(this.value)">'+cx2Meses().map(function(m){ return '<option value="'+m+'"'+(m===M?' selected':'')+'>🎤 Cachês de '+e(nomeMes(m).toLowerCase())+'</option>'; }).join('')+'</select>'+
+    '<input class="nm-busca" placeholder="🔎 Buscar pelo nome" value="'+e(NM.busca||'')+'" oninput="NM.busca=this.value;clearTimeout(window._cx2t);window._cx2t=setTimeout(function(){desenharNotasMes();var i=document.querySelector(\'.cx2-bar .nm-busca\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)">'+
+    '<button type="button" class="nm2-b wa" onclick="cobAbrir()">📲 Cobrar NF em lote'+(F.nf.length?' <b>'+F.nf.length+'</b>':'')+'</button>'+
+    '<details class="nm-tools nm2-mais"><summary class="nm2-b">Mais ▾</summary><div class="nm2-mais-m">'+
+    '<button class="nm2-mi" onclick="recListaAbrir()">🧾 Recibos emitidos</button><button class="nm2-mi" onclick="opRelatorio(\''+M+'\')">📄 Relatório do mês (Diretoria)</button>'+
+    '<button class="nm2-mi" onclick="nmNovaAvulsa()">＋ Nota avulsa</button><button class="nm2-mi" onclick="nfLimpezaAbrir()">🧹 Arrumar as notas</button></div></details></div>';
+  h+='<div class="nm-av hidden" id="nmAvulsaBox"><div class="nfst nfst-cz"><select id="nmAvulsa" class="nm-in"></select><select id="nmAvulsaTipo" class="nm-in"><option value="cache">Cachê</option><option value="servico">Serviço</option></select><input type="month" id="nmAvulsaMes" class="nm-in"><button type="button" class="ind-bt on" onclick="nmCriarAvulsa()">Criar nota</button><button type="button" class="ind-bt" onclick="el(\'nmAvulsaBox\').classList.add(\'hidden\')">Cancelar</button></div></div>';
+  // conferência
+  h+='<div class="op-conf '+(bate?'ok':'w')+'"><div class="op-conf-h"><b>🧮 Conferência de '+e(nomeMes(M).toLowerCase())+'</b>'+
+    (ops.length?'<span>'+ops.length+' OP(s): <b>'+R(tOP)+'</b></span>':'<span>nenhuma OP importada</span>')+'<span>Lançado: <b>'+R(tL)+'</b></span>'+
+    '<span class="op-conf-st">'+(bate?'✓ bate':(ops.length?'⚠ diferença de '+R(Math.abs(tOP-tL)):'suba a OP'))+'</span></div>'+
+    (semLanc.length?'<div class="op-conf-l">⚪ Sem lançamento: '+e(semLanc.join(' · '))+' → aba <b>📥 Ordens de Pagamento → 🔗 Completar a OP</b></div>':'')+'</div>';
+  // resumo por empresa
+  if(ek.length){
+    h+='<div class="cx2-res"><div class="cx2-rh"><span>Empresa</span><span>📨 NF</span><span>🧾 Recibo</span><span>Total</span><span>🔔 Liberado</span></div>'+
+      ek.map(function(k){ var x=emp[k]; return '<button type="button" class="cx2-rr'+(CX2.emp===k?' on':'')+'" onclick="CX2.emp=CX2.emp===\''+e(k).replace(/'/g,'')+'\'?\'\':\''+e(k).replace(/'/g,'')+'\';desenharNotasMes()" title="Filtrar por esta empresa"><span>🏢 '+e(k)+' <small>'+x.n+'</small></span><span>'+R(x.nf)+'</span><span>'+R(x.rc)+'</span><span><b>'+R(x.t)+'</b></span><span class="'+(x.lib>=x.t-0.009&&x.t?'ok':'')+'">'+R(x.lib)+'</span></button>'; }).join('')+
+      '<div class="cx2-rr cx2-tot"><span>Total '+(CX2.emp?'(filtro: '+e(CX2.emp)+' · <a href="#" onclick="CX2.emp=\'\';desenharNotasMes();return false">ver todas</a>)':'')+'</span><span>'+R(tt.nf)+'</span><span>'+R(tt.rc)+'</span><span><b>'+R(tt.t)+'</b></span><span>'+R(tt.lib)+'</span></div></div>';
+  }
+  var linha=function(n,fila){
+    var id=n.id, p=nmPrest(n.colaborador_id), tel=nmTelDe(n.colaborador_id), rc=!n.numero&&recDaNota(id), mei=opSemMeiPrest(n.colaborador_id), c=nmCobrancas(id);
+    var info=e(cx2Emp(n));
+    if(fila==='nf'&&c) info+=' · 📲 cobrado '+c.n+'x';
+    if(fila==='pronto'||fila==='lib') info+=' · '+(n.numero?'NF '+e(n.numero)+(n.data_emissao?' de '+br(n.data_emissao).slice(0,5):''):(rc?'recibo '+e(rc.num||''):'sem nº'));
+    if(fila==='lib') info+=' · '+(n.status==='paga'?'💸 paga':'🔔 avisado '+(n.data_envio?br(n.data_envio).slice(0,5):''));
+    var ac='';
+    if(fila==='recibo') ac='<button type="button" class="nm2-b pri sm" onclick="nmReciboDaNota(\''+id+'\')">🧾 Fazer recibo</button><button type="button" class="nm2-b ghost sm" title="Chegou NF mesmo assim" onclick="CX2.abre=CX2.abre===\''+id+'\'?null:\''+id+'\';desenharNotasMes()">NF?</button>';
+    else if(fila==='nf') ac=(soDig(tel)?'<button type="button" class="nm2-b wa sm" onclick="nmWhats(\''+id+'\')">📲 '+(c?'Cobrar de novo':'Cobrar')+'</button>':'<span class="nm2-tel"><input class="nm-in" id="nmTel_'+id+'" inputmode="tel" placeholder="WhatsApp com DDD" onkeydown="if(event.key===\'Enter\')nmSalvarTel(\''+id+'\')"><button type="button" class="nm2-b sm" onclick="nmSalvarTel(\''+id+'\')">💾</button></span>')+
+      '<button type="button" class="nm2-b pri sm" onclick="CX2.abre=CX2.abre===\''+id+'\'?null:\''+id+'\';desenharNotasMes()">✅ Chegou</button>';
+    else if(fila==='pronto') ac='<button type="button" class="nm2-b fin sm" onclick="nm2Avisar(\''+id+'\')">🔔 Liberar</button>'+(n.numero?'<button type="button" class="nm2-b ghost sm" title="Voltar para cobrar" onclick="nmVoltarCobrar(\''+id+'\')">↩</button>':'');
+    else ac=n.status==='enviada'?'<button type="button" class="nm2-b ghost sm" onclick="nmWhatsFinanceiro(\''+id+'\')" title="Mandar o aviso de novo">🔔 de novo</button>':'';
+    var h='<div class="cx2-row"><span class="cx2-nm"><b>'+e(p.nome||'—')+(mei?' <i class="cx2-mei" title="Sem MEI/CNPJ: pessoa física. Pagar só com recibo pede RPA (INSS/IRRF).">⚠</i>':'')+'</b><small>'+info+'</small></span>'+
+      '<span class="cx2-v">'+R(nmLiquido(n))+'</span><span class="cx2-ac">'+ac+'<button type="button" class="nm-mais" title="Mais opções" onclick="nmMais(\''+id+'\')">⋯</button></span></div>';
+    if(CX2.abre===id) h+='<div class="cx2-form"><label>Nº da NF<input class="nm-in" id="cxN_'+id+'" placeholder="Ex.: 1234" onkeydown="if(event.key===\'Enter\')cx2Chegou(\''+id+'\')"></label><label>Data de emissão<input class="nm-in" id="cxE_'+id+'" type="date" value="'+hoje()+'"></label>'+
+      '<button type="button" class="nm2-b pri" onclick="cx2Chegou(\''+id+'\')">✅ Salvar · a nota chegou</button><button type="button" class="nm2-b ghost" onclick="CX2.abre=null;desenharNotasMes()">Cancelar</button><small>Valor da OP: <b>'+R(n.valor||0)+'</b> · a NF tem que vir com esse valor.</small></div>';
+    return h;
+  };
+  var bloco=function(cls,ic,tit,sub,l,fila,extra,vazio){
+    return '<section class="cx2-bl '+cls+'"><div class="cx2-bh"><span class="cx2-bi">'+ic+'</span><div><b>'+tit+' <em>'+l.length+'</em> <span class="cx2-bv">'+R(soma(l))+'</span></b><small>'+sub+'</small></div>'+(extra||'')+'</div>'+
+      (l.length?l.map(function(n){ return linha(n,fila); }).join(''):'<div class="cx2-vz">'+vazio+'</div>')+'</section>';
+  };
+  h+='<div class="cx2-grid">';
+  h+=bloco('b-rc','🧾','Recibo para fazer','não emitem NF · faça o recibo, colha a assinatura',F.recibo,'recibo','','✅ Nenhum recibo pendente.');
+  h+=bloco('b-nf','📨','NF para cobrar','peça a nota com o valor da OP · quando chegar, ✅ Chegou',F.nf,'nf','','✅ Nenhuma NF para cobrar.');
+  h+='</div>';
+  var idsP=F.pronto.map(function(n){ return n.id; });
+  h+=bloco('b-pr','✅','Pronto para liberar','NF chegou ou recibo feito · libere tudo de uma vez ao Financeiro',F.pronto,'pronto',
+    idsP.length?'<button type="button" class="nm2-b fin" onclick="nm2Avisar(['+idsP.map(function(x){ return '\''+x+'\''; }).join(',')+'])">🔔 Liberar ao Financeiro ('+idsP.length+' · '+R(soma(F.pronto))+')</button>':'','Nada esperando liberação.');
+  var ls=(NM.lotes||[]).filter(function(x){ return !x.tipo||x.tipo==='cache'; }).slice(0,3);
+  if(ls.length) h+='<div class="nm2-lotes cx2-lotes"><b>📦 Últimas liberações</b>'+ls.map(function(x,i){ var dt=new Date(x.em); return '<span>'+(x.em.slice(0,10)===hoje()?'hoje':br(x.em.slice(0,10)).slice(0,5))+' '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+' · '+x.n+' pessoa(s) · '+R(x.total)+' <button type="button" class="nm2-link" onclick="nm2AbrirWa(null,(NM.lotes.filter(function(y){return !y.tipo||y.tipo===\'cache\';})['+i+']||{}).msg||\'\')">📋 mandar de novo</button></span>'; }).join('')+'</div>';
+  h+='<details class="nm2-dt-bl"'+(CX2.verLib?' open':'')+' ontoggle="CX2.verLib=this.open"><summary>✔️ Liberado ao Financeiro <em>'+F.lib.length+'</em> <small>'+R(soma(F.lib))+' · o pagamento agora é com eles</small></summary>'+
+    (F.lib.length?F.lib.map(function(n){ return linha(n,'lib'); }).join(''):'<div class="nm2-vz">Nada liberado ainda.</div>')+'</details>';
+  if(todas.length&&F.lib.length===todas.length) h=h.replace('<div class="cx2-grid">','<div class="nm2-fech">✅ <span><b>Cachês de '+e(nomeMes(M).toLowerCase())+' fechados</b> · todos os '+todas.length+' liberados ao Financeiro ('+R(soma(F.lib))+').</span><button type="button" class="nm2-b sm" onclick="opRelatorio(\''+M+'\')">📄 Relatório final</button></div><div class="cx2-grid">');
+  var semOp=opCacheSemOP(); if(semOp.length) h+='<div class="nm2-alerta">🧹 <span>'+semOp.length+' nota(s) de cachê vazias criadas pelas fichas, sem OP.</span><button type="button" class="nm2-b sm" onclick="opLimparSemOP()">Apagar</button></div>';
+  bx.innerHTML=h;
+}
+function cx2Chegou(id){
+  var n=nmNota(id), num=((el('cxN_'+id)||{}).value||'').trim(), em=(el('cxE_'+id)||{}).value||null; if(!n) return;
+  if(!num){ aviso('Digite o nº da NF.'); var i=el('cxN_'+id); if(i) i.focus(); return; }
+  nmGravar(id,{numero:num,data_emissao:em,status:'emitida'}).then(function(){ CX2.abre=null; aviso('✅ NF '+num+' registrada · pronta para liberar.'); desenharNotasMes(); })
+    .catch(function(){ aviso('Não consegui salvar agora.',true); });
+}
+(function(){
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    if(!NM.tela&&NM.tipo==='cache'&&NM.dados) return cx2Desenhar();
+    return _d.apply(this,arguments);
+  };
+  // depois de importar a OP, abre o Cachê já no mês da OP
+  var _imp=opImportar; opImportar=function(){ var O=OP.lida; if(O&&O.R&&O.R.fim){ CX2.mes=O.R.fim.slice(0,7); CX2.emp=''; } return _imp.apply(this,arguments); };
+})();
+
+/* ================= v75 · CONTROLE PROFISSIONAL: O TRABALHO DO DP TERMINA AO LIBERAR =================
+   • Pendência = só o que depende do DP: recibo para assinar, NF para cobrar, pronto para liberar.
+   • Liberado ao Financeiro = concluído (sai da tela inicial e das pendências).
+   • Recibo com 1 clique (✍️ Assinado), também em lote. Sem anexar PDF. */
+(function(){
+  // tela inicial: tira "Aguardando pagamento" (é com o Financeiro)
+  var _r=desenharRadar; desenharRadar=function(){ try{ RADAR.itens=(RADAR.itens||[]).filter(function(x){ return !(x.cat==='nf'&&/^Aguardando pagamento · /.test(x.t||'')); }); }catch(e){} return _r.apply(this,arguments); };
+  // formulários sem anexo de PDF
+  var _f=nm2Form; nm2Form=function(){ return _f.apply(this,arguments).replace(/<label class="nm2-f">📎 PDF[\s\S]*?<\/label>/,''); };
+  // Histórico: "No Financeiro" vira "Liberado"
+  var _hs=hiSit; hiSit=function(n){ var s=_hs.apply(this,arguments); if(s.k==='fin') s.t='🔔 Liberado'; return s; };
+  var _hd=hiDesenhar; hiDesenhar=function(){ var r=_hd.apply(this,arguments); try{ document.querySelectorAll('#nmApp .hi-chip.k-fin span').forEach(function(x){ x.textContent='🔔 Liberado'; }); }catch(e){} return r; };
+})();
+function cx2Assinado(ids){
+  ids=Array.isArray(ids)?ids:[ids];
+  var ns=ids.map(nmNota).filter(function(n){ return n&&!n.travado; }); if(!ns.length) return;
+  var ir=function(){
+    Promise.all(ns.map(function(n){ return nmGravar(n.id,{numero:n.numero||'RECIBO',status:'emitida',data_emissao:n.data_emissao||hoje()}); }))
+      .then(function(){ aviso('✍️ '+ns.length+' recibo(s) assinado(s) · prontos para liberar.'); desenharNotasMes(); })
+      .catch(function(){ aviso('Não consegui salvar todos agora.',true); desenharNotasMes(); });
+  };
+  if(ns.length>1) dialogo('Marcar '+ns.length+' recibo(s) como assinados? Eles vão para "Pronto para liberar".',{sim:ir}); else ir();
+}
+(function(){
+  var _cx=cx2Desenhar; cx2Desenhar=function(){
+    var r=_cx.apply(this,arguments), bx=el('nmApp'); if(!bx) return r;
+    try{
+      // fila do recibo: ✍️ Assinado como ação principal; gerar o documento fica como opção
+      var rc=bx.querySelector('.cx2-bl.b-rc'), ids=[];
+      if(rc){
+        rc.querySelectorAll('.cx2-row').forEach(function(row){
+          var m=row.innerHTML.match(/nmMais\('([^']+)'\)/); if(!m) return; var id=m[1]; ids.push(id);
+          var ac=row.querySelector('.cx2-ac'), fz=ac&&ac.querySelector('button.pri');
+          if(fz){ fz.className='nm2-b ghost sm'; fz.textContent='🧾 Gerar'; fz.title='Gerar o documento do recibo para imprimir/assinar'; }
+          var nf=[].slice.call(ac.querySelectorAll('button')).find(function(b){ return b.textContent==='NF?'; }); if(nf) nf.remove();
+          var ok=document.createElement('button'); ok.type='button'; ok.className='nm2-b pri sm'; ok.textContent='✍️ Assinado'; ok.title='Recibo assinado: libera para pagamento'; ok.onclick=function(){ cx2Assinado(id); };
+          ac.insertBefore(ok,ac.firstChild);
+        });
+        var sub=rc.querySelector('.cx2-bh small'); if(sub) sub.textContent='não emitem NF · quando o recibo voltar assinado, ✍️ Assinado';
+        if(ids.length>1){ var hd=rc.querySelector('.cx2-bh'), b=document.createElement('button'); b.type='button'; b.className='nm2-b pri sm'; b.textContent='✍️ Todos assinados ('+ids.length+')'; b.onclick=function(){ cx2Assinado(ids); }; hd.appendChild(b); }
+      }
+      // recibo assinado aparece como "recibo assinado" (e não "NF RECIBO")
+      bx.querySelectorAll('.cx2-row small').forEach(function(s){ s.innerHTML=s.innerHTML.replace(/NF RECIBO( de \d\d\/\d\d)?/,'✍️ recibo assinado'); });
+      // concluído
+      var sm=bx.querySelector('details.nm2-dt-bl summary'); if(sm) sm.innerHTML=sm.innerHTML.replace('✔️ Liberado ao Financeiro','✔️ Concluído · liberado ao Financeiro');
+      var pr=bx.querySelector('.cx2-bl.b-pr .cx2-bh small'); if(pr) pr.textContent='NF chegou ou recibo assinado · um clique libera tudo ao Financeiro e conclui';
+      // placar de pendências do mês, bem visível
+      var g=bx.querySelector('.cx2-grid');
+      if(g&&!bx.querySelector('.cx2-pend')){
+        var n=function(sel){ var x=bx.querySelector(sel+' .cx2-bh em'); return x?+x.textContent:0; };
+        var a=n('.b-rc'), c=n('.b-nf'), p=n('.b-pr'), tot=a+c+p, d=document.createElement('div'); d.className='cx2-pend'+(tot?'':' ok');
+        d.innerHTML=tot?'<b>📌 Faltam '+tot+' para fechar o mês</b><span>🧾 '+a+' recibo(s) para assinar</span><span>📨 '+c+' NF(s) para cobrar</span><span>✅ '+p+' pronto(s) para liberar</span>':'<b>✅ Nada pendente neste mês</b><span>tudo liberado ao Financeiro</span>';
+        g.parentNode.insertBefore(d,g);
+      }
+    }catch(e){}
+    return r;
+  };
 })();
 </script>
 </body>
