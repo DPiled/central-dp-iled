@@ -17975,6 +17975,55 @@ function dtImprimir(){
     '<button type="button" class="nm2-b" id="dtPSem">Sem valores</button><button type="button" class="nm2-b pri" id="dtPCom">Com valores</button></div></div>';
   el('dtPSem').onclick=function(){ x.remove(); ir(false); }; el('dtPCom').onclick=function(){ x.remove(); ir(true); };
 }
+
+/* v92 · impressão das gratificações arrumada: só as colunas usadas, números alinhados, larguras fixas */
+vfImprimir=function(){
+  var G=vfGrupos(), R=moedaBR, e=esc, tot=0, M=VF.mes, dp=(VF.linhas.find(function(r){ return r.data_pagamento; })||{}).data_pagamento||vfPagPadrao(M);
+  var temDias=function(r){ return vfN(r.dias)&&vfN(r.valor_dia); };
+  var C=[
+    {t:'Fixo combinado',k:function(r){ return vfN(r.fixo)?R(r.fixo):''; }},
+    {t:'(−) Folha',k:function(r){ return vfN(r.folha)?R(r.folha):''; }},
+    {t:'(−) Descontos',k:function(r){ var d=vfDesc(r); return d?R(d)+'<small>'+e((r.descontos||[]).map(function(x){ return (x.m||'')+' '+R(x.v); }).join(' · '))+'</small>':''; }},
+    {t:'(+) Gratificação',k:function(r){ return vfN(r.gratif)?R(r.gratif):''; }},
+    {t:'(+) Dias',k:function(r){ return temDias(r)?(''+r.dias).replace('.',',')+' × '+R(r.valor_dia)+'<small>'+R(vfN(r.dias)*vfN(r.valor_dia))+'</small>':''; }},
+    {t:'(+) VA',k:function(r){ return vfN(r.va)?R(r.va):''; }},
+    {t:'(+) VT',k:function(r){ return vfN(r.vt)?R(r.vt):''; }}
+  ].filter(function(c){ return VF.linhas.some(function(r){ return c.k(r)!==''; }); });
+  var nc=C.length+3;
+  var h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Gratificações e valores por fora · '+e(nomeMes(M))+'</title><style>'+
+    '@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    'body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#151515;margin:0;padding:12mm}@media print{body{padding:0}}'+
+    '.fx{height:5px;background:linear-gradient(90deg,#e10600 33%,#ffb020 33% 66%,#2f6fed 66%);margin-bottom:10px}'+
+    '.cab{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}h1{font-size:18px;margin:0 0 3px}.cab p{margin:0;color:#666}'+
+    '.kp{display:flex;gap:8px}.kp div{border:1px solid #ddd;border-radius:8px;padding:6px 12px;text-align:right}.kp span{display:block;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.05em}.kp b{font-size:14px}'+
+    'table{width:100%;border-collapse:collapse;table-layout:fixed}col.nm{width:26%}col.lb{width:9%}'+
+    'th{background:#151515;color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;text-align:right}th:first-child{text-align:left}th:last-child{text-align:center}'+
+    'td{padding:6px 8px;border-bottom:1px solid #e6e6e6;vertical-align:top;text-align:right;white-space:nowrap}td:first-child{text-align:left;white-space:normal}td:last-child{text-align:center}'+
+    'td small{display:block;color:#888;font-size:9px;white-space:normal}td.tot{font-weight:900}'+
+    'tr.emp td{background:#f1f1f1;font-weight:800;letter-spacing:.05em;text-align:left;border-bottom:1px solid #cfcfcf}'+
+    'tr.sub td{font-weight:800;border-bottom:2px solid #151515;background:#fafafa}tr.sub td:first-child{color:#555}'+
+    'tr.tg td{font-size:13px;font-weight:900;border:0;padding-top:10px}'+
+    '.ok{color:#1f9d61;font-weight:700}.rod{margin-top:18px;display:flex;justify-content:space-between;color:#888;font-size:9px;border-top:1px solid #ddd;padding-top:6px}'+
+    '.ass{margin-top:34px;display:flex;justify-content:flex-end}.ass div{width:260px;border-top:1px solid #151515;text-align:center;padding-top:4px;font-size:10px;color:#555}'+
+    '</style></head><body><div class="fx"></div>';
+  VF.linhas.forEach(function(r){ tot+=vfTotal(r); });
+  h+='<div class="cab"><div><h1>Gratificações e valores por fora · '+e(nomeMes(M))+'</h1><p>Pagamento separado, junto com o salário · documento interno e confidencial</p></div>'+
+    '<div class="kp"><div><span>Pessoas</span><b>'+VF.linhas.length+'</b></div><div><span>Data de pagamento</span><b>'+e(nm2Br((''+dp).slice(0,10)))+'</b></div><div><span>Total do mês</span><b>'+R(tot)+'</b></div></div></div>';
+  h+='<table><colgroup><col class="nm">'+C.map(function(){ return '<col>'; }).join('')+'<col class="lb"><col class="lb"></colgroup><thead><tr><th>Nome</th>'+C.map(function(c){ return '<th>'+c.t+'</th>'; }).join('')+'<th>= Total</th><th>Liberado</th></tr></thead><tbody>';
+  G.o.forEach(function(k){ var sub=0;
+    h+='<tr class="emp"><td colspan="'+nc+'">'+e(k)+'</td></tr>';
+    G.g[k].forEach(function(r){ var t=vfTotal(r); sub+=t;
+      h+='<tr><td><b>'+e(r.colaborador)+'</b>'+(r.obs?'<small>'+e(r.obs)+'</small>':'')+'</td>'+C.map(function(c){ return '<td>'+c.k(r)+'</td>'; }).join('')+
+        '<td class="tot">'+R(t)+'</td><td>'+(r.liberado_em?'<span class="ok">✓ '+e(nm2Br(r.liberado_em.slice(0,10)).slice(0,5))+'</span>':'—')+'</td></tr>'; });
+    h+='<tr class="sub"><td colspan="'+(C.length+1)+'">Total '+e(k)+'</td><td class="tot">'+R(sub)+'</td><td></td></tr>';
+  });
+  h+='<tr class="tg"><td colspan="'+(C.length+1)+'">TOTAL DO MÊS</td><td class="tot">'+R(tot)+'</td><td></td></tr></tbody></table>'+
+    '<div class="ass"><div>'+e((EU&&EU.nome)||'')+' · Gerente RH/DP</div></div>'+
+    '<div class="rod"><span>Central DP · Grupo ILED · confidencial</span><span>'+e(new Date().toLocaleString('pt-BR'))+'</span></div><script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
+  cxImprimirHtml(h);
+};
+(function(){ var _d=vfDesenhar; vfDesenhar=function(){ var r=_d.apply(this,arguments); try{ var f=VF.linhas.filter(function(x){ return vfN(x.dias)&&!vfN(x.valor_dia); }); var b=document.querySelector('#vfOv .vf-regra');
+  if(f.length&&b){ var d=document.createElement('div'); d.className='nm2-alerta'; d.innerHTML='⚠️ <span><b>'+esc(f.map(function(x){ return x.colaborador; }).join(', '))+':</b> tem dias preenchidos mas sem o valor por dia, então os dias não somam nada. Preencha o R$/dia ou apague os dias.</span>'; b.parentNode.insertBefore(d,b.nextSibling); } }catch(e){} return r; }; })();
 </script>
 </body>
 </html>
