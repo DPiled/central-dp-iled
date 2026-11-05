@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="03/11/2026 · v106">
+<meta name="central-versao" content="05/11/2026 · v107">
 <meta name="central-novidades" content="🔍 Ver o cálculo de cada pessoa no Fechamento. ✓ OK com motivo nas pendências do Conferir (particularidades). Filtro por empresa vale para as pendências do Conferir e para a trava de envio. Montar meu relatório com PDF limpo (esconde colunas vazias, valores sem quebrar) e aviso de VA/VT zerado. VA/VT pagos pelos dias úteis do mês seguinte (descontos das ocorrências do mês fechado). Fechamento em 3 passos (Conferir, Revisar, Enviar) com uma lista única do que precisa de você e trava antes de baixar o pacote. Conferência com as fichas antes de enviar a folha (nome, empresa, VA/VT, quem falta, variação por pessoa) e CNPJ no PDF. Lançamentos puxa da ficha do CLT o nome completo, a empresa, função, VA e VT (também no mês que está fechando). Fechamento só com CLT, lanche numa coluna só, descontos em vermelho e Montar meu relatório.">
 
 <meta charset="utf-8">
@@ -2833,18 +2833,18 @@ function prepararEmbutido(v){
     if(v==='painel'){
       /* v59: a lista antiga de colaboradores não passa pela aprovação nem pelo Confidencial → sempre vai para a tela nova */
       try{
-        if(Array.isArray(w.TABS)) w.TABS=w.TABS.filter(function(t){ return t.id!=='colaboradores'&&(t.id!=='dashboard'||(EU&&EU.master)); });
-        if(w.TAB==='colaboradores'||(w.TAB==='dashboard'&&!(EU&&EU.master))){ w.TAB=(typeof w.firstAllowedTab==='function'&&w.firstAllowedTab())||''; if(typeof w.render==='function') w.render(); }
+        if(Array.isArray(w.TABS)) w.TABS=w.TABS.filter(function(t){ return t.id!=='colaboradores'&&t.id!=='dashboard'; });
+        if(w.TAB==='colaboradores'||w.TAB==='dashboard'){ w.TAB=(typeof w.firstAllowedTab==='function'&&w.firstAllowedTab())||''; if(typeof w.render==='function') w.render(); }
         if(!w.TAB){ abrir('internos'); }
       }catch(e){}
       var g0=w.go;
       if(typeof g0==='function'){
         w.go=function(t){
           if(t==='colaboradores'){ try{ abrir('internos'); }catch(e){} t='ferias'; }
-          if(t==='dashboard'&&!(EU&&EU.master)) t='ferias';
+          if(t==='dashboard') t='ferias';
           return g0.call(this,t);
         };
-        setTimeout(function(){ try{ if(w.TAB==='colaboradores'||(w.TAB==='dashboard'&&!(EU&&EU.master))) w.go('ferias'); }catch(e){} },300);
+        setTimeout(function(){ try{ if(w.TAB==='colaboradores'||w.TAB==='dashboard') w.go('ferias'); }catch(e){} },300);
       }
       try{ var stc=w.document.createElement('style'); stc.textContent='[data-tab="colaboradores"],[onclick*="go(\'colaboradores\')"],#view-colaboradores{display:none!important}'; w.document.head.appendChild(stc); }catch(e){}
       var r0=w.render; w.render=function(){ var r=r0.apply(this,arguments); try{ informar('painel',w.TAB); }catch(e){} return r; };
@@ -3026,7 +3026,7 @@ function carregarPendencias(){
   Promise.all(tarefas).then(function(cards){
     cards.sort(function(a,b){ return a.ordem-b.ordem; });
     // selos do menu
-    SELOS={};
+    SELOS={}; window.PEND_CARDS=cards;
     cards.forEach(function(c){
       if(c.erro||!c.itens.length) return;
       if(c.v==='demandas') return;
@@ -12761,6 +12761,16 @@ function lemIniciar(){
    Itens marcados como "gestora" só aparecem para a gestora (permissões, valores, backup…).
    Para uma versão nova: acrescentar no topo de NOVIDADES. */
 var NOVIDADES=[
+  {v:'v107',data:'05/11/2026',itens:[
+    ['📥','Ordens de Pagamento','Notas Fiscais → 📥 Ordens de Pagamento: suba o PDF da OP do sistema de cachês, vincule os nomes uma vez só e cada pessoa ganha a nota de cachê do mês com o valor da OP. A conferência mostra se a OP bate com o sistema.'],
+    ['🎤','Aba Cachê nova','Conferência no topo, resumo por empresa (NF × recibo) e 3 filas: 🧾 recibo para assinar, 📨 NF para cobrar e ✅ pronto para liberar. Um clique libera tudo ao Financeiro (CACHÊ LIBERADO).'],
+    ['📚','Histórico de notas','Consulta e correção de qualquer nota, com filtros, seleção em lote (paga, recibo, pendente, excluir) e o 🧹 Arrumar as notas.'],
+    ['🧮','Conferência do mês','Menu → Fechamento do mês: cachês, serviço, folha, férias, rescisões e VA/VT conferidos com ✓ ou ⚠.'],
+    ['🩺','Saúde do cadastro','Tudo o que está incompleto (CPF, PIX, telefone, MEI, CPF repetido) numa tela só, com o botão para corrigir.'],
+    ['📅','Mês de trabalho','No topo: \'Trabalhando em\'. Troca o mês das Notas, da Conferência e dos relatórios de uma vez.'],
+    ['🧾','Alterações registradas','Toda mudança de valor, situação ou nº de nota fica no histórico: quem, quando, de quanto para quanto.'],
+    ['💬','Todas as mensagens num lugar só','Configurações → Mensagens do WhatsApp agora tem também a 2ª cobrança de NF, o Cachê liberado, as Movimentações do mês e o Relatório da Diretoria. Ajuste o texto quando quiser.']
+  ]},
   {v:'v97',data:'22/10/2026',itens:[
     ['🗒','Sem cadastro em branco','Ao fechar uma ficha sem nome, a Central pergunta se quer salvar, apagar ou voltar e preencher. Na lista, "🗒 em branco" mostra os que ficaram.'],
     ['👩‍👧','Nome da mãe e filhos','Na ficha (Pessoa): nome da mãe e filhos menores de 14 anos, com nome e nascimento de cada um.']
@@ -14774,6 +14784,66 @@ function sincronizarLancamentos(w,manual){
 .cx2-pend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 14px;padding:11px 16px;border-radius:12px;border:1px solid rgba(255,176,32,.55);background:rgba(255,176,32,.08);font-size:13.5px}
 .cx2-pend b{margin-right:auto;font-size:14.5px}.cx2-pend span{color:var(--mut)}
 .cx2-pend.ok{border-color:rgba(61,220,132,.55);background:rgba(61,220,132,.08)}
+/* v76 · relatório de conferência */
+.nm2-lotes{display:none!important}
+.rc-box{width:min(1040px,100%)}
+.rc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0}
+.rc-sec{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel2)}
+.rc-sec>b{font-size:13.5px;margin-top:6px}.rc-sec>b:first-child{margin-top:0}.rc-sec small{color:var(--mut);font-size:11.5px;margin-top:-4px}
+.rc-ck{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}.rc-ck input{accent-color:#e10600;width:15px;height:15px}
+.rc-pe{display:flex;gap:10px;justify-content:flex-end}
+@media (max-width:900px){ .rc-grid{grid-template-columns:1fr 1fr} }
+/* v77 · pendências do menu */
+.selo-pop{position:fixed;z-index:9999;width:360px;max-width:calc(100vw - 20px);background:var(--panel2,#1b1c22);border:1px solid var(--line2,#333);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.6);padding:12px 12px 10px;color:var(--txt,#eee)}
+.selo-h{display:flex;align-items:center;justify-content:space-between;gap:8px}.selo-h b{font-size:14.5px}.selo-h button{border:0;background:transparent;color:var(--mut);font-size:16px;cursor:pointer}
+.selo-ex{margin:4px 0 8px;font-size:12px;color:var(--mut)}
+.selo-l{display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto}
+.selo-i{font:inherit;text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#2a2a2a);background:rgba(255,255,255,.03);color:var(--txt);cursor:pointer}
+.selo-i:hover{background:rgba(225,6,0,.1);border-color:rgba(225,6,0,.4)}.selo-i b{font-size:13px}.selo-i small{font-size:11.5px;color:var(--mut)}
+.selo-m{font-size:12.5px;color:var(--mut);padding:6px 4px}.selo-pe{display:flex;justify-content:flex-end;margin-top:8px}
+/* v78 · saúde do cadastro */
+.sau-n{font-style:normal;font-size:12px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.1);margin-left:4px}
+.sau-r{display:grid;grid-template-columns:minmax(180px,.9fr) 1.6fr auto;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:13px}
+.sau-r:first-child{border-top:0}.sau-r>span:first-child{display:flex;flex-direction:column}.sau-r small{color:var(--mut);font-size:11.5px}
+.sau-p{display:flex;flex-wrap:wrap;gap:5px}.sau-p i{font-style:normal;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+.sau-crit{background:rgba(225,6,0,.16);color:#ff8a84}.sau-warn{background:rgba(255,176,32,.16);color:#ffd27a}.sau-mut{background:rgba(255,255,255,.08);color:var(--mut)}
+.sau-err{font-size:12px;margin:0 0 8px}.sau-err code{font-size:11.5px;color:#ffb3ae;word-break:break-all}
+@media (max-width:700px){ .sau-r{grid-template-columns:1fr} }
+/* v80 · atalhos do início */
+.hero-at{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin:0 0 8px}
+.hero-at button{font:inherit;font-size:12.5px;font-weight:700;padding:6px 11px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.04);color:var(--txt);cursor:pointer}
+.hero-at button:hover{border-color:var(--red-txt);background:rgba(225,6,0,.1)}
+/* v81 · celular */
+@media (max-width:700px){
+  #nmApp .nm2-top{flex-direction:column;align-items:stretch}
+  #nmApp .nm2-tps{display:grid!important;grid-template-columns:1fr 1fr;width:100%;gap:4px}
+  #nmApp .nm2-tp{font-size:12.5px;padding:8px 6px;justify-content:center;text-align:center}
+  .cx2-bar>select.nm-in,.hi-fil>select.nm-in{min-width:0;flex:1 1 100%}
+  .cx2-bar .nm2-b,.hi-fil .nm2-b{flex:1 1 auto}
+  .op-conf-h{gap:8px}.op-conf-h>b{width:100%}
+  .cx2-form label{flex:1 1 100%}.cx2-form input{width:100%}
+  .hi-chip{min-width:calc(50% - 4px);flex:1}.hi-tot{width:100%}
+  .hero-at{justify-content:flex-start}
+  .lp-box,.rc-box{padding:14px!important}.rc-grid{grid-template-columns:1fr}
+  .selo-pop{left:10px!important;right:10px;width:auto}
+}
+/* v82 · mês de trabalho */
+.mes-trab{display:flex;flex-direction:column;gap:1px;margin-right:8px}.mes-trab small{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.mes-trab select{font:inherit;font-size:13px;font-weight:700;padding:6px 8px;border-radius:9px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);cursor:pointer}
+@media (max-width:700px){ .mes-trab small{display:none} .mes-trab select{font-size:12px;padding:6px 4px;max-width:118px} }
+/* v83 · conferência */
+.cf-box{width:min(980px,100%)}
+.cf-l{display:flex;flex-direction:column;gap:8px;margin:14px 0 6px}
+.cf-r{display:grid;grid-template-columns:30px 30px 1fr auto;gap:10px;align-items:center;padding:11px 14px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2)}
+.cf-r.s-ok{border-left:4px solid #3ddc84}.cf-r.s-w{border-left:4px solid var(--amber);background:rgba(255,176,32,.06)}.cf-r.s-mut{opacity:.7}
+.cf-st{font-size:18px;font-weight:900;text-align:center}.s-ok .cf-st{color:#3ddc84}.s-w .cf-st{color:#ffc35a}.cf-ic{font-size:20px;text-align:center}
+.cf-t{display:flex;flex-direction:column;gap:2px}.cf-t b{font-size:14px}.cf-t small{font-size:12.5px;color:var(--mut)}.cf-t em{font-style:normal;font-size:12px;color:#ffd27a}
+@media (max-width:700px){ .cf-r{grid-template-columns:24px 1fr;gap:6px} .cf-ic{display:none} .cf-r>span:last-child{grid-column:1/-1} }
+/* v84 · alterações */
+.aud-r{display:grid;grid-template-columns:150px 1fr 1.2fr;gap:10px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);font-size:13px}
+.aud-r:first-child{border-top:0}.aud-r>span{display:flex;flex-direction:column}.aud-r small{font-size:11.5px;color:var(--mut)}.aud-d{display:block!important}.aud-d s{color:#ff8a84}.aud-d b{color:#7ee2a3}
+@media (max-width:700px){ .aud-r{grid-template-columns:1fr} }
+.cf-l{align-items:stretch}.cf-r{width:100%;text-align:left}
 </style>
 <script>
 /* ================= v60 · ORDENS DE PAGAMENTO (cachês) =================
@@ -16575,6 +16645,653 @@ function cx2Assinado(ids){
     }catch(e){}
     return r;
   };
+})();
+
+/* ================= v76 · 📊 RELATÓRIO DE CONFERÊNCIA (você escolhe o que entra) =================
+   Escolhe: mês, tipo (cachê/serviço), empresas, situação, como agrupar e quais colunas.
+   Sai em PDF (imprimir) ou planilha, com subtotais e a conferência OP × lançado. */
+var RC={mes:'',tipo:'cache',emps:{},sit:{pend:1,pronto:1,lib:1},grupo:'empresa',cols:{empresa:1,tipo:1,nf:1,emissao:0,sit:1,pag:0,doc:0,pix:0,assin:1},dados:null};
+function rcSit(n){ if(n.status==='paga'||n.status==='enviada') return 'lib'; if(n.numero||n.status==='emitida') return 'pronto'; return 'pend'; }
+var RC_SIT={pend:'⏳ Pendente (sem NF / recibo)',pronto:'✅ Recebido · falta liberar',lib:'🔔 Liberado ao Financeiro'};
+function rcAbrir(){
+  if(!podeNF()){ aviso('Sem acesso às notas.',true); return; }
+  modal2('rcOv','<div class="imp-box rc-box"><p class="vazio">Lendo as notas…</p></div>');
+  Promise.all([lpLer(),sb.from('nf_colaboradores').select('id,doc,pix'),sb.from('nf_ordens_pagamento').select('mes_referencia,total,numero,itens')]).then(function(rs){
+    RC.dados=LP.dados; RC.doc={}; ((rs[1]&&rs[1].data)||[]).forEach(function(p){ RC.doc[p.id]=p; }); RC.ops=(rs[2]&&!rs[2].error&&rs[2].data)||[];
+    if(!RC.mes){ var ms=rcMeses(); RC.mes=ms.indexOf(nmSomaMes(hoje().slice(0,7),-1))>=0?nmSomaMes(hoje().slice(0,7),-1):(ms[0]||''); }
+    if(typeof NM!=='undefined'&&NM.tipo&&!RC._tipoOk){ RC.tipo=NM.tela==='hist'?'':NM.tipo; RC._tipoOk=true; }
+    rcForm();
+  }).catch(function(){ modal2('rcOv','<div class="imp-box rc-box"><p class="vazio">Não consegui ler as notas agora.</p></div>'); });
+}
+function rcMeses(){ var m={}; (RC.dados||[]).forEach(function(n){ m[(''+n.mes_referencia).slice(0,7)]=1; }); return Object.keys(m).sort().reverse(); }
+function rcEmpresas(){ var m={}; (RC.dados||[]).forEach(function(n){ m[lpEmp(n)]=1; }); return Object.keys(m).sort(); }
+function rcLista(){
+  var se=Object.keys(RC.emps).filter(function(k){ return RC.emps[k]; });
+  return (RC.dados||[]).filter(function(n){ return (!RC.mes||(''+n.mes_referencia).slice(0,7)===RC.mes)&&(!RC.tipo||n.tipo===RC.tipo)&&(!se.length||se.indexOf(lpEmp(n))>=0)&&RC.sit[rcSit(n)]; });
+}
+function rcForm(){
+  var e=esc, l=rcLista(), tot=l.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0);
+  var ck=function(obj,k,txt){ return '<label class="rc-ck"><input type="checkbox"'+(RC[obj][k]?' checked':'')+' onchange="RC.'+obj+'[\''+k+'\']=this.checked?1:0;rcForm()"> '+txt+'</label>'; };
+  var rd=function(k,v,txt){ return '<label class="rc-ck"><input type="radio" name="rc_'+k+'"'+(RC[k]===v?' checked':'')+' onchange="RC.'+k+'=\''+v+'\';rcForm()"> '+txt+'</label>'; };
+  var h='<div class="imp-box rc-box hi-filtro"><div class="lp-top"><div><h2>📊 Relatório de conferência</h2><p>Escolha o que entra · <b>'+l.length+'</b> nota(s) · <b>'+moedaBR(tot)+'</b></p></div><button type="button" class="nm2-b ghost" onclick="el(\'rcOv\').classList.remove(\'on\')">Fechar</button></div>';
+  h+='<div class="rc-grid">';
+  h+='<div class="rc-sec"><b>📅 Mês</b><select class="nm-in" onchange="RC.mes=this.value;rcForm()"><option value="">Todos os meses</option>'+rcMeses().map(function(m){ return '<option value="'+m+'"'+(RC.mes===m?' selected':'')+'>'+e(nomeMes(m))+'</option>'; }).join('')+'</select>'+
+    '<b>📄 Tipo</b>'+rd('tipo','cache','🎤 Cachê')+rd('tipo','servico','🧾 Prestação de serviço')+rd('tipo','','Os dois')+'</div>';
+  h+='<div class="rc-sec"><b>🏢 Empresas</b><small>nenhuma marcada = todas</small>'+rcEmpresas().map(function(x){ return '<label class="rc-ck"><input type="checkbox"'+(RC.emps[x]?' checked':'')+' onchange="RC.emps[\''+e(x).replace(/'/g,'')+'\']=this.checked?1:0;rcForm()"> '+e(x)+'</label>'; }).join('')+'</div>';
+  h+='<div class="rc-sec"><b>📌 Situação</b>'+ck('sit','pend',RC_SIT.pend)+ck('sit','pronto',RC_SIT.pronto)+ck('sit','lib',RC_SIT.lib)+
+    '<b>🗂 Agrupar por</b>'+rd('grupo','empresa','Empresa')+rd('grupo','forma','NF × Recibo')+rd('grupo','sit','Situação')+rd('grupo','nada','Sem grupo (lista única)')+'</div>';
+  h+='<div class="rc-sec"><b>🧩 Colunas</b><small>Pessoa e Valor sempre entram</small>'+ck('cols','empresa','Empresa')+ck('cols','tipo','Tipo (cachê/serviço)')+ck('cols','nf','Nº da NF / recibo')+ck('cols','emissao','Data de emissão')+
+    ck('cols','sit','Situação')+ck('cols','pag','Data de pagamento')+ck('cols','doc','CPF / CNPJ')+ck('cols','pix','PIX')+'<b>✍️ Rodapé</b>'+ck('cols','assin','Campos de assinatura (DP e Financeiro)')+'</div>';
+  h+='</div><div class="rc-pe"><button type="button" class="nm2-b ghost" onclick="rcCsv()">⬇ Baixar planilha</button><button type="button" class="nm2-b pri" onclick="rcPdf()"'+(l.length?'':' disabled')+'>🖨 Gerar PDF</button></div></div>';
+  modal2('rcOv',h);
+}
+function rcForma(n){ return (n.numero==='RECIBO'||(!n.numero&&typeof recDaNota==='function'&&recDaNota(n.id))||((NM.semNF||{})[n.colaborador_id]))?'🧾 Recibo':'📨 NF'; }
+function rcLinhas(){
+  var l=rcLista().slice(), g=RC.grupo;
+  var chave=function(n){ return g==='empresa'?lpEmp(n):(g==='forma'?rcForma(n):(g==='sit'?RC_SIT[rcSit(n)]:'')); };
+  l.sort(function(a,b){ return chave(a).localeCompare(chave(b))||lpNome(a).localeCompare(lpNome(b)); });
+  return {l:l,chave:chave};
+}
+function rcCampos(n){
+  var d=RC.doc[n.colaborador_id]||{}, br=nm2Br, rc=!n.numero&&typeof recDaNota==='function'?recDaNota(n.id):null;
+  return {empresa:lpEmp(n),tipo:n.tipo==='cache'?'Cachê':'Serviço',nf:n.numero==='RECIBO'?'Recibo':(n.numero?n.numero:(rc?'Recibo '+(rc.num||''):'—')),
+    emissao:br(n.data_emissao)||'—',sit:{pend:'Pendente',pronto:'Recebido',lib:'Liberado'}[rcSit(n)],pag:br(n.status==='paga'?n.data_pagamento:n.data_vencimento)||'—',doc:d.doc||'—',pix:d.pix||'—'};
+}
+var RC_COLS=[['empresa','Empresa'],['tipo','Tipo'],['nf','Nº NF / recibo'],['emissao','Emissão'],['sit','Situação'],['pag','Pagamento'],['doc','CPF / CNPJ'],['pix','PIX']];
+function rcCsv(){
+  var x=rcLinhas(), cols=RC_COLS.filter(function(c){ return RC.cols[c[0]]; }), l=[['Pessoa'].concat(cols.map(function(c){ return c[1]; })).concat(['Valor'])];
+  x.l.forEach(function(n){ var f=rcCampos(n); l.push([lpNome(n)].concat(cols.map(function(c){ return f[c[0]]; })).concat([(parseFloat(n.valor)||0).toFixed(2).replace('.',',')])); });
+  var csv='﻿'+l.map(function(r){ return r.map(function(c){ return '"'+String(c||'').replace(/"/g,'""')+'"'; }).join(';'); }).join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download='conferência de notas '+(RC.mes||'')+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+function rcPdf(){
+  var x=rcLinhas(), e=esc, R=function(v){ return moedaBR(Math.round(v*100)/100); }, cols=RC_COLS.filter(function(c){ return RC.cols[c[0]]; });
+  var tot=0, nGr={}, porSit={pend:0,pronto:0,lib:0}, nSit={pend:0,pronto:0,lib:0};
+  x.l.forEach(function(n){ var v=parseFloat(n.valor)||0, s=rcSit(n); tot+=v; porSit[s]+=v; nSit[s]++; });
+  var se=Object.keys(RC.emps).filter(function(k){ return RC.emps[k]; });
+  var filtros=[RC.mes?nomeMes(RC.mes):'Todos os meses',RC.tipo==='cache'?'Cachê':(RC.tipo==='servico'?'Prestação de serviço':'Cachê e serviço'),se.length?se.join(', '):'Todas as empresas',
+    Object.keys(RC.sit).filter(function(k){ return RC.sit[k]; }).map(function(k){ return {pend:'pendentes',pronto:'recebidas',lib:'liberadas'}[k]; }).join(' + ')].join(' · ');
+  // conferência OP × lançado (cachê do mês)
+  var conf='';
+  if(RC.mes&&RC.tipo!=='servico'){
+    var ops=RC.ops.filter(function(o){ return o.mes_referencia===RC.mes; });
+    if(ops.length){
+      var tOP=ops.reduce(function(a,o){ return a+(+o.total||0); },0), cache=(RC.dados||[]).filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===RC.mes; }), tL=cache.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0), ok=Math.abs(tOP-tL)<0.01;
+      conf='<div class="cf '+(ok?'ok':'w')+'"><b>Conferência OP × lançado · cachês de '+e(nomeMes(RC.mes).toLowerCase())+'</b><span>'+ops.length+' OP(s): '+e(ops.map(function(o){ return o.numero; }).join(', '))+' = <b>'+R(tOP)+'</b></span><span>Lançado no sistema: <b>'+R(tL)+'</b></span><span class="st">'+(ok?'✓ BATE':'⚠ DIFERENÇA '+R(Math.abs(tOP-tL)))+'</span></div>';
+    }
+  }
+  var th='<tr><th class="c">#</th><th>Pessoa</th>'+cols.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'<th class="r">Valor</th></tr>';
+  var corpo='', atual=null, sub=0, subN=0, i=0, ncol=cols.length+3;
+  var fecha=function(){ if(atual!==null&&RC.grupo!=='nada') corpo+='<tr class="sub"><td colspan="'+(ncol-1)+'" class="r">Subtotal '+e(atual)+' · '+subN+' nota(s)</td><td class="r">'+R(sub)+'</td></tr>'; };
+  x.l.forEach(function(n){
+    var k=x.chave(n);
+    if(RC.grupo!=='nada'&&k!==atual){ fecha(); atual=k; sub=0; subN=0; corpo+='<tr class="gr"><td colspan="'+ncol+'">'+e(k)+'</td></tr>'; }
+    var f=rcCampos(n), v=parseFloat(n.valor)||0; sub+=v; subN++; i++;
+    corpo+='<tr><td class="c">'+i+'</td><td><b>'+e(lpNome(n))+'</b></td>'+cols.map(function(c){ return '<td>'+e(f[c[0]])+'</td>'; }).join('')+'<td class="r">'+R(v)+'</td></tr>';
+  });
+  fecha();
+  var quem=(EU&&EU.nome)||'', agora=new Date().toLocaleString('pt-BR');
+  var kpi=function(t,v,s,c){ return '<div class="k '+c+'"><small>'+t+'</small><b>'+v+'</b><span>'+s+'</span></div>'; };
+  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Conferência de notas</title><style>'+
+    '@page{size:A4;margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;color:#222;margin:0;font-size:11px}'+
+    '.top{background:#0d0d0f;color:#fff;display:flex;align-items:center;gap:16px;padding:14px 28px;border-bottom:4px solid #d60000}.top img{width:56px;height:44px;object-fit:contain;background:#262628;padding:3px}'+
+    '.top h1{font-size:18px;margin:0}.top p{margin:3px 0 0;color:#b9babe;font-size:11.5px}.top .dir{margin-left:auto;text-align:right;color:#b9babe;font-size:11px;line-height:1.6}'+
+    '.cx{padding:14px 28px 60px}.ks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 10px}.k{border:1px solid #e2e3e7;border-radius:8px;padding:8px 10px;border-top:3px solid #0d0d0f}.k small{display:block;color:#666;font-size:9.5px;text-transform:uppercase}.k b{display:block;font-size:15px;margin:2px 0}.k span{color:#666;font-size:10px}'+
+    '.k.am{border-top-color:#e39b00}.k.vd{border-top-color:#1f9d57}.k.az{border-top-color:#3d7bff}'+
+    '.cf{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border:1px solid #cfd2d8;border-radius:8px;padding:8px 12px;margin:0 0 12px;font-size:11px}.cf b:first-child{width:100%}.cf .st{margin-left:auto;font-weight:bold;padding:3px 10px;border-radius:10px}.cf.ok .st{background:#dcf5e6;color:#14713d}.cf.w .st{background:#fff1cc;color:#8a5b00}'+
+    'table{width:100%;border-collapse:collapse}th{background:#0d0d0f;color:#fff;text-align:left;padding:6px;font-size:10px}td{padding:5px 6px;border-bottom:1px solid #e2e3e7;vertical-align:top}.r{text-align:right;white-space:nowrap}.c{text-align:center;color:#888}'+
+    'tr.gr td{background:#f0f1f4;font-weight:bold;font-size:11.5px;padding-top:8px;border-bottom:2px solid #d60000}tr.sub td{background:#fafafb;font-weight:bold;color:#444}tr.tot td{background:#0d0d0f;color:#fff;font-weight:bold;font-size:12px}'+
+    '.ass{margin-top:40px;display:flex;justify-content:space-between;font-size:11px;color:#444}.ass div{width:280px;border-top:1px solid #333;padding-top:5px;line-height:1.7}'+
+    '.rod{position:fixed;bottom:8px;left:28px;right:28px;font-size:8.5px;color:#999;display:flex;justify-content:space-between}'+
+    '</style></head><body><div class="top"><img src="'+NM_LOGO+'" alt="ILED"><div><h1>Conferência de notas</h1><p>'+e(filtros)+'</p></div><div class="dir">'+x.l.length+' nota(s) · '+R(tot)+'<br>Emitido em '+e(agora.split(',')[0])+'</div></div><div class="cx">'+
+    '<div class="ks">'+kpi('Total',R(tot),x.l.length+' nota(s)','')+kpi('Pendente',R(porSit.pend),nSit.pend+' sem NF / recibo','am')+kpi('Recebido · falta liberar',R(porSit.pronto),nSit.pronto+' nota(s)','vd')+kpi('Liberado ao Financeiro',R(porSit.lib),nSit.lib+' nota(s)','az')+'</div>'+conf+
+    '<table><thead>'+th+'</thead><tbody>'+corpo+'<tr class="tot"><td colspan="'+(ncol-1)+'" class="r">TOTAL GERAL · '+x.l.length+' nota(s)</td><td class="r">'+R(tot)+'</td></tr></tbody></table>'+
+    (RC.cols.assin?'<div class="ass"><div>Conferido por (Departamento Pessoal)<br>Data: ____/____/________</div><div>Conferido por (Financeiro)<br>Data: ____/____/________</div></div>':'')+
+    '</div><div class="rod"><span>Central DP · ILED Produções'+(quem?' · '+e(quem):'')+' · '+e(agora)+'</span><span>'+e(filtros)+'</span></div>'+
+    '<script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
+  var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups para esta página.',true); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+/* onde abrir: Cachê (barra), Serviço e Histórico (Mais / topo). Sai o bloco "Últimas liberações". */
+(function(){
+  var _cx=cx2Desenhar; cx2Desenhar=function(){
+    var r=_cx.apply(this,arguments), bx=el('nmApp'); if(!bx) return r;
+    try{
+      bx.querySelectorAll('.nm2-lotes').forEach(function(x){ x.remove(); });
+      var bar=bx.querySelector('.cx2-bar'), mais=bar&&bar.querySelector('.nm2-mais');
+      if(bar&&!bar.querySelector('.rc-bt')){ var b=document.createElement('button'); b.type='button'; b.className='nm2-b rc-bt'; b.textContent='📊 Relatório'; b.onclick=function(){ RC.mes=CX2.mes||RC.mes; RC.tipo='cache'; rcAbrir(); }; bar.insertBefore(b,mais); }
+      bx.querySelectorAll('.nm2-mais-m button').forEach(function(x){ if(/Relatório do mês/.test(x.textContent)) x.textContent='📄 Relatório para a Diretoria'; });
+    }catch(e){}
+    return r;
+  };
+  var _en=nmEnxugar; nmEnxugar=function(){
+    var r=_en.apply(this,arguments);
+    try{ document.querySelectorAll('#nmApp .nm2-lotes').forEach(function(x){ x.remove(); });
+      var m=document.querySelector('#nmApp .nm2-mais-m'); if(m&&!m.querySelector('.rc-mi')){ var b=document.createElement('button'); b.type='button'; b.className='nm2-mi rc-mi'; b.textContent='📊 Relatório de conferência'; b.onclick=function(){ RC.tipo=NM.tipo; rcAbrir(); }; m.insertBefore(b,m.firstChild); } }catch(e){}
+    return r;
+  };
+  var _hd=hiDesenhar; hiDesenhar=function(){
+    var r=_hd.apply(this,arguments);
+    try{ var f=document.querySelector('#nmApp .hi-fil'); if(f&&!f.querySelector('.rc-bt')){ var b=document.createElement('button'); b.type='button'; b.className='nm2-b rc-bt'; b.textContent='📊 Relatório'; b.onclick=function(){ RC.mes=HI.mes; RC.tipo=HI.tipo; rcAbrir(); }; f.appendChild(b); } }catch(e){}
+    return r;
+  };
+})();
+
+/* ================= v77 · O NÚMERO VERMELHO DO MENU SE EXPLICA =================
+   Passar o mouse mostra o resumo; clicar abre a lista do que está pendente naquela área. */
+var SELO_NOMES={cadastro:'Cadastro geral',painel:'Painel DP',lancamentos:'Lançamentos',nf:'Notas Fiscais',caderno:'Caderno'};
+function seloItens(v){
+  var l=[];
+  (window.PEND_CARDS||[]).forEach(function(c){ if(c.v!==v||c.erro) return; (c.itens||[]).forEach(function(i){ l.push({t:String(i[0]||'').replace(/<[^>]+>/g,''),s:String(i[1]||'').replace(/<[^>]+>/g,''),g:c.titulo||c.nome||'',abrir:c.abrir}); }); });
+  (RADAR.itens||[]).forEach(function(i){ var ok=(v==='nf'&&i.cat==='nf')||(v==='painel'&&(i.cat==='aso'||i.cat==='resc')); if(ok) l.push({t:i.t,s:i.s,g:'Prazos',abrir:i.abrir}); });
+  return l;
+}
+function seloAbrir(v,ev){
+  if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+  var l=seloItens(v), nome=SELO_NOMES[v]||v;
+  var old=document.getElementById('seloPop'); if(old) old.remove();
+  var d=document.createElement('div'); d.id='seloPop'; d.className='selo-pop';
+  d.innerHTML='<div class="selo-h"><b>🔴 '+l.length+' pendência(s) em '+esc(nome)+'</b><button type="button" onclick="this.closest(\'.selo-pop\').remove()">✕</button></div>'+
+    '<p class="selo-ex">O número vermelho do menu mostra o que precisa de você nesta área. Ele some quando você resolve.</p>'+
+    (l.length?'<div class="selo-l">'+l.slice(0,10).map(function(i,k){ return '<button type="button" class="selo-i" data-k="'+k+'"><b>'+esc(i.t)+'</b><small>'+esc(i.s)+(i.g?' · '+esc(i.g):'')+'</small></button>'; }).join('')+(l.length>10?'<div class="selo-m">… e mais '+(l.length-10)+'</div>':'')+'</div>':'<div class="selo-m">Nada pendente agora.</div>')+
+    '<div class="selo-pe"><button type="button" class="nm2-b sm" onclick="document.getElementById(\'seloPop\').remove();abrir(\'inicio\')">🏠 Ver tudo no Início</button></div>';
+  document.body.appendChild(d);
+  d.querySelectorAll('.selo-i').forEach(function(b){ b.onclick=function(){ var i=l[+b.getAttribute('data-k')]; d.remove(); try{ if(i.abrir) (new Function(i.abrir))(); else clicarNav(v); }catch(e){ try{ clicarNav(v); }catch(e2){} } }; });
+  var nav=el((NAVS[v]||[])[0]); if(nav){ var r=nav.getBoundingClientRect(); d.style.top=Math.max(10,Math.min(r.top,window.innerHeight-d.offsetHeight-10))+'px'; d.style.left=(r.right+10)+'px'; }
+  setTimeout(function(){ document.addEventListener('click',function f(e){ if(!d.contains(e.target)){ d.remove(); document.removeEventListener('click',f); } }); },0);
+}
+(function(){
+  var _a=aplicarSelos; aplicarSelos=function(){
+    var r=_a.apply(this,arguments);
+    try{ Object.keys(NAVS).forEach(function(v){
+      var nav=el(NAVS[v][0]), b=nav&&nav.querySelector(':scope > .bdg'); if(!b) return;
+      var l=seloItens(v), nome=SELO_NOMES[v]||v;
+      b.title=b.textContent+' pendência(s) em '+nome+(l.length?': '+l.slice(0,4).map(function(i){ return i.t; }).join(' · ')+(l.length>4?'…':''):'')+' · clique para ver';
+      b.style.cursor='pointer'; b.onclick=function(ev){ seloAbrir(v,ev); };
+    }); }catch(e){}
+    return r;
+  };
+})();
+
+/* ================= v78 · 🩺 SAÚDE DO CADASTRO =================
+   Uma tela com tudo o que está incompleto (e gera retrabalho): CPF, telefone, PIX, MEI, tomador,
+   nome curto vindo da OP, CPF repetido. Cada linha abre o lugar certo para corrigir.
+   Inclui o registro de erros da tela (diagnóstico técnico). */
+var SAU={};
+function sauAbrir(){
+  modal2('sauOv','<div class="imp-box lp-box"><p class="vazio">Conferindo os cadastros…</p></div>');
+  Promise.all([
+    podeVer('colaboradores')?sb.from('dp_colaboradores').select('*'):Promise.resolve({data:[]}),
+    podeVer('freelancers')?sb.from('dp_freelancers').select('id,nome,cpf,mei,telefone,pix'):Promise.resolve({data:[]}),
+    podeNF()?sb.from('nf_colaboradores').select('id,nome,doc,pix,empresa_id,tem_cache,tem_servico'):Promise.resolve({data:[]}),
+    podeNF()?kvLer('nf-sem-nf',{}):Promise.resolve({})
+  ]).then(function(rs){
+    var hj=hoje(), C=((rs[0]&&rs[0].data)||[]).filter(function(c){ return !(c.data_desligamento&&(''+c.data_desligamento).slice(0,10)<=hj); });
+    var Fr=(rs[1]&&rs[1].data)||[], P=(rs[2]&&rs[2].data)||[], semNF=rs[3]||{};
+    var G={colab:[],free:[],nf:[]};
+    // CPF repetido entre CLT/PJ (regra da casa: nunca pode)
+    var cpfs={}; C.forEach(function(c){ var d=soDig(c.cpf); if(d) (cpfs[d]=cpfs[d]||[]).push(c.nome); });
+    C.forEach(function(c){
+      var pj=equipe(c)==='externa', p=[];
+      if(soDig(c.cpf).length!==11) p.push(['crit','sem CPF válido']);
+      else if(cpfs[soDig(c.cpf)].length>1) p.push(['crit','CPF repetido com '+cpfs[soDig(c.cpf)].filter(function(n){ return n!==c.nome; }).join(', ')]);
+      if(soDig(c.telefone).length<10) p.push(['warn','sem telefone']);
+      if(!String(c.pix||'').trim()&&!(String(c.num_conta||'').trim()&&String(c.agencia||'').trim())) p.push(['crit','sem PIX e sem conta']);
+      if(pj&&soDig(c.mei).length!==14) p.push(['warn','PJ sem MEI/CNPJ']);
+      if(pj&&!(diaOk(c.nf_dia_servico)||dataOk(c.contrato_cp))) p.push(['warn','PJ sem dia de pagamento / data do contrato']);
+      if(!String(c.empresa||'').trim()) p.push(['warn','sem empresa']);
+      if(p.length) G.colab.push({nome:c.nome,sub:(pj?'PJ':'CLT')+' · '+(c.funcao||''),p:p,ir:"enqFicha('"+c.id+"',"+(pj?'true':'false')+")"});
+    });
+    Fr.forEach(function(f){ var p=[];
+      if(soDig(f.cpf).length!==11) p.push(['warn','sem CPF']); if(soDig(f.telefone).length<10) p.push(['warn','sem telefone']); if(!String(f.pix||'').trim()) p.push(['crit','sem PIX']);
+      if(soDig(f.mei).length!==14) p.push(['mut','sem MEI (recebe como pessoa física)']);
+      if(p.length) G.free.push({nome:f.nome,sub:'freelancer',p:p,ir:"abrir('painel','freelancers')"}); });
+    P.forEach(function(x){ var p=[], palavras=String(x.nome||'').trim().split(/\s+/).length;
+      if(palavras<2||String(x.nome||'').trim().length<8) p.push(['crit','nome curto (veio da OP?) · complete o nome']);
+      if(!soDig(x.doc)) p.push(['crit','sem CPF/CNPJ']); else if(soDig(x.doc).length===11&&!semNF[x.id]&&x.tem_cache) p.push(['mut','pessoa física emitindo NF? confira o MEI']);
+      if(!String(x.pix||'').trim()) p.push(['warn','sem PIX']); if(!x.empresa_id) p.push(['warn','sem tomador (empresa)']);
+      if(p.length) G.nf.push({nome:x.nome,sub:'nas Notas Fiscais'+(semNF[x.id]?' · sem NF (recibo)':''),p:p,ir:"abrir('nf','colaboradores')"}); });
+    SAU=G; sauDesenhar();
+  }).catch(function(){ modal2('sauOv','<div class="imp-box lp-box"><p class="vazio">Não consegui conferir agora.</p></div>'); });
+}
+function sauDesenhar(){
+  var G=SAU, e=esc, n=G.colab.length+G.free.length+G.nf.length, crit=0;
+  [G.colab,G.free,G.nf].forEach(function(l){ l.forEach(function(x){ if(x.p.some(function(p){ return p[0]==='crit'; })) crit++; }); });
+  var sec=function(t,ic,l,dica){ return '<section class="lp-sec"><div class="lp-h"><b>'+ic+' '+t+' <em class="sau-n">'+l.length+'</em></b><small>'+dica+'</small></div>'+
+    (l.length?'<div class="lp-l">'+l.sort(function(a,b){ return b.p.filter(function(p){ return p[0]==='crit'; }).length-a.p.filter(function(p){ return p[0]==='crit'; }).length||a.nome.localeCompare(b.nome); }).map(function(x,i){
+      return '<div class="sau-r"><span><b>'+e(x.nome||'(sem nome)')+'</b><small>'+e(x.sub)+'</small></span><span class="sau-p">'+x.p.map(function(p){ return '<i class="sau-'+p[0]+'">'+e(p[1])+'</i>'; }).join('')+'</span>'+
+        '<button type="button" class="nm2-b sm" onclick="el(\'sauOv\').classList.remove(\'on\');'+x.ir+'">Corrigir →</button></div>'; }).join('')+'</div>':'<div class="lp-vz">✅ Tudo completo.</div>')+'</section>'; };
+  var errs=[]; try{ errs=JSON.parse(localStorage.getItem('central_erros')||'[]'); }catch(x){}
+  var h='<div class="imp-box lp-box"><div class="lp-top"><div><h2>🩺 Saúde do cadastro</h2><p>'+(n?'<b>'+n+'</b> cadastro(s) para completar · <b style="color:#ff8a84">'+crit+'</b> crítico(s)':'<b style="color:#5fe39a">tudo completo ✅</b>')+'</p></div><button type="button" class="nm2-b ghost" onclick="el(\'sauOv\').classList.remove(\'on\')">Fechar</button></div>'+
+    '<p class="lp-seg">🔴 crítico = impede pagar ou gera risco (sem PIX, sem CPF, CPF repetido, nome incompleto) · 🟡 atenção = gera retrabalho · ⚪ informativo</p>'+
+    sec('Colaboradores (CLT e PJ ativos)','👥',G.colab,'ficha do Painel: é a fonte de todos os outros cadastros')+
+    sec('Freelancers','🎤',G.free,'cadastro de freelancers do Painel')+
+    sec('Pessoas nas Notas Fiscais','🧾',G.nf,'quem recebe por NF ou recibo (inclui os criados pela OP)');
+  h+='<details class="nm2-regra"><summary>🔧 Diagnóstico técnico '+(errs.length?'· '+errs.length+' erro(s) registrado(s)':'· nenhum erro registrado')+'</summary><div>'+
+    (errs.length?errs.slice(-15).reverse().map(function(x){ return '<div class="sau-err"><b>'+e(x.em)+'</b> · '+e(x.tela||'')+'<br><code>'+e(x.msg)+'</code></div>'; }).join('')+'<button type="button" class="nm2-b sm" onclick="localStorage.removeItem(\'central_erros\');sauDesenhar()">Limpar registro</button>':'A Central registra aqui, só neste computador, qualquer erro que acontecer nas telas. Se algo travar, abra esta área e me mande um print.')+'</div></details></div>';
+  modal2('sauOv',h);
+}
+/* registro de erros (diagnóstico) */
+(function(){
+  var reg=function(msg){ try{ var l=JSON.parse(localStorage.getItem('central_erros')||'[]'); var m=String(msg||'').slice(0,300);
+    if(!m||/ResizeObserver|Script error/i.test(m)||/^(Promessa: )?(0|undefined|null|\[object Object\])$/.test(m)) return; if(l.length&&l[l.length-1].msg===m) return;
+    l.push({em:new Date().toLocaleString('pt-BR'),tela:(typeof ATUAL!=='undefined'?ATUAL:''),msg:m}); localStorage.setItem('central_erros',JSON.stringify(l.slice(-40))); }catch(e){} };
+  window.addEventListener('error',function(ev){ reg((ev.message||'')+(ev.lineno?' (linha '+ev.lineno+')':'')); });
+  window.addEventListener('unhandledrejection',function(ev){ var r=ev.reason; reg('Promessa: '+((r&&(r.message||r.msg))||r)); });
+})();
+
+/* ================= v79 · FECHAMENTO DO MÊS COM NOTAS E CACHÊS (marcam sozinhos) ================= */
+ETAPAS.push({id:'nf_op',t:'OP dos cachês importada e conferida (bate com o sistema)',auto:true,s:'_op'});
+ETAPAS.push({id:'nf_cache',t:'Cachês liberados ao Financeiro (NF ou recibo)',auto:true,s:'_cache'});
+ETAPAS.push({id:'nf_serv',t:'NFs de prestação de serviço liberadas ao Financeiro',auto:true,s:'_serv'});
+FECH.autoNF={}; FECH._nfMes=null;
+(function(){
+  var _df=desenharFechamento; desenharFechamento=function(){
+    var M=FECH.mes;
+    Object.keys(FECH.autoNF||{}).forEach(function(k){ FECH.auto[k]=FECH.autoNF[k]; });
+    ['nf_op','nf_cache','nf_serv'].forEach(function(k){ if(!FECH.auto[k]) FECH.auto[k]={ok:false,info:podeNF()?'conferindo…':'sem acesso às notas'}; });
+    var r=_df.apply(this,arguments);
+    if(M&&podeNF()&&FECH._nfMes!==M){ FECH._nfMes=M;
+      Promise.all([sb.from('nf_ordens_pagamento').select('total').eq('mes_referencia',M),sb.from('nf_notas').select('tipo,status,valor').eq('mes_referencia',M)]).then(function(rs){
+        var ops=(!rs[0].error&&rs[0].data)||[], ns=(!rs[1].error&&rs[1].data)||[];
+        var tOP=ops.reduce(function(a,o){ return a+(+o.total||0); },0), ca=ns.filter(function(n){ return n.tipo==='cache'; }), sv=ns.filter(function(n){ return n.tipo==='servico'&&!(parseFloat(n.valor)===0); });
+        var tC=ca.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0), lib=function(l){ return l.filter(function(n){ return n.status==='enviada'||n.status==='paga'; }).length; };
+        FECH.autoNF={
+          nf_op:{ok:ops.length>0&&Math.abs(tOP-tC)<0.01,info:ops.length?(Math.abs(tOP-tC)<0.01?ops.length+' OP(s) · '+moedaBR(tOP)+' ✓ bate':'OP '+moedaBR(tOP)+' × lançado '+moedaBR(tC)+' ⚠'):'nenhuma OP do mês importada'},
+          nf_cache:{ok:ca.length>0&&lib(ca)===ca.length,info:ca.length?lib(ca)+' de '+ca.length+' liberado(s)':'sem cachês no mês'},
+          nf_serv:{ok:sv.length===0||lib(sv)===sv.length,info:sv.length?lib(sv)+' de '+sv.length+' liberada(s)':'sem notas de serviço no mês'}
+        };
+        desenharFechamento();
+      },function(){ FECH._nfMes=null; });
+    }
+    return r;
+  };
+  var _ab=abrir; abrir=function(v,sub){
+    if(v==='lancamentos'&&(sub==='_op'||sub==='_cache'||sub==='_serv')){
+      NM.tela=sub==='_op'?'op':''; if(sub!=='_op') NM.tipo=sub==='_cache'?'cache':'servico';
+      try{ localStorage.setItem('nm_tela',NM.tela); localStorage.setItem('nm_tipo',NM.tipo); }catch(e){}
+      if(sub==='_cache'&&FECH.mes) CX2.mes=FECH.mes;
+      return _ab.call(this,'notasmes');
+    }
+    return _ab.apply(this,arguments);
+  };
+})();
+
+/* ================= v80 · 📄 RELATÓRIO MENSAL DO DP PARA A DIRETORIA =================
+   Uma página: quadro de pessoal (ativos, admissões, desligamentos), férias, rescisões, notas e
+   cachês do mês, fechamento e pendências críticas. Só master (tem valores). */
+function dirRelAbrir(){
+  if(!(EU&&EU.master)){ aviso('O relatório da Diretoria tem valores: só a administradora gera.',true); return; }
+  var ms=[], m=hoje().slice(0,7); for(var i=0;i<12;i++){ ms.push(m); m=nmSomaMes(m,-1); }
+  var def=hoje().slice(8,10)<='10'?nmSomaMes(hoje().slice(0,7),-1):hoje().slice(0,7);
+  modal2('dirOv','<div class="imp-box" style="width:min(520px,100%)"><div class="lp-top"><div><h2>📄 Relatório do DP para a Diretoria</h2><p>Resumo de 1 página do mês, pronto para mandar.</p></div><button type="button" class="nm2-b ghost" onclick="el(\'dirOv\').classList.remove(\'on\')">Fechar</button></div>'+
+    '<div class="rc-sec hi-filtro" style="margin:14px 0"><b>📅 Mês</b><select class="nm-in" id="dirM">'+ms.map(function(x){ return '<option value="'+x+'"'+(x===def?' selected':'')+'>'+esc(nomeMes(x))+'</option>'; }).join('')+'</select>'+
+    '<label class="rc-ck"><input type="checkbox" id="dirVal" checked> Mostrar valores (rescisões, férias, notas)</label><label class="rc-ck"><input type="checkbox" id="dirNomes" checked> Listar nomes (admissões, desligamentos, férias)</label></div>'+
+    '<div class="rc-pe"><button type="button" class="nm2-b pri" onclick="dirRelGerar(el(\'dirM\').value,el(\'dirVal\').checked,el(\'dirNomes\').checked)">🖨 Gerar PDF</button></div></div>');
+}
+function dirRelGerar(M,comValor,comNomes){
+  aviso('Montando o relatório…');
+  var ini=M+'-01', fim=nmUltimoDia(M), dentro=function(d){ d=(''+(d||'')).slice(0,10); return d&&d>=ini&&d<=fim; };
+  Promise.all([sb.from('dp_colaboradores').select('*'),sb.from('dp_ferias').select('*'),sb.from('dp_rescisoes').select('*'),
+    sb.from('nf_notas').select('tipo,status,valor,mes_referencia').eq('mes_referencia',M),sb.from('nf_ordens_pagamento').select('total').eq('mes_referencia',M),
+    sb.from('dp_freelancers').select('id')]).then(function(rs){
+    var C=(rs[0].data||[]), Fe=(rs[1].data||[]), Re=(rs[2].data||[]), N=(rs[3].data||[]), O=(rs[4].data||[]), FL=(rs[5].data||[]);
+    var ativo=function(c,dia){ var a=(''+(c.admissao||'')).slice(0,10), d=(''+(c.data_desligamento||'')).slice(0,10); return (!a||a<=dia)&&(!d||d>dia); };
+    var atFim=C.filter(function(c){ return ativo(c,fim); }), atIni=C.filter(function(c){ return ativo(c,somaDias(ini,-1)); });
+    var adm=C.filter(function(c){ return dentro(c.admissao); }), des=C.filter(function(c){ return dentro(c.data_desligamento); });
+    var porEmp={}; atFim.forEach(function(c){ var k=(c.empresa||'Sem empresa').toUpperCase(), x=porEmp[k]=porEmp[k]||{clt:0,pj:0}; if(equipe(c)==='externa') x.pj++; else x.clt++; });
+    var fer=Fe.filter(function(f){ return dentro(f.inicio)||(f.inicio&&f.fim&&(''+f.inicio)<=fim&&(''+f.fim)>=ini); });
+    var res=Re.filter(function(r){ return dentro(r.desligamento); });
+    var vFer=fer.reduce(function(a,f){ return a+(parseFloat(f.valor)||0); },0), vRes=res.reduce(function(a,r){ return a+(parseFloat(r.valor)||0); },0);
+    var ca=N.filter(function(n){ return n.tipo==='cache'; }), sv=N.filter(function(n){ return n.tipo==='servico'; }), s=function(l){ return l.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0); };
+    var lib=function(l){ return l.filter(function(n){ return n.status==='enviada'||n.status==='paga'; }); };
+    var tOP=O.reduce(function(a,o){ return a+(+o.total||0); },0);
+    var turnover=atIni.length?Math.round(((adm.length+des.length)/2)/atIni.length*1000)/10:0;
+    var urg=(RADAR.itens||[]).filter(function(i){ return i.dias<=7&&i.cat!=='obrig'; }).slice(0,8);
+    var fe=(typeof FECH!=='undefined'&&FECH.mes===M)?ETAPAS.map(function(e){ var a=FECH.auto[e.id], m=FECH.marcas[e.id]; return {t:e.t,ok:e.auto?!!(a&&a.ok):!!(m&&m.ok)}; }):null;
+    var e=esc, R=function(v){ return comValor?moedaBR(Math.round(v*100)/100):'—'; }, nm=function(l,f){ return comNomes&&l.length?'<div class="nms">'+l.map(f).map(e).join(' · ')+'</div>':''; };
+    var k=function(t,v,sub,c){ return '<div class="k '+(c||'')+'"><small>'+t+'</small><b>'+v+'</b><span>'+sub+'</span></div>'; };
+    var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>DP · '+e(nomeMes(M))+'</title><style>'+
+      '@page{size:A4;margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;color:#222;margin:0;font-size:11px}'+
+      '.top{background:#0d0d0f;color:#fff;display:flex;align-items:center;gap:16px;padding:16px 30px;border-bottom:4px solid #d60000}.top img{width:58px;height:46px;object-fit:contain;background:#262628;padding:3px}.top h1{font-size:19px;margin:0}.top p{margin:3px 0 0;color:#b9babe;font-size:12px}.top .dir{margin-left:auto;text-align:right;color:#b9babe;font-size:11px;line-height:1.6}'+
+      '.cx{padding:16px 30px 50px}h2{font-size:12.5px;margin:16px 0 7px;text-transform:uppercase;letter-spacing:.05em;color:#d60000}.ks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.k{border:1px solid #e2e3e7;border-radius:8px;padding:9px 11px;border-top:3px solid #0d0d0f}.k small{display:block;color:#666;font-size:9.5px;text-transform:uppercase}.k b{display:block;font-size:17px;margin:3px 0}.k span{color:#666;font-size:10px}.k.vd{border-top-color:#1f9d57}.k.vm{border-top-color:#d60000}.k.am{border-top-color:#e39b00}.k.az{border-top-color:#3d7bff}'+
+      'table{width:100%;border-collapse:collapse}th{background:#0d0d0f;color:#fff;text-align:left;padding:6px;font-size:10px}td{padding:5px 6px;border-bottom:1px solid #e2e3e7}.r{text-align:right}.tot td{background:#ecedf0;font-weight:bold}'+
+      '.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.nms{font-size:10.5px;color:#444;margin-top:4px;line-height:1.5}.box{border:1px solid #e2e3e7;border-radius:8px;padding:9px 11px}'+
+      '.ck{list-style:none;margin:0;padding:0}.ck li{padding:3px 0;font-size:11px}.ok{color:#14713d}.no{color:#b3261e}.urg li{margin:0 0 3px}'+
+      '.rod{position:fixed;bottom:10px;left:30px;right:30px;font-size:8.5px;color:#999;display:flex;justify-content:space-between}'+
+      '</style></head><body><div class="top"><img src="'+NM_LOGO+'" alt="ILED"><div><h1>Relatório do Departamento Pessoal · '+e(nomeMes(M))+'</h1><p>Grupo ILED · resumo para a Diretoria</p></div><div class="dir">Emitido em '+e(new Date().toLocaleDateString('pt-BR'))+'<br>por '+e((EU&&EU.nome)||'')+'</div></div><div class="cx">'+
+      '<h2>Quadro de pessoal</h2><div class="ks">'+k('Ativos no fim do mês',atFim.length,atFim.filter(function(c){ return equipe(c)!=='externa'; }).length+' CLT · '+atFim.filter(function(c){ return equipe(c)==='externa'; }).length+' PJ · '+FL.length+' freelancers cadastrados','')+
+        k('Admissões',adm.length,'no mês','vd')+k('Desligamentos',des.length,'no mês','vm')+k('Rotatividade',String(turnover).replace('.',',')+'%','(admissões + desligamentos) ÷ 2 ÷ ativos no início','am')+'</div>'+
+      '<div class="g2" style="margin-top:10px"><div class="box"><b>✅ Admissões ('+adm.length+')</b>'+nm(adm,function(c){ return c.nome+' ('+(c.funcao||'')+')'; })+'</div><div class="box"><b>🚪 Desligamentos ('+des.length+')</b>'+nm(des,function(c){ return c.nome; })+'</div></div>'+
+      '<h2>Por empresa</h2><table><thead><tr><th>Empresa</th><th class="r">CLT</th><th class="r">PJ</th><th class="r">Total</th></tr></thead><tbody>'+Object.keys(porEmp).sort().map(function(x){ var y=porEmp[x]; return '<tr><td>'+e(x)+'</td><td class="r">'+y.clt+'</td><td class="r">'+y.pj+'</td><td class="r">'+(y.clt+y.pj)+'</td></tr>'; }).join('')+
+        '<tr class="tot"><td>Total</td><td class="r">'+atFim.filter(function(c){ return equipe(c)!=='externa'; }).length+'</td><td class="r">'+atFim.filter(function(c){ return equipe(c)==='externa'; }).length+'</td><td class="r">'+atFim.length+'</td></tr></tbody></table>'+
+      '<h2>Férias e rescisões</h2><div class="g2"><div class="box"><b>🏖 Férias no mês: '+fer.length+'</b> · '+R(vFer)+nm(fer,function(f){ return (f.colaborador||'')+' ('+nm2Br(f.inicio).slice(0,5)+'–'+nm2Br(f.fim).slice(0,5)+')'; })+'</div>'+
+        '<div class="box"><b>📄 Rescisões no mês: '+res.length+'</b> · '+R(vRes)+nm(res,function(r){ return r.colaborador||''; })+'</div></div>'+
+      '<h2>Notas fiscais e cachês</h2><div class="ks">'+k('Cachês do mês (OP)',R(tOP||s(ca)),ca.length+' pessoa(s)','az')+k('Cachês liberados',R(s(lib(ca))),lib(ca).length+' de '+ca.length,'vd')+k('NFs de serviço (PJ)',R(s(sv)),sv.length+' nota(s)','')+k('Serviço liberado',R(s(lib(sv))),lib(sv).length+' de '+sv.length,'vd')+'</div>'+
+      (fe?'<h2>Fechamento do mês</h2><div class="box"><ul class="ck">'+fe.map(function(x){ return '<li class="'+(x.ok?'ok':'no')+'">'+(x.ok?'✔':'✖')+' '+e(x.t)+'</li>'; }).join('')+'</ul></div>':'')+
+      (urg.length?'<h2>Pendências críticas (próximos 7 dias)</h2><div class="box"><ul class="ck urg">'+urg.map(function(i){ return '<li>⚠ <b>'+e(i.t)+'</b> · '+e(i.s||'')+'</li>'; }).join('')+'</ul></div>':'')+
+      '</div><div class="rod"><span>Central DP · ILED Produções · documento interno</span><span>'+e(nomeMes(M))+'</span></div><script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
+    var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups.',true); return; }
+    w.document.open(); w.document.write(html); w.document.close(); el('dirOv')&&el('dirOv').classList.remove('on');
+  }).catch(function(){ aviso('Não consegui montar o relatório agora.',true); });
+}
+/* atalhos na tela inicial */
+(function(){
+  var _ai=atualizarInicio; atualizarInicio=function(){
+    var r=_ai.apply(this,arguments);
+    try{ var up=document.querySelector('#v-inicio .hero-upd'); if(up&&!document.getElementById('heroAtalhos')){
+      var d=document.createElement('div'); d.id='heroAtalhos'; d.className='hero-at';
+      d.innerHTML=(EU&&EU.master?'<button type="button" onclick="dirRelAbrir()">📄 Relatório da Diretoria</button>':'')+'<button type="button" onclick="sauAbrir()">🩺 Saúde do cadastro</button>'+(EU&&EU.master&&typeof bkAbrir==='function'?'<button type="button" onclick="bkAbrir()">💾 Backup</button>':'');
+      up.parentNode.insertBefore(d,up); } }catch(e){}
+    return r;
+  };
+})();
+
+/* ================= v82 · 📅 MÊS DE TRABALHO ÚNICO =================
+   Um seletor no topo ("Trabalhando em") vale para Notas (Cachê, Histórico), Conferência e relatórios.
+   Padrão: até o dia 15 = mês anterior (mês em fechamento); depois, o mês atual. */
+function mesTrabalho(){
+  var m=''; try{ m=localStorage.getItem('central_mes')||''; }catch(e){}
+  if(!/^\d{4}-\d{2}$/.test(m)){ var h=hoje(); m=+h.slice(8,10)<=15?nmSomaMes(h.slice(0,7),-1):h.slice(0,7); }
+  return m;
+}
+function mesTrabalhoDef(M,quieto){
+  try{ localStorage.setItem('central_mes',M); }catch(e){}
+  CX2.mes=M; HI.mes=M; RC.mes=M; CF.mes=M;
+  var s=document.getElementById('mesTrab'); if(s&&s.value!==M){ mesTrabOpcoes(); s.value=M; }
+  if(quieto) return;
+  try{ if(typeof ATUAL!=='undefined'&&ATUAL==='notasmes'){ if(NM.tela==='hist'){ HI.ed=null; HI.sel={}; desenharNotasMes(); } else if(NM.tipo==='cache') cx2TrocarMes(M); else desenharNotasMes(); } }catch(e){}
+  try{ if(el('cfOv')&&el('cfOv').classList.contains('on')) cfAbrir(); }catch(e){}
+}
+function mesTrabOpcoes(){
+  var s=document.getElementById('mesTrab'); if(!s) return; var M=mesTrabalho(), l=[], m=nmSomaMes(hoje().slice(0,7),1);
+  for(var i=0;i<15;i++){ l.push(m); m=nmSomaMes(m,-1); }
+  s.innerHTML=l.map(function(x){ var t=nomeMes(x); return '<option value="'+x+'"'+(x===M?' selected':'')+'>📅 '+esc(t.replace(' de ','/'))+'</option>'; }).join('');
+}
+(function(){
+  var instalar=function(){
+    if(document.getElementById('mesTrab')) return;
+    var sv=document.getElementById('btSalvar'); if(!sv||!sv.parentNode) return;
+    var w=document.createElement('label'); w.className='mes-trab hi-filtro'; w.title='Mês de trabalho: vale para Notas, Conferência e relatórios';
+    w.innerHTML='<small>Trabalhando em</small><select id="mesTrab"></select>';
+    sv.parentNode.insertBefore(w,sv); mesTrabOpcoes();
+    document.getElementById('mesTrab').onchange=function(){ mesTrabalhoDef(this.value); };
+  };
+  var M0=mesTrabalho(); CX2.mes=M0; HI.mes=M0; RC.mes=M0;
+  var _ai=atualizarInicio; atualizarInicio=function(){ var r=_ai.apply(this,arguments); try{ instalar(); }catch(e){} return r; };
+  setTimeout(function(){ try{ instalar(); }catch(e){} },1500);
+  // trocar o mês dentro das telas também troca o mês de trabalho
+  var _tm=cx2TrocarMes; cx2TrocarMes=function(M){ try{ localStorage.setItem('central_mes',M); var s=document.getElementById('mesTrab'); if(s) s.value=M; HI.mes=M; RC.mes=M; CF.mes=M; }catch(e){} return _tm.apply(this,arguments); };
+  var _ha=hiAbrir; hiAbrir=function(){ HI.mes=mesTrabalho(); return _ha.apply(this,arguments); };
+  var _ra=rcAbrir; rcAbrir=function(){ if(!RC.mes) RC.mes=mesTrabalho(); return _ra.apply(this,arguments); };
+})();
+
+/* ================= v83 · 🧮 CONFERÊNCIA DO MÊS =================
+   Uma tela: cada valor do DP comparado com a sua fonte, com ✓ / ⚠ / ✖ e o botão para resolver. */
+var CF={mes:''};
+function cfAbrir(){
+  CF.mes=CF.mes||mesTrabalho();
+  var M=CF.mes, ini=M+'-01', fim=nmUltimoDia(M), dentro=function(d){ d=(''+(d||'')).slice(0,10); return d&&d>=ini&&d<=fim; };
+  modal2('cfOv','<div class="imp-box cf-box"><p class="vazio">Conferindo '+esc(nomeMes(M).toLowerCase())+'…</p></div>');
+  var q=function(p){ return p.then(function(r){ return r; },function(){ return {error:true,data:[]}; }); };
+  Promise.all([
+    q(sb.from('nf_ordens_pagamento').select('numero,total,itens').eq('mes_referencia',M)),
+    q(sb.from('nf_notas').select('id,colaborador_id,tipo,status,valor,numero').eq('mes_referencia',M)),
+    q(sb.from('dp_folha').select('*').eq('competencia',M)),
+    q(sb.from('dp_colaboradores').select('id,nome,empresa,tipo_contrato,admissao,data_desligamento')),
+    q(sb.from('dp_ferias').select('*')),
+    q(sb.from('dp_rescisoes').select('*')),
+    q(sb.from('dp_custos').select('*').eq('competencia',M)),
+    q(sb.from('dp_custos').select('*').eq('competencia',nmSomaMes(M,1)))
+  ]).then(function(rs){
+    var L=[], R=moedaBR, e=esc, d=function(x){ return (x&&x.data)||[]; };
+    var add=function(st,ic,t,info,det,acao){ L.push({st:st,ic:ic,t:t,info:info,det:det||'',acao:acao||''}); };
+    var ir=function(js,txt){ return '<button type="button" class="nm2-b sm" onclick="el(\'cfOv\').classList.remove(\'on\');'+js+'">'+(txt||'Abrir')+' →</button>'; };
+    // 1) cachês
+    var ops=d(rs[0]), ns=d(rs[1]), ca=ns.filter(function(n){ return n.tipo==='cache'; }), sv=ns.filter(function(n){ return n.tipo==='servico'&&!(parseFloat(n.valor)===0); });
+    var soma=function(l,c){ return l.reduce(function(a,x){ return a+(parseFloat(x[c||'valor'])||0); },0); }, lib=function(l){ return l.filter(function(n){ return n.status==='enviada'||n.status==='paga'; }); };
+    var tOP=soma(ops,'total'), tC=soma(ca), semL=[]; ops.forEach(function(o){ (o.itens||[]).forEach(function(i){ if(i.ignorar||!i.colaborador_id||!i.nota_id) semL.push(i.nome); }); });
+    if(!ops.length&&!ca.length) add('mut','🎤','Cachês: OP × lançado','nenhuma OP e nenhum cachê no mês','', ir("opAbrir();abrir('notasmes')",'Subir OP'));
+    else if(!ops.length) add('w','🎤','Cachês: OP × lançado','há '+ca.length+' cachê(s) lançados ('+R(tC)+') mas nenhuma OP do mês','os cachês devem nascer da OP', ir("opAbrir();abrir('notasmes')",'Subir OP'));
+    else { var ok=Math.abs(tOP-tC)<0.01&&!semL.length; add(ok?'ok':'w','🎤','Cachês: OP × lançado',ops.length+' OP(s) '+R(tOP)+' · lançado '+R(tC)+(ok?' · bate':' · diferença '+R(Math.abs(tOP-tC))),semL.length?'sem lançamento: '+semL.join(', '):'', ir("CX2.mes='"+M+"';nmTrocarTipo('cache');abrir('notasmes')")); }
+    // 2) cachês liberados
+    if(ca.length){ var lc=lib(ca); add(lc.length===ca.length?'ok':'w','🔔','Cachês liberados ao Financeiro',lc.length+' de '+ca.length+' · '+R(soma(lc))+' de '+R(tC),'', ir("CX2.mes='"+M+"';nmTrocarTipo('cache');abrir('notasmes')")); }
+    // 3) serviço PJ
+    if(sv.length){ var ls=lib(sv), semNum=sv.filter(function(n){ return (n.status==='enviada'||n.status==='paga')&&!n.numero; }).length;
+      add(ls.length===sv.length&&!semNum?'ok':'w','🧾','NFs de prestação de serviço',ls.length+' de '+sv.length+' liberada(s) · '+R(soma(ls))+' de '+R(soma(sv)),semNum?semNum+' liberada(s) sem nº de NF':'', ir("nmTrocarTipo('servico');abrir('notasmes')")); }
+    else add('mut','🧾','NFs de prestação de serviço','nenhuma nota de serviço no mês','', '');
+    // 4) folha
+    var fo=d(rs[2]), C=d(rs[3]); var ativo=function(c){ var a=(''+(c.admissao||'')).slice(0,10), x=(''+(c.data_desligamento||'')).slice(0,10); return (!a||a<=fim)&&(!x||x>=ini); };
+    if(rs[2].error) add('mut','💰','Folha','sem acesso à folha','', '');
+    else if(!fo.length) add('w','💰','Folha do mês','nenhuma folha lançada para '+nomeMes(M).toLowerCase(),'lance no Painel DP → Folha', ir("abrir('painel','folha')"));
+    else fo.forEach(function(f){
+      var soma3=Math.round(((parseFloat(f.liquido)||0)+(parseFloat(f.gratif)||0)+(parseFloat(f.pensao)||0))*100)/100, tot=parseFloat(f.total)||0, emp=String(f.empresa||'').toUpperCase();
+      var clt=C.filter(function(c){ return equipe(c)!=='externa'&&String(c.empresa||'').toUpperCase()===emp&&ativo(c); }).length, qt=+f.qtd||0;
+      var probs=[]; if(Math.abs(soma3-tot)>=0.01) probs.push('total '+R(tot)+' ≠ líquido + gratificação + pensão ('+R(soma3)+')'); if(qt&&clt&&qt!==clt) probs.push('folha com '+qt+' pessoa(s) · cadastro tem '+clt+' CLT ativos no mês');
+      add(probs.length?'w':'ok','💰','Folha · '+(f.empresa||'—'),R(tot)+' · '+qt+' pessoa(s)'+(probs.length?'':' · confere'),probs.join(' · '), ir("abrir('painel','folha')"));
+    });
+    // 5) férias do mês
+    var fe=d(rs[4]).filter(function(f){ return dentro(f.inicio); });
+    if(fe.length){ var sv0=fe.filter(function(f){ return !(parseFloat(f.valor)>0); }), sf=fe.filter(function(f){ return !f.financeiro; });
+      add(sv0.length||sf.length?'w':'ok','🏖','Férias que começam no mês',fe.length+' · '+R(soma(fe)),[sv0.length?sv0.length+' sem valor: '+sv0.map(function(f){ return f.colaborador; }).join(', '):'',sf.length?sf.length+' não entregue(s) ao Financeiro':''].filter(Boolean).join(' · '), ir("abrir('painel','ferias')")); }
+    // 6) rescisões do mês (prazo legal de 10 dias)
+    var re=d(rs[5]).filter(function(r){ return dentro(r.desligamento); });
+    if(re.length){ var rv=re.filter(function(r){ return !(parseFloat(r.valor)>0); }), rf=re.filter(function(r){ return !r.financeiro; }), rp=re.filter(function(r){ return r.vencimento&&r.desligamento&&(''+r.vencimento).slice(0,10)>somaDias((''+r.desligamento).slice(0,10),10); });
+      add(rv.length||rf.length||rp.length?'w':'ok','📄','Rescisões do mês',re.length+' · '+R(soma(re)),[rv.length?rv.length+' sem valor':'',rf.length?rf.length+' não entregue(s) ao Financeiro':'',rp.length?rp.length+' com pagamento depois de 10 dias (art. 477 da CLT)':''].filter(Boolean).join(' · '), ir("abrir('painel','rescisoes')")); }
+    // 7) VA/VT (vai no custo do mês seguinte)
+    var cu=d(rs[7]).concat(d(rs[6])), vv=cu.filter(function(c){ return /\b(VA|VT|vale|alimenta|transporte|refei)/i.test(String(c.descricao||'')); });
+    var mk=(typeof FECH!=='undefined'&&FECH.mes===M&&FECH.marcas&&FECH.marcas.vavt&&FECH.marcas.vavt.ok);
+    if(vv.length){ var vf=vv.filter(function(c){ return !c.financeiro; }); add(vf.length?'w':'ok','🍽','VA/VT','lançado nos custos: '+R(soma(vv))+' ('+vv.length+' item(ns))',(vf.length?vf.length+' não entregue(s) ao Financeiro · ':'')+(mk?'checklist marcado':'marque "VA/VT calculado e enviado" no fechamento'), ir("abrir('painel','custos')")); }
+    else add('w','🍽','VA/VT','nenhum custo de VA/VT lançado para o mês','calcule no Lançamentos e lance nos custos do Painel', ir("abrir('lancamentos')"));
+    var nOk=L.filter(function(x){ return x.st==='ok'; }).length, nW=L.filter(function(x){ return x.st==='w'; }).length;
+    var h='<div class="imp-box cf-box"><div class="lp-top"><div><h2>🧮 Conferência de '+e(nomeMes(M).toLowerCase())+'</h2><p>'+(nW?'<b style="color:#ffc35a">⚠ '+nW+' ponto(s) para acertar</b> · ':'<b style="color:#5fe39a">✓ tudo bate</b> · ')+nOk+' conferido(s)</p></div>'+
+      '<div style="display:flex;gap:8px"><select class="nm-in hi-filtro" style="width:auto" onchange="mesTrabalhoDef(this.value)">'+(function(){ var o='',m=nmSomaMes(hoje().slice(0,7),1); for(var i=0;i<13;i++){ o+='<option value="'+m+'"'+(m===M?' selected':'')+'>'+e(nomeMes(m))+'</option>'; m=nmSomaMes(m,-1); } return o; })()+'</select>'+
+      '<button type="button" class="nm2-b ghost" onclick="el(\'cfOv\').classList.remove(\'on\')">Fechar</button></div></div>'+
+      '<div class="cf-l">'+L.map(function(x){ return '<div class="cf-r s-'+x.st+'"><span class="cf-st">'+(x.st==='ok'?'✓':(x.st==='w'?'⚠':'–'))+'</span><span class="cf-ic">'+x.ic+'</span><span class="cf-t"><b>'+e(x.t)+'</b><small>'+e(x.info)+'</small>'+(x.det?'<em>'+e(x.det)+'</em>':'')+'</span><span>'+x.acao+'</span></div>'; }).join('')+'</div>'+
+      '<p class="lp-seg">✓ bate · ⚠ precisa de atenção · – não se aplica. Os dados vêm direto do banco: corrigiu na tela certa, abra a conferência de novo.</p></div>';
+    modal2('cfOv',h);
+  });
+}
+
+/* ================= v84 · 🧾 REGISTRO DE ALTERAÇÕES DE VALORES (notas) =================
+   Toda mudança em nota (valor, situação, nº, datas) e toda exclusão vai para o histórico de
+   alterações da Central (dp_logs): quem, quando, de quanto para quanto. */
+var AUD_CAMPOS={valor:'valor',status:'situação',numero:'nº da NF',data_emissao:'emissão',data_pagamento:'data de pagamento',data_vencimento:'data de pagamento prevista'};
+function audAntes(id){
+  var n=null; try{ n=nmNota(id); }catch(e){}
+  if(!n&&HI.dados) n=HI.dados.find(function(x){ return x.id===id; });
+  if(!n&&LP.dados) n=LP.dados.find(function(x){ return x.id===id; });
+  if(!n&&OP.notas) n=OP.notas[id];
+  return n?JSON.parse(JSON.stringify(n)):null;
+}
+function audNome(n){ try{ return nmPrest(n.colaborador_id).nome||lpNome(n)||''; }catch(e){ return ''; } }
+function audFmt(k,v){ if(v==null||v==='') return ''; if(k==='valor') return moedaBR(v); if(/^data_/.test(k)) return nm2Br(v); return String(v); }
+function audGravar(rows){ if(!rows.length) return; try{ sb.from('dp_logs').insert(rows).then(function(){},function(){}); }catch(e){} }
+function audInstalar(){
+  if(!window.sb||sb.__aud) return; var _from=sb.from.bind(sb); sb.__aud=true;
+  sb.from=function(t){
+    var q=_from.apply(sb,arguments); if(t!=='nf_notas') return q;
+    var embrulha=function(b,tipo,patch){
+      var ids=[], antes={}, _eq=b.eq, _in=b.in, _th=b.then;
+      b.eq=function(k,v){ if(k==='id'){ ids=[v]; antes[v]=audAntes(v); } return _eq.apply(b,arguments); };
+      b.in=function(k,v){ if(k==='id'){ ids=(v||[]).slice(); ids.forEach(function(i){ antes[i]=audAntes(i); }); } return _in.apply(b,arguments); };
+      b.then=function(ok,no){ return _th.call(b,function(r){
+        try{ if(r&&!r.error){ var quem=(EU&&EU.nome)||'', rows=[];
+          ids.forEach(function(id){ var a=antes[id]||{}, nome=audNome(a), ref=(a.tipo==='cache'?'cachê':'serviço')+' '+String(a.mes_referencia||'').slice(0,7);
+            if(tipo==='delete') rows.push({id:cxUUID(),tabela:'nf_notas',registro_id:id,colaborador:nome||'(nota)',campo:'nota excluída',valor_antigo:ref+' · '+audFmt('valor',a.valor)+' · '+(a.status||''),valor_novo:'(excluída)',usuario:quem});
+            else Object.keys(patch||{}).forEach(function(k){ if(!AUD_CAMPOS[k]) return; var de=audFmt(k,a[k]), pa=audFmt(k,patch[k]); if(de===pa) return;
+              rows.push({id:cxUUID(),tabela:'nf_notas',registro_id:id,colaborador:nome||'(nota)',campo:AUD_CAMPOS[k]+' · '+ref,valor_antigo:de,valor_novo:pa,usuario:quem}); }); });
+          audGravar(rows); } }catch(e){}
+        return ok?ok(r):r; },no); };
+      return b;
+    };
+    var _u=q.update, _d=q.delete;
+    q.update=function(p){ return embrulha(_u.apply(q,arguments),'update',p); };
+    q.delete=function(){ return embrulha(_d.apply(q,arguments),'delete',null); };
+    return q;
+  };
+}
+function audAbrir(){
+  modal2('audOv','<div class="imp-box lp-box"><p class="vazio">Lendo o registro…</p></div>');
+  sb.from('dp_logs').select('*').eq('tabela','nf_notas').order('quando',{ascending:false}).limit(300).then(function(r){
+    var l=(r&&!r.error&&r.data)||[], e=esc;
+    var h='<div class="imp-box lp-box"><div class="lp-top"><div><h2>🧾 Alterações nas notas</h2><p>As últimas '+l.length+' mudanças de valor, situação, nº e exclusões · quem e quando</p></div><button type="button" class="nm2-b ghost" onclick="el(\'audOv\').classList.remove(\'on\')">Fechar</button></div>'+
+      '<input class="nm-busca hi-filtro" style="width:100%;margin:12px 0" placeholder="🔎 Filtrar por nome, campo ou usuário" oninput="var q=chaveNome(this.value);document.querySelectorAll(\'#audOv .aud-r\').forEach(function(x){x.style.display=!q||chaveNome(x.textContent).indexOf(q)>=0?\'\':\'none\';})">'+
+      (l.length?'<div class="lp-l" style="max-height:60vh">'+l.map(function(x){ return '<div class="aud-r"><span class="aud-q">'+e(x.quando?new Date(x.quando).toLocaleString('pt-BR').slice(0,17):'')+'<small>'+e(x.usuario||'')+'</small></span><span><b>'+e(x.colaborador||'')+'</b><small>'+e(x.campo||'')+'</small></span><span class="aud-d"><s>'+e(x.valor_antigo||'—')+'</s> → <b>'+e(x.valor_novo||'—')+'</b></span></div>'; }).join('')+'</div>':'<div class="lp-vz">Nenhuma alteração registrada ainda. A partir de agora, toda mudança nas notas aparece aqui.</div>')+'</div>';
+    modal2('audOv',h);
+  },function(){ modal2('audOv','<div class="imp-box lp-box"><p class="vazio">Não consegui ler o registro agora.</p></div>'); });
+}
+(function(){
+  [ 'carregarNotasMes','hiCarregar','lpLer','opImportar','opCarregar' ].forEach(function(f){ var o=window[f]; if(typeof o!=='function') return; window[f]=function(){ try{ audInstalar(); }catch(e){} return o.apply(this,arguments); }; });
+  setTimeout(function(){ try{ audInstalar(); }catch(e){} },2000);
+  // botão no Histórico
+  var _hd=hiDesenhar; hiDesenhar=function(){ var r=_hd.apply(this,arguments); try{ var f=document.querySelector('#nmApp .hi-fil'); if(f&&!f.querySelector('.aud-bt')&&EU&&EU.master){ var b=document.createElement('button'); b.type='button'; b.className='nm2-b ghost aud-bt'; b.textContent='🧾 Alterações'; b.onclick=audAbrir; f.appendChild(b); } }catch(e){} return r; };
+})();
+
+/* ================= v85 · MENU EM 4 BLOCOS =================
+   Meu dia · Pessoas · Fechamento do mês (com 🧮 Conferência) · Gestão. */
+function menuOrganizar(){
+  var nInt=el('navInt'); if(!nInt) return; var P=nInt.parentNode;
+  var ini=P.querySelector('.nav[data-v="inicio"]'); if(!ini) return;
+  var secs=[].slice.call(P.querySelectorAll(':scope > .sec'));
+  var secDP=secs.find(function(s){ return /Departamento Pessoal|Fechamento do mês/.test(s.textContent); }), secMinha=secs.find(function(s){ return /Minha organiza|^Ajustes$/.test(s.textContent.trim()); });
+  var secDia=document.getElementById('secDia'); if(!secDia){ secDia=document.createElement('div'); secDia.className='sec'; secDia.id='secDia'; secDia.textContent='Meu dia'; }
+  var cf=document.getElementById('navConfMes');
+  if(!cf){ cf=document.createElement('button'); cf.type='button'; cf.className='nav'+(podeNF()||podeLancamentos()?'':' hidden'); cf.id='navConfMes';
+    cf.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M8 19h8"/></svg>Conferência do mês';
+    cf.onclick=function(){ cfAbrir(); }; }
+  var ord=[ini,secDia,el('navCal'),el('navLem'),el('navDem'),el('navCad'),el('subsCad'),
+    el('secColab'),el('navInt'),el('navPJ'),el('navFree'),el('navCadGeral'),el('subsCadGeral'),
+    secDP,el('navPainel'),el('subsPainel'),el('navLanc'),el('subsLanc'),el('navNF'),el('subsNF'),cf,
+    el('secGestao'),el('navInd'),el('navConf'),secMinha,el('navCfg'),el('subsCfg')].filter(Boolean);
+  var marca=document.createComment('menu'); P.insertBefore(marca,ini);
+  var ult=marca; ord.forEach(function(n){ if(n.parentNode!==P&&n!==secDia&&n!==cf) return; P.insertBefore(n,ult.nextSibling); ult=n; });
+  marca.remove();
+  if(el('secColab')){ el('secColab').textContent='Pessoas'; }
+  if(secDP) secDP.textContent='Fechamento do mês';
+  if(secMinha){ secMinha.textContent='Ajustes'; }
+}
+(function(){
+  var _ai=atualizarInicio; atualizarInicio=function(){ var r=_ai.apply(this,arguments); try{ menuOrganizar(); }catch(e){} return r; };
+  setTimeout(function(){ try{ menuOrganizar(); }catch(e){} },1800);
+  setTimeout(function(){ try{ menuOrganizar(); }catch(e){} },5000);
+  // atalho da conferência também na tela inicial
+  var _ai2=atualizarInicio; atualizarInicio=function(){ var r=_ai2.apply(this,arguments); try{ var d=document.getElementById('heroAtalhos'); if(d&&!d.querySelector('.cf-at')&&(podeNF()||podeLancamentos())){ var b=document.createElement('button'); b.type='button'; b.className='cf-at'; b.textContent='🧮 Conferência do mês'; b.onclick=cfAbrir; d.insertBefore(b,d.firstChild); } }catch(e){} return r; };
+})();
+
+/* ================= v86 · CONFIGURAÇÕES COMPLETAS E SEM DUPLICIDADE =================
+   • Um relatório só para a Diretoria: o "📊 Relatório para a Diretoria" (WhatsApp) ganha o botão
+     "🖨 PDF de 1 página"; o atalho do Início abre essa mesma tela.
+   • Configurações ganha 🩺 Saúde do cadastro e 🧮 Conferência do mês. */
+(function(){
+  var _ra=window.relAbrir;
+  if(typeof _ra==='function'){
+    window.relAbrir=relAbrir=function(){
+      var r=_ra.apply(this,arguments);
+      setTimeout(function(){ try{ var ov=el('rel2Ov'), tp=ov&&ov.querySelector('.rel2-tipos'); if(tp&&!tp.querySelector('.rel-pdf')&&EU&&EU.master){
+        var b=document.createElement('button'); b.type='button'; b.className='det rel-pdf'; b.innerHTML='<b>🖨 PDF de 1 página</b><small>quadro, notas e fechamento</small>';
+        b.onclick=function(){ ov.classList.remove('on'); dirRelAbrir(); }; tp.appendChild(b); } }catch(e){} },60);
+      return r;
+    };
+  }
+  var cfg=function(){
+    try{ var s=el('subsCfg'); if(!s) return;
+      var ref=el('msgMenu')||s.querySelector('#verMenu');
+      [['sauMenu','🩺 Saúde do cadastro',function(){ sauAbrir(); }],['cfMenu','🧮 Conferência do mês',function(){ cfAbrir(); }]].forEach(function(x){
+        if(el(x[0])) return; var b=document.createElement('button'); b.type='button'; b.className='sub'; b.id=x[0]; b.textContent=x[1]; b.onclick=x[2]; s.insertBefore(b,ref||null); });
+      var h=document.getElementById('heroAtalhos'); if(h){ h.querySelectorAll('button').forEach(function(b){ if(/Relatório da Diretoria/.test(b.textContent)){ b.onclick=function(){ typeof relAbrir==='function'&&permOn('relatorio')?relAbrir():dirRelAbrir(); }; } }); }
+    }catch(e){}
+  };
+  var _ai=atualizarInicio; atualizarInicio=function(){ var r=_ai.apply(this,arguments); cfg(); setTimeout(cfg,1500); return r; };
+  setTimeout(cfg,2500);
+})();
+
+/* ================= v87 · TODAS AS MENSAGENS NO CADASTRO · SEM DUPLICIDADE NO MENU · MENU SEM DESENHOS =================
+   1) Mensagens do WhatsApp: entram as que a Central montava "por fora" do cadastro:
+      2ª cobrança de NF, Cachê liberado (Financeiro), Movimentações do mês e Relatório da Diretoria.
+   2) Conferência do mês fica só no menu (Fechamento do mês); Saúde do cadastro, Relatório e Backup só em Configurações.
+   3) Itens do menu sem emoji na frente. */
+(function(){
+  var P=MSG_PADRAO, N={};
+  var novos={
+    nf_cobranca_2:{t:'Cobrar nota fiscal de novo (2ª vez em diante)',onde:'Notas fiscais → Cobrar de novo',para:'Prestador PJ / freelancer',ic:'🧾',
+      campos:{primeiro_nome:'Primeiro nome do prestador',tipo:'cachê ou prestação de serviço',mes:'Mês da nota (ex.: outubro)',data_emissao:'Data em que a NF deve ser emitida',valor:'Valor da nota',tomador:'Empresa tomadora e CNPJ',descricao:'Descrição que vai na NF',data_pagamento:'Data de pagamento',vez:'Número da cobrança (2ª, 3ª…)'},
+      texto:'Oi, {primeiro_nome}! Tudo bem? 😊\n\nAinda não recebi a sua nota fiscal de {tipo} de {mes}:\n\n📅 Data de emissão: {data_emissao}\n💰 Valor: {valor}\n🏢 Tomador: {tomador}\n📝 Descrição: {descricao}\n\n⚠️ Sem a NF não consigo liberar o seu pagamento (previsto para {data_pagamento}). Me manda hoje, por favor?\nJá é a {vez} vez que te peço. Obrigada!',
+      ex:{primeiro_nome:'Carlos',tipo:'cachê',mes:'outubro',data_emissao:'',valor:'R$ 180,00',tomador:'X-LED · CNPJ 00.000.000/0001-00',descricao:'Cachê referente a serviços prestados em eventos',data_pagamento:'02/11/2026',vez:'2ª'}},
+    nf_cache_liberado:{t:'Avisar o Financeiro: cachê liberado',onde:'Notas fiscais → Cachê → mandar ao financeiro',para:'Grupo do Financeiro',ic:'✅',
+      campos:{lista:'Empresas e pessoas liberadas (montada sozinha: EMPRESA e depois NOME - R$ valor✅)',mes:'Mês do cachê (ex.: outubro)',total:'Soma dos valores liberados',qtd:'Quantidade de pessoas',data_pagamento:'Data de pagamento'},
+      texto:'CACHÊ LIBERADO\n\n{lista}',
+      ex:{lista:'X-LED\nGABRIEL SANTOS - R$ 180,00✅\nJOÃO LIMA - R$ 250,00 (recibo)✅\n\nILED\nMIRTHES NOBRE - R$ 300,00✅',mes:'outubro',total:'R$ 730,00',qtd:'3',data_pagamento:'02/11/2026'}},
+    movimentacoes:{t:'Movimentações do mês (plano, seguro, VA, VT)',onde:'Movimentações do mês → Texto pronto para enviar',para:'Operadora / fornecedor',ic:'🔄',
+      campos:{destino:'Para quem (plano de saúde, seguro, VA, VT)',mes:'Mês',incluir:'Lista de quem incluir (montada sozinha)',excluir:'Lista de quem excluir (montada sozinha)',atualizar:'Lista de alterações (montada sozinha)'},
+      texto:'Movimentações de {destino} · {mes}\n\n{incluir}\n\n{excluir}\n\n{atualizar}',
+      ex:{destino:'Plano de saúde',mes:'Outubro de 2026',incluir:'INCLUIR:\n• ANA PAULA SILVA · nasc. 10/03/1990 · ILED BRASILIA · admissão 06/10/2026',excluir:'EXCLUIR:\n• JOÃO PEDRO LIMA · RED PRODUCOES · desligamento 20/10/2026',atualizar:''}},
+    relatorio:{t:'Relatório para a Diretoria',onde:'Configurações → Relatório para a Diretoria → WhatsApp',para:'Diretoria',ic:'📊',
+      campos:{titulo:'Resumo semanal ou Resumo mensal',periodo:'Semana ou mês do relatório',decisao:'Pontos que precisam de decisão (some se não houver)',numeros:'Bloco de números',entrou_saiu:'Quem entrou e saiu (semanal)',demandas:'Demandas em aberto do setor',atencao:'Pontos de atenção',proxima:'Próxima semana (semanal)',assinatura:'Seu nome e cargo'},
+      texto:'*{titulo} do DP/RH - Grupo ILED*\n{periodo}\n\n{decisao}\n\n{numeros}\n\n{entrou_saiu}\n\n{demandas}\n\n{atencao}\n\n{proxima}\n\n_{assinatura}_',
+      ex:{titulo:'Resumo mensal',periodo:'Outubro de 2026',decisao:'',numeros:'*NÚMEROS DO MÊS*\n- Pessoas ativas: 48 (40 CLT, 8 PJ)\n- Admissões: 3 | Desligamentos: 1 | Turnover: 2,1%',entrou_saiu:'',demandas:'*DEMANDAS EM ABERTO DO SETOR (2)*\n- Admissão do Lucas (Andreia) - prazo 10/11',atencao:'*ATENÇÃO*\nNenhum prazo em risco.',proxima:'',assinatura:'Mirthes - Gerente RH/DP'}}
+  };
+  ['nf_cobranca','nf_cobranca_2','nf_financeiro','nf_cache_liberado','ferias','rescisao','vale','teste','movimentacoes','relatorio','pauta'].forEach(function(k){ if(P[k]||novos[k]) N[k]=P[k]||novos[k]; });
+  Object.keys(P).forEach(function(k){ if(!N[k]) N[k]=P[k]; });
+  Object.keys(P).forEach(function(k){ delete P[k]; }); Object.keys(N).forEach(function(k){ P[k]=N[k]; });
+  try{ P.nf_cobranca.t='Cobrar nota fiscal (1ª vez)'; P.nf_cobranca.onde='Notas fiscais → Cobrar (serviço e cachê)'; }catch(e){}
+
+  var br=function(i){ return i?(''+i).slice(0,10).split('-').reverse().join('/'):''; };
+  function trocaTexto(fn){ var wo=window.open; window.open=function(u,a){ try{ var i=u.indexOf('?text='); if(i>=0){ var m=fn(decodeURIComponent(u.slice(i+6))); u=u.slice(0,i+6)+encodeURIComponent(m); try{ navigator.clipboard&&navigator.clipboard.writeText&&navigator.clipboard.writeText(m).catch(function(){}); }catch(e){} } }catch(e){} return wo.call(window,u,a); }; return function(){ window.open=wo; }; }
+
+  // 2ª cobrança em diante: texto do cadastro
+  var _w=nmWhats; nmWhats=function(id){
+    var n=nmNota(id), c=n&&nmCobrancas(id);
+    if(!n||!c) return _w.apply(this,arguments);
+    var p=nmPrest(n.colaborador_id), t=nmTomador(n), prp=nmProporcional(n), em=nmEmissaoEsperada(n);
+    var primeiro=(''+(p.nome||'')).trim().split(/\s+/)[0]; primeiro=primeiro.charAt(0)+primeiro.slice(1).toLowerCase();
+    var msg=msgMontar('nf_cobranca_2',{primeiro_nome:primeiro,tipo:n.tipo==='cache'?'cachê':'prestação de serviço',mes:nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase(),
+      data_emissao:em?br(em):'',valor:parseFloat(n.valor)?moedaBR(n.valor)+(prp?' (proporcional a '+prp.dias+' dias de serviço)':'')+(nmAdic(n)?' (já com o adicional)':''):'',
+      tomador:t.nome?t.nome+(t.cnpj?' · CNPJ '+t.cnpj:''):'',descricao:nmDescCompleta(n)||'',data_pagamento:n.data_vencimento?br(n.data_vencimento):nmPagTxt(n),vez:(c.n+1)+'ª'});
+    var volta=trocaTexto(function(){ return msg; });
+    try{ return _w.apply(this,arguments); } finally { volta(); }
+  };
+
+  // Cachê liberado: texto do cadastro
+  var _c=opMsgFinCache; opMsgFinCache=function(ns){
+    var t=_c.apply(this,arguments), lista=t.replace(/^\s*CACHÊ LIBERADO\s*/,'');
+    var tot=ns.reduce(function(a,n){ return a+nmLiquido(n); },0), meses={}, datas={};
+    ns.forEach(function(n){ meses[nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase()]=1; if(n.data_vencimento) datas[br(n.data_vencimento)]=1; });
+    return msgMontar('nf_cache_liberado',{lista:lista,mes:Object.keys(meses).join(' / '),total:moedaBR(tot),qtd:''+ns.length,data_pagamento:Object.keys(datas).join(' / ')});
+  };
+
+  // Movimentações do mês
+  if(typeof movTexto==='function'){ var _mv=movTexto; movTexto=function(d){
+    var t=_mv.apply(this,arguments), cab=t.split('\n')[0], m=cab.match(/^Movimentações de (.*) · (.*)$/)||[], b=function(h){ var r=new RegExp('(^|\\n)('+h+':\\n[\\s\\S]*?)(?=\\n(?:INCLUIR|EXCLUIR|ATUALIZAR):|$)'); var x=t.match(r); return x?x[2].trim():''; };
+    return msgMontar('movimentacoes',{destino:m[1]||'',mes:m[2]||'',incluir:b('INCLUIR'),excluir:b('EXCLUIR'),atualizar:b('ATUALIZAR')});
+  }; }
+
+  // Relatório para a Diretoria
+  if(typeof relTexto==='function'){ var _rt=relTexto; relTexto=function(X){
+    var t=_rt.apply(this,arguments), bl=t.split(/\n\n/), v={titulo:'',periodo:'',decisao:'',numeros:'',entrou_saiu:'',demandas:'',atencao:'',proxima:'',assinatura:''};
+    var l0=(bl.shift()||'').split('\n'); v.titulo=(l0[0]||'').replace(/^\*|\s*do DP\/RH - Grupo ILED\*$/g,''); v.periodo=l0.slice(1).join('\n');
+    bl.forEach(function(b){ var s=b.trim();
+      if(/^\*PRECISO/.test(s)) v.decisao=s; else if(/^\*NÚMEROS/.test(s)) v.numeros=s; else if(/^\*QUEM ENTROU/.test(s)) v.entrou_saiu=s;
+      else if(/^\*DEMANDAS/.test(s)) v.demandas=s; else if(/^\*ATENÇÃO/.test(s)) v.atencao=s; else if(/^\*PRÓXIMA/.test(s)) v.proxima=s;
+      else if(/^_.*_$/.test(s)) v.assinatura=s.replace(/^_|_$/g,''); else v.numeros=(v.numeros?v.numeros+'\n\n':'')+s; });
+    return msgMontar('relatorio',v);
+  }; }
+
+  // 2) sem duplicidade: tira os botões repetidos
+  var css=document.createElement('style'); css.textContent='#heroAtalhos{display:none!important}#sauMenu+#cfMenu,#cfMenu{display:none!important}'; document.head.appendChild(css);
+
+  // 3) menu sem desenhos na frente
+  var RX=/^[\s☀-➿️‍←-⇿⬀-⯿]*(?:[\uD83C-\uD83E][\uDC00-\uDFFF][\s️‍]*)+|^[☀-➿←-⇿⬀-⯿][️]?\s+/;
+  function limpar(){
+    try{ document.querySelectorAll('aside .sub, aside .nav, aside .sec').forEach(function(b){
+      for(var i=0;i<b.childNodes.length;i++){ var n=b.childNodes[i]; if(n.nodeType!==3) continue; if(!n.nodeValue.trim()) continue;
+        var nv=n.nodeValue.replace(RX,''); if(nv!==n.nodeValue) n.nodeValue=nv; break; }
+    }); }catch(e){}
+  }
+  window.menuSemEmoji=limpar;
+  var ob=null; function observar(){ var a=document.querySelector('aside'); if(a&&!ob&&window.MutationObserver){ ob=new MutationObserver(function(){ if(observar.t) return; observar.t=setTimeout(function(){ observar.t=0; limpar(); },30); }); ob.observe(a,{childList:true,subtree:true,characterData:true}); } }
+  var _ai=atualizarInicio; atualizarInicio=function(){ var r=_ai.apply(this,arguments); limpar(); observar(); return r; };
+  setTimeout(function(){ limpar(); observar(); },1000); setTimeout(limpar,3000); setTimeout(limpar,6000);
 })();
 </script>
 </body>
