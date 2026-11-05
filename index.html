@@ -7854,7 +7854,7 @@ svDesenhar();
    O salário continua normal na ficha. Só a GRATIFICAÇÃO é sigilosa: fica na tabela
    dp_confidencial, protegida no banco (RLS: só login master lê/grava). */
 TITULOS.confid='Confidencial';
-try{ DESCR.confid={'':'Gratificações confidenciais · só você vê esta tela'}; }catch(e){}
+try{ DESCR.confid={'':'Salários protegidos e gratificações · só você vê esta tela'}; }catch(e){}
 var CF={dados:null,sujo:{},aberto:null,novo:false,erro:''};
 function cfBlocoFicha(c){
   if(EU&&EU.master) return '<div class="cf-ficha"><span>🔐</span><div><b>Remuneração confidencial</b><small>O salário e a gratificação desta pessoa ficam só na área Confidencial.</small></div><button type="button" class="nm-b" onclick="abrir(\'confid\')">Abrir Confidencial</button></div>';
@@ -7876,7 +7876,7 @@ function carregarConfid(){
 }
 function desenharConfid(){
   var app=el('cfApp'); if(!app) return;
-  var h='<div class="ind-top"><div><h1>🔐 Gratificações confidenciais</h1><p>Só você vê esta tela. As gratificações ficam numa tabela protegida no banco: os outros usuários não conseguem ler esses valores, nem por fora do sistema. O salário continua normal na ficha.</p></div>'+
+  var h='<div class="ind-top"><div><h1>🔐 Salários protegidos</h1><p>Só você vê esta tela. As gratificações ficam numa tabela protegida no banco: os outros usuários não conseguem ler esses valores, nem por fora do sistema. O salário continua normal na ficha.</p></div>'+
     '<button type="button" class="cf-bt" onclick="CF.novo=!CF.novo;desenharConfid()">'+(CF.novo?'Cancelar':'+ Incluir colaborador')+'</button></div>';
   if(CF.erro){
     h+='<div class="cf-err"><b>Não consegui abrir a tabela confidencial.</b> Rode o arquivo <b>7_CONFIDENCIAL.sql</b> no Supabase (SQL Editor → Run) e recarregue a página.<small>'+esc(CF.erro.slice(0,160))+'</small></div>';
@@ -8005,7 +8005,7 @@ function cfSugestoes(){
 }
 function cfAbaHtml(){
   return '<div class="cf-atalho"><span>📋 O <b>plano de cargos confidencial</b> agora fica em <b>Cadastro geral → Funções, salários e setores → 🔐 Confidencial</b>.</span><button type="button" class="nm-b" onclick="PC.sub=\'conf\';abrir(\'cadastro\',\'cargos\')">Abrir</button></div>';
-  return '<div class="cf-abas" role="tablist"><button type="button" role="tab" aria-selected="'+(CF.aba==='grat')+'" class="'+(CF.aba==='grat'?'on':'')+'" onclick="CF.aba=\'grat\';desenharConfid()">💰 Gratificações</button>'+
+  return '<div class="cf-abas" role="tablist"><button type="button" role="tab" aria-selected="'+(CF.aba==='grat')+'" class="'+(CF.aba==='grat'?'on':'')+'" onclick="CF.aba=\'grat\';desenharConfid()">🔐 Salários protegidos</button>'+
     '<button type="button" role="tab" aria-selected="'+(CF.aba==='cargos')+'" class="'+(CF.aba==='cargos'?'on':'')+'" onclick="CF.aba=\'cargos\';desenharConfid()">📋 Plano de cargos confidencial</button></div>';
 }
 function cfRedesenhar(){ if(CF.alvo==='cgConf'&&el('cgConf')) desenharConfCargos(); else desenharConfid(); }
@@ -8111,11 +8111,11 @@ function cfExcluirCargo(id){
   cfSalvarTodos=function(){ return Promise.all([_s(),Object.keys(CF.cSujo).length?cfSalvarCargos():Promise.resolve()]); };
 })();
 /* ================= v47 · TUDO QUE É CONFIDENCIAL NUM LUGAR SÓ =================
-   Menu 🔐 Confidencial (só a administradora): 💰 Gratificações · 📋 Plano de cargos confidencial.
+   Menu 🔐 Confidencial (só a administradora): 🔐 Salários protegidos · 📋 Plano de cargos confidencial.
    O plano confidencial tem o mesmo visual limpo do Plano de salários: Nível I e % editáveis. */
 function cfAbaHtml(){
   var n=(CF.cargos||[]).length;
-  return '<div class="cf-abas" role="tablist"><button type="button" role="tab" aria-selected="'+(CF.aba!=='cargos')+'" class="'+(CF.aba!=='cargos'?'on':'')+'" onclick="CF.aba=\'grat\';desenharConfid()">💰 Gratificações<i>'+((CF.dados||[]).length||'')+'</i></button>'+
+  return '<div class="cf-abas" role="tablist"><button type="button" role="tab" aria-selected="'+(CF.aba!=='cargos')+'" class="'+(CF.aba!=='cargos'?'on':'')+'" onclick="CF.aba=\'grat\';desenharConfid()">🔐 Salários protegidos<i>'+((CF.dados||[]).length||'')+'</i></button>'+
     '<button type="button" role="tab" aria-selected="'+(CF.aba==='cargos')+'" class="'+(CF.aba==='cargos'?'on':'')+'" onclick="CF.aba=\'cargos\';desenharConfid()">📋 Plano de cargos confidencial<i>'+(n||'')+'</i></button></div>';
 }
 function cfRedesenhar(){ desenharConfid(); }
@@ -18024,6 +18024,14 @@ vfImprimir=function(){
 };
 (function(){ var _d=vfDesenhar; vfDesenhar=function(){ var r=_d.apply(this,arguments); try{ var f=VF.linhas.filter(function(x){ return vfN(x.dias)&&!vfN(x.valor_dia); }); var b=document.querySelector('#vfOv .vf-regra');
   if(f.length&&b){ var d=document.createElement('div'); d.className='nm2-alerta'; d.innerHTML='⚠️ <span><b>'+esc(f.map(function(x){ return x.colaborador; }).join(', '))+':</b> tem dias preenchidos mas sem o valor por dia, então os dias não somam nada. Preencha o R$/dia ou apague os dias.</span>'; b.parentNode.insertBefore(d,b.nextSibling); } }catch(e){} return r; }; })();
+
+/* v93 · plano confidencial: "fora" compara com o salário protegido (dp_confidencial), não com a ficha vazia */
+(function(){
+  if(typeof cfPessoas!=='function') return;
+  var _p=cfPessoas; cfPessoas=function(){
+    return _p.apply(this,arguments).map(function(c){ if(!c.salario_restrito) return c; var x={}; for(var k in c) x[k]=c[k]; x.salario=cfSalarioDe(c); return x; });
+  };
+})();
 </script>
 </body>
 </html>
