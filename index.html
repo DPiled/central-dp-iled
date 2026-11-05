@@ -14930,6 +14930,26 @@ tr.vf-novo td{background:rgba(255,176,32,.08)}
 .dt-alertas{display:flex;flex-direction:column;gap:4px;margin:0 0 10px;padding:10px 12px;border-radius:12px;border:1px solid var(--amber);background:rgba(255,176,32,.07);font-size:13px}
 .dt-p i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
 .dt-c .dt-p{font-size:11px}
+/* v95 · folha */
+.fl-box{width:min(1380px,100%)}
+.fl-box .vf-resumo small{font-size:12px;color:var(--mut)}
+.fl-t{width:100%;border-collapse:collapse;min-width:1180px}
+.fl-t th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:9px 6px;text-align:right;border-bottom:1px solid var(--line2)}.fl-t th:first-child{text-align:left}.fl-t th.at{color:#ffc35a}
+.fl-t td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top;white-space:nowrap}
+.fl-e{text-align:left!important;font-weight:800;font-size:12.5px}
+.fl-c{cursor:pointer;border-radius:6px;font-size:12.5px}.fl-c b{display:block}.fl-c small{display:block;font-size:10.5px;color:var(--mut)}
+.fl-c.ok:hover{background:rgba(255,255,255,.04)}.fl-c.falta{background:rgba(255,176,32,.12);box-shadow:inset 0 0 0 1px rgba(255,176,32,.5)}.fl-c.falta small{color:#ffc35a;font-weight:800;text-align:center}.fl-c.fut{cursor:default;opacity:.35}
+.fl-te{font-weight:900}.fl-t tfoot td{font-weight:800;border-top:2px solid var(--line2);padding-top:10px}.fl-t tfoot td:first-child{text-align:left}.fl-t tfoot small{display:block;font-size:10.5px;color:var(--mut);font-weight:600}
+.fl-v{font-style:normal;font-weight:800;font-size:10.5px;margin-left:3px}.fl-v.up{color:#ff8a8a}.fl-v.dn{color:#5fe39a}.fl-v.z{color:var(--mut)}
+.fl-det{margin-top:16px;border:1px solid var(--line2);border-radius:12px;padding:12px 14px}.fl-det h3{margin:0 0 8px}
+.fl-dt{width:100%;border-collapse:collapse}.fl-dt th{font-size:11px;text-transform:uppercase;color:var(--mut);text-align:right;padding:7px;border-bottom:1px solid var(--line2)}.fl-dt th:first-child{text-align:left}
+.fl-dt td{padding:7px;border-bottom:1px solid var(--line)}.fl-dt td.n{text-align:right;white-space:nowrap}.fl-dt tfoot td{font-weight:900;border-top:2px solid var(--line2)}
+.fl-lbox{width:min(980px,100%)}.fl-lt{width:100%;border-collapse:collapse}.fl-lt th{font-size:11px;text-transform:uppercase;color:var(--mut);text-align:left;padding:6px}
+.fl-lt td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}.fl-lt td b{display:block;font-size:13px}.fl-lt td small{display:block;font-size:11px}.fl-lt td small.ok{color:#5fe39a}
+.fl-lt input{width:100%;text-align:right}.fl-lt input[data-k="qtd"]{max-width:80px}.fl-lt td.n{text-align:right;font-weight:800;white-space:nowrap}.fl-av{color:#ffc35a!important;font-weight:700}
+.fl-lt tfoot td{font-weight:900;border-top:2px solid var(--line2)}.fl-lt tr.foco td{background:rgba(255,176,32,.07)}
+.fl-lt input::placeholder{color:rgba(255,255,255,.28)}
+.fl-t{min-width:1000px}.fl-t td{font-size:12.5px}.fl-t tfoot td{font-size:12.5px}.fl-dt td{font-size:13px}
 </style>
 <script>
 /* ================= v60 · ORDENS DE PAGAMENTO (cachês) =================
@@ -17831,7 +17851,7 @@ DT.extras=[];
     var q=function(p){ return p.then(function(r){ return r&&!r.error?(r.data||[]):[]; },function(){ return []; }); }, mst=!!(EU&&EU.master);
     var dentro=function(d){ d=(''+(d||'')).slice(0,10); return d>=ini&&d<=fim; };
     DT.extrasP=Promise.all([
-      podeVer('folha')?q(sb.from('dp_folha').select('*').eq('competencia',A)):Promise.resolve([]),
+      podeVer('folha')?q(sb.from('dp_folha').select('*')).then(function(l){ return l.filter(function(f){ return (''+(f.competencia||'')).slice(0,7)===A; }); }):Promise.resolve([]),
       q(sb.from('nf_notas').select('tipo,valor,data_vencimento,status').eq('tipo','cache')),
       podeVer('ferias')?q(sb.from('dp_ferias').select('*')):Promise.resolve([]),
       podeVer('rescisoes')?q(sb.from('dp_rescisoes').select('*')):Promise.resolve([]),
@@ -18074,6 +18094,120 @@ function vfUltimos(){ return sb.from('dp_por_fora').select('*').then(function(r)
       d.innerHTML='✅ <span>Mês aberto com as pessoas de <b>'+esc(nomeMes(VF.trouxe).toLowerCase())+'</b> e o <b>fixo combinado</b> de cada uma. Falta preencher: folha, descontos, VA e VT (e a gratificação de quem tem fixo).</span>'; b.parentNode.insertBefore(d,b.nextSibling); } }
   }catch(e){} return r; };
   var _ab2=vfAbrir; vfAbrir=function(){ VF.trouxe=null; return _ab2.apply(this,arguments); };
+})();
+
+/* ================= v95 · FOLHA DE PAGAMENTO (tela nova) =================
+   Menu → Folha de pagamento abre aqui: quadro empresa × mês do ano (falta lançar em amarelo),
+   variação contra o mês anterior, detalhe do mês e "Lançar mês" com todas as empresas de uma vez.
+   Mesma tabela dp_folha e mesmas colunas (empresa, competência, pessoas, líquido, gratificação, pensão, total).
+   Total = líquido + gratificação (como sempre foi); a pensão aparece à parte. */
+var FL={ano:null,dados:[],mes:null,fmtData:true,antiga:false};
+var FL_EMP_PAD=['ILED BRASILIA','ILED SÃO PAULO','NEW ILED','RED PRODUCOES','X-LED PRODUCOES'];
+function flK(v){ return Number(v||0).toLocaleString('pt-BR',{maximumFractionDigits:0}); }
+function flC(r){ return (''+(r.competencia||'')).slice(0,7); }
+function flTot(r){ return Math.round(((parseFloat(r.liquido)||0)+(parseFloat(r.gratif)||0))*100)/100; }
+function flEmpresas(){ var s={}; FL_EMP_PAD.forEach(function(e){ s[e]=1; }); FL.dados.forEach(function(r){ if(r.empresa) s[String(r.empresa).trim()]=1; });
+  var l=Object.keys(s), k=function(x){ return chaveNome(x).replace(/ /g,''); }, vis={}, o=[]; l.forEach(function(x){ var c=k(x); if(!vis[c]){ vis[c]=x; o.push(x); } else if(FL.dados.some(function(r){ return r.empresa===x; })) { o[o.indexOf(vis[c])]=x; vis[c]=x; } });
+  return o.sort(); }
+function flAcha(emp,M){ var ke=chaveNome(emp).replace(/ /g,''); return FL.dados.find(function(r){ return chaveNome(r.empresa||'').replace(/ /g,'')===ke&&flC(r)===M; }); }
+function flAbrir(ano){
+  if(!podeVer('folha')){ aviso('Você não tem acesso à folha.',true); return; }
+  FL.ano=ano||FL.ano||+mesTrabalho().slice(0,4);
+  modal2('flOv','<div class="imp-box fl-box"><p class="vazio">Carregando a folha…</p></div>');
+  sb.from('dp_folha').select('*').then(function(r){
+    if(r&&r.error) throw r.error; FL.dados=r.data||[]; FL.fmtData=FL.dados.some(function(x){ return (''+(x.competencia||'')).length>7; })||!FL.dados.length;
+    flDesenhar();
+  }).catch(function(){ modal2('flOv','<div class="imp-box fl-box"><p class="vazio">Não consegui ler a folha agora. Verifique a internet.</p><button type="button" class="nm2-b" onclick="el(\'flOv\').classList.remove(\'on\')">Fechar</button></div>'); });
+}
+function flFechar(){ var o=el('flOv'); if(o) o.classList.remove('on'); }
+function flVar(a,b){ if(!a||!b) return ''; var p=Math.round((a/b-1)*1000)/10; if(Math.abs(p)<0.05) return '<i class="fl-v z">=</i>'; return '<i class="fl-v '+(p>0?'up':'dn')+'">'+(p>0?'▲':'▼')+' '+String(Math.abs(p)).replace('.',',')+'%</i>'; }
+function flDesenhar(){
+  var A=FL.ano, e=esc, R=moedaBR, emps=flEmpresas(), MS=[], hojeM=mesTrabalho(), ed=podeAcao('folha','editar')||podeAcao('folha','criar');
+  for(var i=1;i<=12;i++) MS.push(A+'-'+String(i).padStart(2,'0'));
+  var totM={}, totE={}, qtdM={}, tAno=0, lanc=0;
+  MS.forEach(function(M){ totM[M]=0; qtdM[M]=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r){ totM[M]+=flTot(r); qtdM[M]+=(+r.qtd||0); totE[em]=(totE[em]||0)+flTot(r); tAno+=flTot(r); lanc++; } }); });
+  var mesesCom=MS.filter(function(M){ return totM[M]>0; }), ult=mesesCom[mesesCom.length-1], pen=mesesCom[mesesCom.length-2];
+  var faltam=[]; MS.forEach(function(M){ if(M>hojeM) return; emps.forEach(function(em){ var temAlgum=FL.dados.some(function(r){ return chaveNome(r.empresa||'').replace(/ /g,'')===chaveNome(em).replace(/ /g,''); }); if(temAlgum&&!flAcha(em,M)&&M>=(FL.dados.filter(function(r){ return chaveNome(r.empresa||'').replace(/ /g,'')===chaveNome(em).replace(/ /g,''); }).map(flC).sort()[0]||'9')) faltam.push([em,M]); }); });
+  var h='<div class="imp-box fl-box"><div class="lp-top"><div><h2>Folha de pagamento · '+A+'</h2><p>Quadro por empresa e competência de apuração. Toque numa casa para lançar ou corrigir.</p></div>'+
+    '<div class="vf-topbt"><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A-1)+')">‹ '+(A-1)+'</button><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A+1)+')">'+(A+1)+' ›</button><button type="button" class="nm2-b ghost" onclick="flFechar()">Fechar</button></div></div>';
+  h+='<div class="vf-resumo"><div><span>Total do ano</span><b>'+R(tAno)+'</b><small>'+lanc+' lançamento(s)</small></div>'+
+    '<div><span>Média por mês</span><b>'+R(mesesCom.length?tAno/mesesCom.length:0)+'</b><small>'+mesesCom.length+' mês(es) com folha</small></div>'+
+    '<div><span>Última competência</span><b>'+(ult?e(nomeMes(ult).split(' ')[0])+' · '+R(totM[ult]):'—')+'</b><small>'+(ult&&pen?flVar(totM[ult],totM[pen])+' contra '+e(nomeMes(pen).split(' ')[0].toLowerCase()):'')+'</small></div>'+
+    '<div class="'+(faltam.length?'w':'ok')+'"><span>Falta lançar</span><b>'+(faltam.length?faltam.length+' casa(s)':'nada ✓')+'</b><small>'+(ult?qtdM[ult]+' pessoas na última':'')+'</small></div></div>';
+  h+='<div class="vf-acts">'+(ed?'<button type="button" class="nm2-b pri" onclick="flLancar()">+ Lançar mês</button>':'')+'<button type="button" class="nm2-b" onclick="flImprimir()">Imprimir '+A+'</button><button type="button" class="nm2-link" onclick="flFechar();FL.antiga=true;abrir(\'painel\',\'folha\');FL.antiga=false">abrir a tela antiga</button></div>';
+  h+='<div class="vf-tw"><table class="fl-t"><thead><tr><th>Empresa</th>'+MS.map(function(M){ return '<th class="'+(M===hojeM?'at':'')+'">'+e(nomeMes(M).slice(0,3).toLowerCase())+'</th>'; }).join('')+'<th>Total '+A+'</th></tr></thead><tbody>';
+  emps.forEach(function(em){
+    h+='<tr><td class="fl-e">'+e(em)+'</td>';
+    MS.forEach(function(M,i){ var r=flAcha(em,M), ant=flAcha(em,i?MS[i-1]:(A-1)+'-12'), falta=faltam.some(function(f){ return f[0]===em&&f[1]===M; });
+      if(r) h+='<td class="fl-c ok" onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')" title="'+e(em+' · '+nomeMes(M)+'\nPessoas: '+(r.qtd||0)+'\nLíquido: '+R(r.liquido||0)+'\nGratificação: '+R(r.gratif||0)+'\nPensão: '+R(r.pensao||0))+'"><b>'+flK(flTot(r))+'</b><small>'+(r.qtd||0)+' pess.'+(ant?' '+flVar(flTot(r),flTot(ant)):'')+'</small></td>';
+      else h+='<td class="fl-c '+(falta?'falta':(M>hojeM?'fut':''))+'"'+(ed&&M<=hojeM?' onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')"':'')+'>'+(falta?'<small>falta</small>':'')+'</td>';
+    });
+    h+='<td class="fl-te">'+(totE[em]?flK(totE[em]):'—')+'</td></tr>';
+  });
+  h+='</tbody><tfoot><tr><td>Total do mês</td>'+MS.map(function(M,i){ var pr=i?totM[MS[i-1]]:0; return '<td'+(totM[M]?' onclick="FL.mes=\''+M+'\';flDesenhar();setTimeout(function(){var d=document.querySelector(\'#flOv .fl-det\');if(d)d.scrollIntoView({behavior:\'smooth\'})},50)" style="cursor:pointer"':'')+'>'+(totM[M]?'<b>'+flK(totM[M])+'</b><small>'+qtdM[M]+' pess. '+(pr?flVar(totM[M],pr):'')+'</small>':'')+'</td>'; }).join('')+'<td class="fl-te">'+flK(tAno)+'</td></tr></tfoot></table></div>';
+  h+='<p class="lp-seg">Casas em amarelo: mês já passou e a empresa ainda não tem folha lançada. Setas: variação do total contra o mês anterior. Toque no total de um mês para ver o detalhe.</p>';
+  var Md=FL.mes&&FL.mes.slice(0,4)==A?FL.mes:ult;
+  if(Md){ var tl={q:0,l:0,g:0,p:0,t:0};
+    h+='<div class="fl-det"><h3>Detalhe de '+e(nomeMes(Md).toLowerCase())+'</h3><table class="fl-dt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão alimentícia</th><th>Total</th><th>vs. mês anterior</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>';
+    emps.forEach(function(em){ var r=flAcha(em,Md), ant=flAcha(em,nmSomaMes(Md,-1)); if(!r) return; tl.q+=+r.qtd||0; tl.l+=parseFloat(r.liquido)||0; tl.g+=parseFloat(r.gratif)||0; tl.p+=parseFloat(r.pensao)||0; tl.t+=flTot(r);
+      h+='<tr><td>'+e(em)+'</td><td class="n">'+(r.qtd||0)+'</td><td class="n">'+R(r.liquido||0)+'</td><td class="n">'+(parseFloat(r.gratif)?R(r.gratif):'—')+'</td><td class="n">'+(parseFloat(r.pensao)?R(r.pensao):'—')+'</td><td class="n"><b>'+R(flTot(r))+'</b></td><td class="n">'+(ant?flVar(flTot(r),flTot(ant)):'—')+'</td>'+(ed?'<td><button type="button" class="nm2-b sm" onclick="flLancar(\''+Md+'\')">Editar</button></td>':'')+'</tr>'; });
+    h+='</tbody><tfoot><tr><td>Total</td><td class="n">'+tl.q+'</td><td class="n">'+R(tl.l)+'</td><td class="n">'+R(tl.g)+'</td><td class="n">'+R(tl.p)+'</td><td class="n"><b>'+R(tl.t)+'</b></td><td></td>'+(ed?'<td></td>':'')+'</tr></tfoot></table></div>';
+  }
+  h+='</div>'; modal2('flOv',h);
+}
+/* ---- lançar um mês: todas as empresas de uma vez ---- */
+function flLancar(M,foco){
+  M=M||mesTrabalho(); var e=esc, R=moedaBR, emps=flEmpresas(), A=nmSomaMes(M,-1);
+  var ov=el('flOv'), x=ov.querySelector('.vf-dov'); if(!x){ x=document.createElement('div'); x.className='vf-dov'; ov.appendChild(x); }
+  var opt=''; var m0=nmSomaMes(hoje().slice(0,7),1); for(var i=0;i<18;i++){ opt+='<option value="'+m0+'"'+(m0===M?' selected':'')+'>'+e(nomeMes(m0))+'</option>'; m0=nmSomaMes(m0,-1); }
+  var h='<div class="vf-dbox fl-lbox"><h3>Lançar folha</h3><p>Competência de apuração: <select class="nm-in" style="width:auto" onchange="flLancar(this.value)">'+opt+'</select> · em cinza, o que foi lançado em '+e(nomeMes(A).toLowerCase())+'. Total = líquido + gratificação.</p>'+
+    '<table class="fl-lt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão</th><th>Total</th></tr></thead><tbody>';
+  emps.forEach(function(em,i){ var r=flAcha(em,M)||{}, a=flAcha(em,A)||{}, v=function(k){ return r[k]==null||r[k]===''?'':vfFmt(r[k]); };
+    h+='<tr data-e="'+e(em)+'" data-id="'+e(r.id||'')+'"'+(foco&&foco===em?' class="foco"':'')+'><td><b>'+e(em)+'</b>'+(r.id?'<small class="ok">já lançado</small>':'')+'</td>'+
+      '<td><input class="nm-in" data-k="qtd" inputmode="numeric" value="'+e(r.qtd==null?'':r.qtd)+'" placeholder="'+e(a.qtd==null?'':a.qtd)+'" oninput="flLinha(this)"></td>'+
+      ['liquido','gratif','pensao'].map(function(k){ return '<td><input class="nm-in" data-k="'+k+'" inputmode="decimal" value="'+e(v(k))+'" placeholder="'+e(a[k]?vfFmt(a[k]):'')+'" oninput="flLinha(this)"></td>'; }).join('')+
+      '<td class="n fl-lt-t">'+(r.id?R(flTot(r)):'—')+'<small class="fl-av"></small></td></tr>'; });
+  h+='</tbody><tfoot><tr><td>Total</td><td class="n" id="flQ"></td><td class="n" id="flL"></td><td class="n" id="flG"></td><td class="n" id="flP"></td><td class="n" id="flT"></td></tr></tfoot></table>'+
+    '<div class="vf-dbt"><button type="button" class="nm2-b ghost" onclick="this.closest(\'.vf-dov\').remove()">Cancelar</button><button type="button" class="nm2-b pri" onclick="flSalvar(\''+M+'\')">Salvar '+e(nomeMes(M).toLowerCase())+'</button></div></div>';
+  x.innerHTML=h; FL.lancM=M; flSomar(); x.querySelectorAll('.fl-lt tbody tr').forEach(function(tr){ flLinha(tr.querySelector('input')); });
+  setTimeout(function(){ var t=x.querySelector('tr.foco input')||x.querySelector('.fl-lt input'); if(t) t.focus(); },40);
+}
+function flLinha(inp){ if(!inp) return; var tr=inp.closest('tr'), g=function(k){ return vfNum(tr.querySelector('[data-k="'+k+'"]').value); };
+  var l=g('liquido'), gr=g('gratif'), t=(l||0)+(gr||0), cel=tr.querySelector('.fl-lt-t'), av=cel.querySelector('.fl-av');
+  cel.firstChild.nodeValue=(l!=null||gr!=null)?moedaBR(t):'—';
+  var a=flAcha(tr.getAttribute('data-e'),nmSomaMes(FL.lancM,-1)); av.innerHTML='';
+  if(a&&t&&flTot(a)){ var p=Math.round((t/flTot(a)-1)*1000)/10; if(Math.abs(p)>=15) av.innerHTML='⚠ '+(p>0?'+':'')+String(p).replace('.',',')+'% vs mês anterior'; }
+  flSomar(); }
+function flSomar(){ var s={q:0,l:0,g:0,p:0}; document.querySelectorAll('#flOv .fl-lt tbody tr').forEach(function(tr){ var g=function(k){ return vfNum(tr.querySelector('[data-k="'+k+'"]').value)||0; }; s.q+=g('qtd'); s.l+=g('liquido'); s.g+=g('gratif'); s.p+=g('pensao'); });
+  var R=moedaBR; if(el('flQ')){ el('flQ').textContent=s.q||''; el('flL').textContent=R(s.l); el('flG').textContent=R(s.g); el('flP').textContent=R(s.p); el('flT').textContent=R(s.l+s.g); } }
+function flSalvar(M){
+  var ups=[], erro='';
+  document.querySelectorAll('#flOv .fl-lt tbody tr').forEach(function(tr){
+    var g=function(k){ return vfNum(tr.querySelector('[data-k="'+k+'"]').value); }, q=tr.querySelector('[data-k="qtd"]').value.trim(), id=tr.getAttribute('data-id'), emp=tr.getAttribute('data-e');
+    var l=g('liquido'), gr=g('gratif'), p=g('pensao'); if(!q&&l==null&&gr==null&&p==null&&!id) return;
+    if(l==null&&!erro) erro='Falta o líquido de '+emp+'.'; if(q&&!/^\d+$/.test(q)&&!erro) erro='Pessoas de '+emp+' precisa ser um número inteiro.';
+    var o=flAcha(emp,M)||{}; ups.push({id:id||o.id||cxUUID(),empresa:o.empresa||emp,competencia:FL.fmtData?M+'-01':M,qtd:q?parseInt(q,10):null,liquido:l,gratif:gr,pensao:p,total:Math.round(((l||0)+(gr||0))*100)/100,atualizado_em:new Date().toISOString()});
+  });
+  if(erro){ aviso(erro,true); return; } if(!ups.length){ aviso('Nada preenchido.',true); return; }
+  sb.from('dp_folha').upsert(ups).then(function(r){ if(r&&r.error) throw r.error;
+    ups.forEach(function(u){ var i=FL.dados.findIndex(function(x){ return x.id===u.id; }); if(i>=0) FL.dados[i]=Object.assign({},FL.dados[i],u); else FL.dados.push(u); });
+    var x=document.querySelector('#flOv .vf-dov'); if(x) x.remove(); FL.mes=M; FL.ano=+M.slice(0,4); flDesenhar(); aviso('Folha de '+nomeMes(M).toLowerCase()+' salva ('+ups.length+' empresa(s)).');
+  }).catch(function(){ aviso('Não consegui salvar agora. Verifique a internet.',true); });
+}
+function flImprimir(){
+  var A=FL.ano, e=esc, R=moedaBR, emps=flEmpresas(), MS=[]; for(var i=1;i<=12;i++) MS.push(A+'-'+String(i).padStart(2,'0'));
+  var com=MS.filter(function(M){ return emps.some(function(em){ return flAcha(em,M); }); }), tA=0;
+  var h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de pagamento '+A+'</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5px;color:#151515;margin:0}'+
+    '.fx{height:5px;background:linear-gradient(90deg,#e10600 33%,#ffb020 33% 66%,#2f6fed 66%);margin-bottom:8px}h1{font-size:17px;margin:0 0 2px}p{margin:0 0 10px;color:#666}table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#151515;color:#fff;padding:5px;text-align:right;font-size:9px}th:first-child{text-align:left;width:15%}'+
+    'td{padding:5px;border-bottom:1px solid #e3e3e3;text-align:right;white-space:nowrap}td:first-child{text-align:left;font-weight:700}td small{display:block;color:#888;font-size:8px}tfoot td{font-weight:900;border-top:2px solid #151515}.rod{margin-top:10px;display:flex;justify-content:space-between;color:#888;font-size:8.5px}</style></head><body><div class="fx"></div>'+
+    '<h1>Folha de pagamento · '+A+'</h1><p>Total por empresa e competência (líquido + gratificação) · pessoas abaixo do valor</p><table><thead><tr><th>Empresa</th>'+com.map(function(M){ return '<th>'+e(nomeMes(M).slice(0,3))+'</th>'; }).join('')+'<th>Total</th></tr></thead><tbody>';
+  emps.forEach(function(em){ var t=0, c=com.map(function(M){ var r=flAcha(em,M); if(!r) return '<td>—</td>'; t+=flTot(r); return '<td>'+R(flTot(r)).replace('R$ ','')+'<small>'+(r.qtd||0)+' pess.'+(parseFloat(r.pensao)?' · pensão '+R(r.pensao).replace('R$ ',''):'')+'</small></td>'; }).join(''); if(!t) return; tA+=t; h+='<tr><td>'+e(em)+'</td>'+c+'<td><b>'+R(t)+'</b></td></tr>'; });
+  h+='</tbody><tfoot><tr><td>Total</td>'+com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=flTot(r); }); return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tA)+'</td></tr></tfoot></table>'+
+    '<div class="rod"><span>Central DP · Grupo ILED · documento interno</span><span>'+e(new Date().toLocaleString('pt-BR'))+'</span></div><script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
+  cxImprimirHtml(h);
+}
+(function(){
+  var _abr=abrir; abrir=function(v,s){ if(v==='painel'&&s==='folha'&&!FL.antiga){ try{ document.body.classList.remove('menu'); }catch(e){} flAbrir(); return; } return _abr.apply(this,arguments); };
 })();
 </script>
 </body>
