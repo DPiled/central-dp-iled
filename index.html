@@ -18032,6 +18032,49 @@ vfImprimir=function(){
     return _p.apply(this,arguments).map(function(c){ if(!c.salario_restrito) return c; var x={}; for(var k in c) x[k]=c[k]; x.salario=cfSalarioDe(c); return x; });
   };
 })();
+
+/* v94 · fixo combinado vem sozinho: mês novo e vazio já abre com as pessoas do último mês lançado,
+   trazendo empresa, fixo combinado e observação (e a gratificação de quem só recebe gratificação).
+   Folha, descontos, dias, VA e VT ficam em branco para preencher. "+ Pessoa" também já traz o último fixo. */
+VF.ultimo={};
+function vfUltimos(){ return sb.from('dp_por_fora').select('*').then(function(r){ var l=(r&&!r.error&&r.data)||[], u={};
+  l.sort(function(a,b){ return String(a.competencia).localeCompare(String(b.competencia)); }).forEach(function(x){ u[chaveNome(x.colaborador)]=x; }); VF.ultimo=u; return l; },function(){ return []; }); }
+(function(){
+  var _ab=vfAbrir; vfAbrir=function(M){
+    var r=_ab.apply(this,arguments), mes=VF.mes, n=0;
+    var espera=function(){ if(!el('vfOv')||!el('vfOv').classList.contains('on')) return;
+      if(VF.semTabela) return; if(!document.querySelector('#vfOv .vf-acts')){ if(n++<40) setTimeout(espera,150); return; }
+      vfUltimos().then(function(todas){
+        if(VF.mes!==mes||VF.linhas.length) return;
+        var ant=todas.filter(function(x){ return x.competencia<mes; }); if(!ant.length) return;
+        var ultM=ant[ant.length-1].competencia; if(todas.some(function(x){ return x.competencia>mes; })) return; // mês antigo: não mexe
+        var base=ant.filter(function(x){ return x.competencia===ultM; }), dp=vfPagPadrao(mes);
+        var rows=base.map(function(x){ var semFixo=!vfN(x.fixo);
+          return {id:cxUUID(),competencia:mes,empresa:x.empresa,colaborador:x.colaborador,colaborador_id:x.colaborador_id,fixo:x.fixo,folha:null,descontos:[],gratif:semFixo?x.gratif:null,dias:null,valor_dia:x.valor_dia,va:null,vt:null,obs:x.obs,data_pagamento:dp}; });
+        VF.linhas=rows; vfGravar(rows).then(function(){ VF.trouxe=ultM; vfDesenhar();
+          aviso(rows.length+' pessoa(s) trazidas de '+nomeMes(ultM).toLowerCase()+' com o fixo combinado. Preencha folha, descontos, VA e VT do mês.'); });
+      });
+    };
+    setTimeout(espera,200);
+    return r;
+  };
+  // + Pessoa: já traz o último fixo combinado dessa pessoa
+  var _ns=vfNovaSalvar; vfNovaSalvar=function(){
+    var nome=((el('vfNNome')||{}).value||'').trim(), antes=VF.linhas.length;
+    var r=_ns.apply(this,arguments);
+    if(VF.linhas.length>antes){ var novo=VF.linhas[VF.linhas.length-1], u=VF.ultimo[chaveNome(nome)];
+      var aplica=function(u){ if(!u) return; if(vfN(u.fixo)&&!vfN(novo.fixo)){ novo.fixo=u.fixo; if(!novo.empresa) novo.empresa=u.empresa; vfGravar(novo).then(function(){ vfDesenhar(); aviso('Fixo combinado de '+novo.colaborador+' trazido do último mês: '+moedaBR(u.fixo)+'.'); }); } };
+      if(u) aplica(u); else vfUltimos().then(function(){ aplica(VF.ultimo[chaveNome(nome)]); });
+    }
+    return r;
+  };
+  // faixa explicando quando o mês veio pronto
+  var _d=vfDesenhar; vfDesenhar=function(){ var r=_d.apply(this,arguments); try{
+    if(VF.trouxe&&VF.linhas.length){ var b=document.querySelector('#vfOv .vf-regra'); if(b&&!document.querySelector('#vfOv .vf-trouxe')){ var d=document.createElement('div'); d.className='nm2-alerta vf-trouxe'; d.style.borderColor='#3ddc84';
+      d.innerHTML='✅ <span>Mês aberto com as pessoas de <b>'+esc(nomeMes(VF.trouxe).toLowerCase())+'</b> e o <b>fixo combinado</b> de cada uma. Falta preencher: folha, descontos, VA e VT (e a gratificação de quem tem fixo).</span>'; b.parentNode.insertBefore(d,b.nextSibling); } }
+  }catch(e){} return r; };
+  var _ab2=vfAbrir; vfAbrir=function(){ VF.trouxe=null; return _ab2.apply(this,arguments); };
+})();
 </script>
 </body>
 </html>
