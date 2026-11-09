@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="05/11/2026 · v109">
-<meta name="central-novidades" content="🦺 Controle de SST (NR, ASO e ART do técnico, por mês). 💰 Custos adicionais novos, com testes práticos entrando sozinhos. 📓 Caderno mais limpo. ⏰ Lembretes retirados.">
+<meta name="central-versao" content="09/11/2026 · v110">
+<meta name="central-novidades" content="🔄 Novo relatório de Admitidos e desligados no Painel de gestão: mês a mês ou um mês só, por empresa, com turnover, motivos dos desligamentos, saídas em até 90 dias e custo das rescisões — com Excel e PDF para o financeiro.">
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -544,6 +544,28 @@ body.fixo .fixar svg{transform:rotate(180deg)}
 .gs-risk b{font-size:13px}.gs-risk span{font-size:12px;color:var(--mut)}
 .gs-ptit{margin:26px 0 10px;font-size:18px}
 @media print{ .gs-tabs{display:none!important} .gs-chart{height:180px} }
+.mv-bts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.mv-scroll{overflow-x:auto}
+.mv-t td,.mv-t th{white-space:nowrap}
+.mv-t tfoot td{font-weight:700;border-top:2px solid var(--line2);padding:9px 8px}
+.mv-a{color:#5fe39a!important}.mv-d{color:#ff8a84!important}.mv-z,.mv-z td{color:var(--mut2)}
+.mv-tit{font-size:16px;color:#fff;margin:22px 0 12px}
+.mv-mes{margin-bottom:12px}
+.mv-mcab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.mv-mcab span{font-size:13px;color:var(--mut)}
+.mv-2{display:grid;grid-template-columns:1fr;gap:14px}
+.mv-2>div{min-width:0;overflow-x:auto}
+.mv-2 h3{font-size:13px;margin:0 0 6px}
+.mv-conf{border-color:rgba(255,176,32,.45)!important;margin-bottom:14px}.mv-conf summary{cursor:pointer;display:flex;flex-direction:column;gap:3px}.mv-conf summary small{color:var(--mut);font-size:12px}.mv-conf table{margin-top:12px}
+.mv-ok{margin:0 0 14px;padding:10px 14px;border-radius:12px;background:rgba(61,220,132,.1);color:#5fe39a;font-size:13px;font-weight:600}
+.mv-t1{color:#ffc35a!important}
+.mv-mot{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:900px){.mv-mot{grid-template-columns:1fr}}
+.mv-gr{margin-bottom:12px}.mv-gl{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px}.mv-gl b small{color:var(--mut);font-weight:500}
+.mv-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}.mv-bar i{display:block;height:100%;border-radius:999px}
+.mv-sts{display:grid;gap:10px}.mv-sts>div{padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.mv-sts span{display:block;font-size:12px;color:var(--mut)}.mv-sts b{display:block;font-size:20px;margin:3px 0}.mv-sts b small{font-size:13px;color:var(--mut);font-weight:500}.mv-sts small{font-size:12px;color:var(--mut2)}
+.mv-prev{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(255,176,32,.16);color:#ffc35a;font-style:normal;font-size:11px;font-weight:700}
 
 /* v35 · Empresas e Tipos de despesa */
 .cg:has(.em-grid),.cg:has(.dp-grid){max-width:none}
@@ -3492,8 +3514,9 @@ desenharIndicadores=function(){
   var h1=top.querySelector('h1'); if(h1) h1.textContent='Painel de gestão';
   var pbt=top.querySelector('.ind-bt'); if(pbt){ pbt.innerHTML=icone('imprimir',16)+'Relatório para a diretoria'; pbt.setAttribute('onclick','indImprimir()'); }
   var tabs=document.createElement('div'); tabs.className='gs-tabs';
-  tabs.innerHTML=[['pessoas','👥 Pessoas'],['custos','💰 Custos'],['riscos','⚠️ Riscos e pendências']].map(function(a){ return '<button type="button" class="'+(IND.aba===a[0]?'on':'')+'" onclick="IND.aba=\''+a[0]+'\';desenharIndicadores()">'+a[1]+'</button>'; }).join('');
+  tabs.innerHTML=[['pessoas','👥 Pessoas'],['mov','🔄 Admitidos e desligados'],['custos','💰 Custos'],['riscos','⚠️ Riscos e pendências']].map(function(a){ return '<button type="button" class="'+(IND.aba===a[0]?'on':'')+'" onclick="IND.aba=\''+a[0]+'\';desenharIndicadores()">'+a[1]+'</button>'; }).join('');
   bar.after(tabs);
+  var lbMes=bar.querySelector('label'); if(lbMes) lbMes.style.display=IND.aba==='mov'?'none':'';
   var custoSec=[].slice.call(bx.querySelectorAll('.ind-c h2')).filter(function(x){ return /Custo de pessoal/.test(x.textContent); }).map(function(x){ return x.closest('.ind-g'); });
   if(IND.imprimir){
     custoSec.forEach(function(n){ if(n) n.remove(); });
@@ -3502,9 +3525,296 @@ desenharIndicadores=function(){
   }
   if(IND.aba==='pessoas'){ custoSec.forEach(function(n){ if(n) n.remove(); }); return; }
   var n=tabs.nextSibling; while(n){ var nx=n.nextSibling; n.remove(); n=nx; }
-  var box=document.createElement('div'); box.innerHTML=IND.aba==='custos'?indCustosHtml():indRiscosHtml(); bx.appendChild(box);
+  var box=document.createElement('div'); box.innerHTML=IND.aba==='custos'?indCustosHtml():(IND.aba==='mov'?indMovHtml():indRiscosHtml()); bx.appendChild(box);
 };
 function indImprimir(){ IND.imprimir=true; if(!IND.ver&&(IND.dados.folha||IND.dados.custos)) IND.ver=true; desenharIndicadores(); setTimeout(function(){ window.print(); IND.imprimir=false; desenharIndicadores(); },350); }
+
+/* ================= v110 · ADMITIDOS E DESLIGADOS MÊS A MÊS =================
+   Aba do Painel de gestão. Admitidos contam pela DATA DE ADMISSÃO; desligados pela DATA DE DESLIGAMENTO
+   (as duas vêm da ficha do colaborador). Sempre separado por empresa. Freelancers não entram.
+   Salários e valores de rescisão só aparecem com "Mostrar valores" e para quem vê dados sensíveis. */
+var MOV={dados:null,carregando:false,erro:'',per:'',vinc:''};
+function movCarregar(){
+  if(MOV.carregando) return; MOV.carregando=true; MOV.erro='';
+  var cols='id,nome,cpf,empresa,tipo_contrato,admissao,contrato_cp,data_desligamento,funcao,setor,salario,salario_restrito';
+  Promise.all([
+    lerTudoTabela('dp_colaboradores',cols).then(function(r){ return r||lerTudoTabela('dp_colaboradores','id,nome,empresa,tipo_contrato,admissao,data_desligamento,funcao,setor'); }),
+    podeVer('rescisoes')?lerTudoTabela('dp_rescisoes','colaborador,empresa,tipo_contrato,desligamento,valor,tipo_desligamento,multa_rescisoria,valor_multa_rescisoria').then(function(r){ return r||lerTudoTabela('dp_rescisoes','colaborador,empresa,desligamento,valor,tipo_desligamento,multa_rescisoria,valor_multa_rescisoria'); }):Promise.resolve(null)
+  ]).then(function(rs){
+    MOV.carregando=false;
+    if(!rs[0]){ MOV.erro='Não consegui ler o cadastro de colaboradores agora.'; }
+    MOV.dados={colab:rs[0]||[],resc:rs[1]};
+    if(IND.aba==='mov') desenharIndicadores();
+  });
+}
+function movSinal(n){ return n>0?'+'+n:(n<0?'−'+Math.abs(n):'0'); }
+function movDataAdm(c){ if(dataOk(c.admissao)) return c.admissao.slice(0,10); if(equipe(c)==='externa'&&dataOk(c.contrato_cp)) return c.contrato_cp.slice(0,10); return ''; }
+function movDataDes(c){ return dataOk(c.data_desligamento)?c.data_desligamento.slice(0,10):''; }
+function movVinc(c){ return movVincTxt(c&&c.tipo_contrato)||'—'; }
+function movPassa(c){ if(!indPassa(c.empresa)) return false; if(MOV.vinc&&movVinc(c)!==MOV.vinc) return false; return true; }
+function movMeses(){
+  var hj=hoje().slice(0,7);
+  if(MOV.per&&MOV.per.indexOf('m:')===0) return [MOV.per.slice(2)];
+  if(!MOV.per||MOV.per==='u12') return mesesAte(hj,12);
+  var l=[]; for(var i=1;i<=12;i++){ var m=MOV.per+'-'+String(i).padStart(2,'0'); if(m<=hj) l.push(m); } return l;
+}
+function movAnos(){
+  var a={}, hj=+hoje().slice(0,4); a[hj]=1;
+  ((MOV.dados&&MOV.dados.colab)||[]).forEach(function(c){ [movDataAdm(c),movDataDes(c)].forEach(function(d){ if(d){ var y=+d.slice(0,4); if(y>=2000&&y<=hj) a[y]=1; } }); });
+  return Object.keys(a).map(Number).sort(function(x,y){ return y-x; });
+}
+function movTempo(a,d){
+  if(!a||!d||d<a) return '';
+  var A=new Date(a+'T12:00:00'), D=new Date(d+'T12:00:00'), dias=Math.round((D-A)/864e5)+1;
+  if(dias<=90) return dias+(dias===1?' dia':' dias');
+  var m=(D.getFullYear()-A.getFullYear())*12+(D.getMonth()-A.getMonth()); if(D.getDate()<A.getDate()) m--;
+  var an=Math.floor(m/12), r=m%12;
+  return (an?an+(an===1?' ano':' anos'):'')+(an&&r?' e ':'')+(r?r+(r===1?' mês':' meses'):'');
+}
+function movResc(c,d){
+  var R=MOV.dados&&MOV.dados.resc; if(!R) return null;
+  var k=chaveNome(c.nome||''), best=null, dist=1e9;
+  R.forEach(function(r){ if(chaveNome(r.colaborador||'')!==k) return; var x=dataOk(r.desligamento)?Math.abs(new Date(r.desligamento.slice(0,10))-new Date(d)):5e9; if(x<dist){ dist=x; best=r; } });
+  return dist<=1000*864e5?best:null;   // até ~3 anos de diferença: mesma pessoa, outra passagem fica de fora
+}
+function movVerValores(){ return !!(IND.ver&&cxSens()); }
+function movSal(c){ if(c.salario_restrito) return 'restrito'; var n=parseFloat(c.salario); return n>0?Math.round(n*100)/100:''; }
+function abrirFichaMov(id){ var c=(MOV.dados.colab||[]).find(function(x){ return String(x.id)===String(id); }); if(!c) return; CX.aberto=c.id; abrir(equipe(c)==='externa'?'pjs':'internos'); }
+function movVincTxt(t){ t=chaveNome(t||''); if(!t) return ''; if(/\bPJ\b|PESSOA JURIDICA|EXTERN|\bMEI\b/.test(t)) return 'PJ'; if(/\bCLT\b|INTERN|EFETIV|EXPERIENCIA|REGISTRAD/.test(t)) return 'CLT'; return ''; }
+/* v110b · desligados = ABA RESCISÕES (fonte principal) + fichas desligadas sem rescisão lançada.
+   Também monta a conferência ficha × rescisão para você corrigir o que não bate. */
+function movDiaAntes(m){ var d=new Date(m+'-01T12:00:00'); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* Turnover (rotatividade) = ((admitidos + desligados) / 2) ÷ quadro médio × 100 */
+function movTurn(a,d,med){ return med>0?((a+d)/2)/med*100:0; }
+function movPct(n){ return (Math.round(n*10)/10).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
+function movDiasCasa(x){ if(!x.adm||!x.data||x.data<x.adm) return null; return Math.round((new Date(x.data+'T12:00:00')-new Date(x.adm+'T12:00:00'))/864e5)+1; }
+/* Motivos da aba Rescisões: PEDIDO DE DEMISSÃO · DISPENSA PELA EMPRESA · TÉRMINO DE CONTRATO · ACORDO · ACORDO PJ */
+var MOV_GRUPOS=[['col','🙋 Colaborador pediu para sair','#ffb020'],['emp','🏢 Empresa desligou','#ff6b63'],['fim','📄 Fim de contrato','#7aa7ff'],['aco','🤝 Comum acordo','#b48cff'],['nd','❔ Sem motivo / sem rescisão','#8a93a6']];
+function movGrupo(x){
+  if(x.fonte==='ficha') return {g:'nd',m:'Sem rescisão lançada'};
+  var t=chaveNome(x.motivo||'');
+  if(/PEDIDO/.test(t)) return {g:'col',m:'Pedido de demissão'};
+  if(/ACORDO/.test(t)) return {g:'aco',m:/PJ/.test(t)?'Acordo PJ':'Acordo'};
+  if(/SEM JUSTA|DISPENSA/.test(t)) return {g:'emp',m:'Dispensa pela empresa'};
+  if(/JUSTA CAUSA/.test(t)) return {g:'emp',m:'Justa causa'};
+  if(/TERMINO|EXPERIENCIA|FIM DE CONTRATO|DISTRATO/.test(t)) return {g:'fim',m:'Término de contrato'};
+  return {g:'nd',m:t?(x.motivo||'').trim():'Não informado'};
+}
+function movMotivos(des){
+  var n=des.length, grupos={}, mot={}, ate90=0, somaD=0, qd=0;
+  des.forEach(function(x){ var g=movGrupo(x); x.grupo=g.g; x.motivoG=g.m;
+    grupos[g.g]=(grupos[g.g]||0)+1; var k=g.g+'|'+g.m; mot[k]=mot[k]||{g:g.g,m:g.m,q:0,v:0}; mot[k].q++; mot[k].v+=x.valor||0;
+    var dc=movDiasCasa(x); if(dc!=null){ qd++; somaD+=dc; if(dc<=90) ate90++; } });
+  var ord=MOV_GRUPOS.map(function(g){ return g[0]; });
+  return {n:n,grupos:MOV_GRUPOS.map(function(g){ return {id:g[0],nome:g[1],cor:g[2],q:grupos[g[0]]||0}; }),
+    motivos:Object.keys(mot).map(function(k){ return mot[k]; }).sort(function(a,b){ return ord.indexOf(a.g)-ord.indexOf(b.g)||b.q-a.q; }),
+    ate90:ate90,comData:qd,mediaDias:qd?somaD/qd:0};
+}
+function movTempoMedio(d){ if(!d) return '—'; if(d<=90) return Math.round(d)+' dias'; var m=d/30.44; if(m<12){ var mm=Math.round(m*10)/10; return mm.toLocaleString('pt-BR')+(mm<2?' mês':' meses'); } var an=Math.round(m/12*10)/10; return an.toLocaleString('pt-BR')+(an<2?' ano':' anos'); }
+function movCalc(){
+  var ms=movMeses(), set={}; ms.forEach(function(m){ set[m]=1; });
+  var todos=MOV.dados.colab, cs=todos.filter(movPassa), hj=hoje(), R=MOV.dados.resc;
+  var ativo=function(c,dia){ var a=movDataAdm(c), d=movDataDes(c); if(a&&a>dia) return false; return !(d&&d<=dia); };
+  var porNome={}; todos.forEach(function(c){ var k=chaveNome(c.nome||''); if(k) (porNome[k]=porNome[k]||[]).push(c); });
+  var acharColab=function(nome,emp){ var l=porNome[chaveNome(nome||'')]||[]; if(l.length<2) return l[0]||null; var e=empresaCanon(emp); return l.find(function(c){ return empresaCanon(c.empresa)===e; })||l[0]; };
+  var diasEntre=function(a,b){ return Math.abs((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5); };
+  var adm=[], des=[], conf=[];
+  cs.forEach(function(c){
+    var a=movDataAdm(c), emp=empresaCanon(c.empresa)||(c.empresa||'Sem empresa');
+    if(a&&set[a.slice(0,7)]) adm.push({c:c,mes:a.slice(0,7),data:a,emp:emp,vinc:movVinc(c),sal:movSal(c),prev:a>hj});
+  });
+  if(MOV.vinc) todos.forEach(function(c){ if(movVinc(c)!=='—'||!indPassa(c.empresa)) return; var a=movDataAdm(c), d=movDataDes(c);
+    if((a&&set[a.slice(0,7)])||(d&&set[d.slice(0,7)])) conf.push({t:'Sem vínculo definido',n:c.nome,e:c.empresa,s:'A ficha não diz se é CLT ou PJ. Ficou fora do filtro '+MOV.vinc+'.',id:c.id}); });
+  var cobertas={};   // fichas já representadas por uma rescisão
+  if(R){
+    R.forEach(function(r){
+      if(!dataOk(r.desligamento)) return;
+      var d=r.desligamento.slice(0,10), c=acharColab(r.colaborador,r.empresa), fd=c?movDataDes(c):'';
+      if(c&&(!fd||diasEntre(fd,d)<=60)) cobertas[c.id]=1;
+      if(!set[d.slice(0,7)]||!indPassa(r.empresa)) return;
+      var vR=movVincTxt(r.tipo_contrato), vF=c?movVinc(c):'—', vinc=vR||vF;
+      if(vR&&vF!=='—'&&vR!==vF&&(!MOV.vinc||vinc===MOV.vinc)) conf.push({t:'Vínculo diferente',n:r.colaborador,e:r.empresa,s:'Rescisão diz '+vR+', ficha diz '+vF+'. O relatório usa o da rescisão ('+vR+').',id:c&&c.id});
+      if(vinc==='—'&&MOV.vinc) conf.push({t:'Sem vínculo definido',n:r.colaborador,e:r.empresa,s:'Rescisão de '+fmtData(d)+' sem CLT/PJ na rescisão nem na ficha. Ficou fora do filtro '+MOV.vinc+'.',id:c&&c.id});
+      if(MOV.vinc&&vinc!==MOV.vinc) return;
+      var cc=c||{nome:r.colaborador||'—',funcao:'',setor:'',cpf:''}, a=c?movDataAdm(c):'';
+      des.push({c:cc,mes:d.slice(0,7),data:d,adm:a,emp:empresaCanon(r.empresa)||(r.empresa||'Sem empresa'),vinc:vinc,sal:c?movSal(c):'',prev:d>hj,tempo:movTempo(a,d),
+        motivo:(r.tipo_desligamento||'').trim()||'Não informado',valor:indRescTotal(r),fonte:'resc'});
+      if(!c) conf.push({t:'Rescisão sem ficha no cadastro',n:r.colaborador,e:r.empresa,s:'Rescisão em '+fmtData(d)+'. Confira se o nome está igual ao da ficha.',acao:''});
+      else if(!fd) conf.push({t:'Ficha sem data de desligamento',n:c.nome,e:c.empresa,s:'A rescisão é de '+fmtData(d)+', mas a ficha continua ativa. Lance a data na ficha.',id:c.id});
+      else if(fd!==d) conf.push({t:'Datas diferentes',n:c.nome,e:c.empresa,s:'Ficha: '+fmtData(fd)+' · Rescisão: '+fmtData(d)+'. O relatório usa a da rescisão.',id:c.id});
+    });
+  }
+  cs.forEach(function(c){
+    var d=movDataDes(c); if(!d||!set[d.slice(0,7)]||cobertas[c.id]) return;
+    var a=movDataAdm(c);
+    des.push({c:c,mes:d.slice(0,7),data:d,adm:a,emp:empresaCanon(c.empresa)||(c.empresa||'Sem empresa'),vinc:movVinc(c),sal:movSal(c),prev:d>hj,tempo:movTempo(a,d),motivo:R?'':'',valor:null,fonte:'ficha'});
+    if(R) conf.push({t:'Desligado na ficha sem rescisão lançada',n:c.nome,e:c.empresa,s:'Desligamento na ficha em '+fmtData(d)+'. Entrou no relatório pela ficha.',id:c.id});
+  });
+  var ord=function(x,y){ return x.emp.localeCompare(y.emp,'pt-BR')||(x.data<y.data?-1:(x.data>y.data?1:0))||(x.c.nome||'').localeCompare(y.c.nome||'','pt-BR'); };
+  adm.sort(ord); des.sort(ord);
+  var res=ms.map(function(m){
+    var A=adm.filter(function(x){ return x.mes===m; }), D=des.filter(function(x){ return x.mes===m; });
+    var soma=function(l){ return l.reduce(function(s,x){ return s+(typeof x.sal==='number'?x.sal:0); },0); };
+    var ini=cs.filter(function(c){ return ativo(c,movDiaAntes(m)); }).length, fim=cs.filter(function(c){ return ativo(c,fimDoMes(m)); }).length, med=(ini+fim)/2;
+    return {m:m,adm:A.length,des:D.length,saldo:A.length-D.length,quadro:fim,ini:ini,med:med,turn:movTurn(A.length,D.length,med),salA:soma(A),salD:soma(D),
+      custo:D.reduce(function(s,x){ return s+(x.valor||0); },0),prov:D.reduce(function(s,x){ return s+(x.prev?(x.valor||0):0); },0)};
+  });
+  var medP=res.length?res.reduce(function(s,r){ return s+r.med; },0)/res.length:0;
+  var tot={turn:movTurn(adm.length,des.length,medP),turnMes:res.length?res.reduce(function(s,r){ return s+r.turn; },0)/res.length:0,med:medP,
+    custo:res.reduce(function(s,r){ return s+r.custo; },0),prov:res.reduce(function(s,r){ return s+r.prov; },0)};
+  var emps={}; adm.concat(des).forEach(function(x){ emps[x.emp]=1; });
+  var porE=Object.keys(emps).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); }).map(function(e){
+    var l=ms.map(function(m){ return {a:adm.filter(function(x){ return x.emp===e&&x.mes===m; }).length,d:des.filter(function(x){ return x.emp===e&&x.mes===m; }).length}; });
+    var ce=cs.filter(function(c){ return (empresaCanon(c.empresa)||(c.empresa||'Sem empresa'))===e; });
+    var meds=ms.map(function(m){ var i=ce.filter(function(c){ return ativo(c,movDiaAntes(m)); }).length, f=ce.filter(function(c){ return ativo(c,fimDoMes(m)); }).length; return (i+f)/2; });
+    l.forEach(function(x,i){ x.turn=movTurn(x.a,x.d,meds[i]); });
+    var A=l.reduce(function(s,x){ return s+x.a; },0), D=l.reduce(function(s,x){ return s+x.d; },0), md=meds.reduce(function(s,x){ return s+x; },0)/(meds.length||1);
+    return {e:e,l:l,a:A,d:D,med:md,turn:movTurn(A,D,md),custo:des.filter(function(x){ return x.emp===e; }).reduce(function(s,x){ return s+(x.valor||0); },0)};
+  });
+  conf.sort(function(a,b){ return a.t.localeCompare(b.t)||(a.n||'').localeCompare(b.n||''); });
+  return {ms:ms,adm:adm,des:des,res:res,porE:porE,conf:conf,tot:tot,mot:movMotivos(des)};
+}
+function movFiltroTxt(){
+  return (MOV.per&&MOV.per.indexOf('m:')===0?nomeMes(MOV.per.slice(2)):(MOV.per&&MOV.per!=='u12'?'Ano de '+MOV.per:'Últimos 12 meses'))+' · '+(IND.emp||'Todas as empresas')+' · '+(IND.uf?nomeUF(IND.uf):'DF e SP')+' · '+(MOV.vinc||'CLT e PJ');
+}
+function indMovHtml(){
+  if(!MOV.dados){ movCarregar(); return '<div class="ind-c larga"><h2>Admitidos e desligados</h2><p class="ds">Carregando o cadastro…</p></div>'; }
+  if(MOV.erro) return '<div class="ind-c larga"><h2>Admitidos e desligados</h2><p class="ds">'+esc(MOV.erro)+' <a style="cursor:pointer;color:#ff8a84" onclick="MOV.dados=null;desenharIndicadores()">Tentar de novo</a></p></div>';
+  if(!MOV.per) MOV.per=hoje().slice(0,4);
+  var C=movCalc(), V=movVerValores(), anos=movAnos();
+  var opP='<optgroup label="Vários meses"><option value="u12"'+(MOV.per==='u12'?' selected':'')+'>Últimos 12 meses</option>'+anos.map(function(y){ return '<option value="'+y+'"'+(String(y)===MOV.per?' selected':'')+'>Ano de '+y+'</option>'; }).join('')+'</optgroup>'+
+    '<optgroup label="Um mês só (fechamento)">'+mesesAte(hoje().slice(0,7),24).slice().reverse().map(function(m){ return '<option value="m:'+m+'"'+(MOV.per==='m:'+m?' selected':'')+'>'+esc(nomeMes(m))+'</option>'; }).join('')+'</optgroup>';
+  var opV=[['','CLT e PJ'],['CLT','Só CLT'],['PJ','Só PJ']].map(function(o){ return '<option value="'+o[0]+'"'+(MOV.vinc===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('');
+  var tA=C.adm.length, tD=C.des.length;
+  var h='<div class="ind-bar ind-bar2"><label>Período<select onchange="MOV.per=this.value;desenharIndicadores()">'+opP+'</select></label>'+
+    '<label>Vínculo<select onchange="MOV.vinc=this.value;desenharIndicadores()">'+opV+'</select></label>'+
+    '<span class="mv-bts"><button type="button" class="ind-bt" onclick="movExportar(\'xlsx\')">⬇ Excel</button><button type="button" class="ind-bt" onclick="movExportar(\'pdf\')">'+icone('imprimir',16)+'PDF</button>'+
+    '<button type="button" class="ind-bt" onclick="MOV.dados=null;desenharIndicadores()">'+icone('nuvem',16)+'Atualizar</button></span></div>';
+  h+='<div class="ind-kpis">'+
+    '<div class="ind-k dest"><span>Admitidos no período</span><b style="color:#5fe39a">+'+tA+'</b><small>pela data de admissão</small></div>'+
+    '<div class="ind-k"><span>Desligados no período</span><b style="color:#ff8a84">−'+tD+'</b><small>'+(MOV.dados.resc?'pela aba Rescisões + fichas sem rescisão':'pela data de desligamento da ficha')+'</small></div>'+
+    '<div class="ind-k"><span>Saldo</span><b>'+movSinal(tA-tD)+'</b><small>admitidos menos desligados</small></div>'+
+    '<div class="ind-k"><span>Turnover'+(C.ms.length>1?' do período':' do mês')+'</span><b style="color:#ffc35a">'+movPct(C.tot.turn)+'</b><small>'+(C.ms.length>1?'média de '+movPct(C.tot.turnMes)+' ao mês · ':'')+'quadro médio de '+Math.round(C.tot.med)+'</small></div>'+
+    (V&&MOV.dados.resc?'<div class="ind-k"><span>Custo das rescisões</span><b style="font-size:22px;color:#ff8a84">'+moedaBR(C.tot.custo)+'</b><small>'+(C.tot.prov?'inclui '+moedaBR(C.tot.prov)+' ainda a pagar (previsto)':'valor + multa lançados nas rescisões')+'</small></div>':'')+
+    (V?'<div class="ind-k"><span>Impacto mensal na folha</span><b style="font-size:22px;white-space:nowrap">'+(function(v){ return (v<0?'−':'')+moedaBR(Math.abs(v)); })(C.res.reduce(function(s,r){ return s+r.salA-r.salD; },0))+'</b><small>salários que entraram menos os que saíram</small></div>':'')+
+    '</div>';
+  if(C.conf.length) h+='<details class="ind-c larga mv-conf"><summary><b>⚠️ Conferência ficha × rescisão: '+C.conf.length+' ponto(s) para acertar</b><small>Toque para ver. Corrigindo a ficha, o quadro e o turnover ficam certos também.</small></summary><table class="gs-t mv-t"><thead><tr><th>O que é</th><th>Colaborador</th><th>Empresa</th><th>Detalhe</th></tr></thead><tbody>'+
+    C.conf.map(function(x){ return '<tr><td><b>'+esc(x.t)+'</b></td><td>'+(x.id?'<a style="cursor:pointer;color:#ff8a84" onclick="abrirFichaMov(\''+x.id+'\')">'+esc(x.n||'—')+'</a>':esc(x.n||'—'))+'</td><td>'+esc(x.e||'—')+'</td><td style="white-space:normal">'+esc(x.s)+'</td></tr>'; }).join('')+'</tbody></table></details>';
+  else if(MOV.dados.resc) h+='<div class="mv-ok">✓ Ficha e rescisões batem no período.</div>';
+  // resumo mês a mês
+  h+='<div class="ind-g"><div class="ind-c larga"><h2>Resumo mês a mês</h2><p class="ds">'+esc(movFiltroTxt())+'. "Quadro" é quem estava ativo no último dia do mês.'+(V?'':' Toque em "Mostrar valores" (lá em cima) para ver os salários de quem entrou e saiu.')+'</p>'+
+    '<div class="mv-scroll"><table class="gs-t mv-t"><thead><tr><th>Mês</th><th class="n">Admitidos</th><th class="n">Desligados</th><th class="n">Saldo</th><th class="n">Quadro no fim do mês</th><th class="n">Turnover</th>'+(V?'<th class="n">Salários que entraram</th><th class="n">Salários que saíram</th>'+(MOV.dados.resc?'<th class="n">Custo das rescisões</th>':''):'')+'</tr></thead><tbody>'+
+    C.res.map(function(r){ return '<tr'+(r.adm||r.des?'':' class="mv-z"')+'><td><b>'+esc(nomeMes(r.m))+'</b></td><td class="n mv-a">'+(r.adm?'+'+r.adm:'0')+'</td><td class="n mv-d">'+(r.des?'−'+r.des:'0')+'</td><td class="n">'+movSinal(r.saldo)+'</td><td class="n">'+r.quadro+'</td><td class="n mv-t1">'+(r.adm||r.des?movPct(r.turn):'0%')+'</td>'+
+      (V?'<td class="n">'+(r.salA?moedaBR(r.salA):'—')+'</td><td class="n">'+(r.salD?moedaBR(r.salD):'—')+'</td>'+(MOV.dados.resc?'<td class="n">'+(r.custo?moedaBR(r.custo)+(r.prov?' <em class="mv-prev">'+moedaBR(r.prov)+' previsto</em>':''):'—')+'</td>':''):'')+'</tr>'; }).join('')+
+    '</tbody><tfoot><tr><td>Total</td><td class="n mv-a">+'+tA+'</td><td class="n mv-d">−'+tD+'</td><td class="n">'+movSinal(tA-tD)+'</td><td></td><td class="n mv-t1">'+movPct(C.tot.turn)+'</td>'+(V?'<td class="n">'+moedaBR(C.res.reduce(function(s,r){ return s+r.salA; },0))+'</td><td class="n">'+moedaBR(C.res.reduce(function(s,r){ return s+r.salD; },0))+'</td>'+(MOV.dados.resc?'<td class="n">'+moedaBR(C.tot.custo)+'</td>':''):'')+'</tr></tfoot></table></div>'+
+    '<p class="ind-nota">Turnover = ((admitidos + desligados) ÷ 2) ÷ quadro médio × 100. Quadro médio = (ativos no início + ativos no fim do mês) ÷ 2. Como referência, até ~3% ao mês costuma ser considerado saudável em empresas de serviço; acima disso vale investigar.</p></div></div>';
+  // por empresa
+  h+='<div class="ind-g"><div class="ind-c larga"><h2>Por empresa</h2><p class="ds">Cada célula mostra <b style="color:#5fe39a">entradas</b> / <b style="color:#ff8a84">saídas</b> do mês.</p>'+
+    (C.porE.length?'<div class="mv-scroll"><table class="gs-t mv-t mv-emp"><thead><tr><th>Empresa</th>'+C.ms.map(function(m){ return '<th class="n">'+mesCurto(m)+'</th>'; }).join('')+'<th class="n">Total</th><th class="n">Quadro médio</th><th class="n">Turnover</th>'+(V&&MOV.dados.resc?'<th class="n">Custo das rescisões</th>':'')+'</tr></thead><tbody>'+
+      C.porE.map(function(e){ return '<tr><td><b>'+esc(e.e)+'</b></td>'+e.l.map(function(x){ return '<td class="n">'+(x.a||x.d?'<span class="mv-a">'+(x.a?'+'+x.a:'·')+'</span> / <span class="mv-d">'+(x.d?'−'+x.d:'·')+'</span>':'<span class="mv-z">—</span>')+'</td>'; }).join('')+
+        '<td class="n"><b><span class="mv-a">'+movSinal(e.a)+'</span> / <span class="mv-d">'+movSinal(-e.d)+'</span></b></td><td class="n">'+Math.round(e.med)+'</td><td class="n mv-t1"><b>'+movPct(e.turn)+'</b></td>'+(V&&MOV.dados.resc?'<td class="n">'+(e.custo?moedaBR(e.custo):'—')+'</td>':'')+'</tr>'; }).join('')+'</tbody></table></div>':'<div class="vazio">Nenhuma entrada ou saída neste filtro.</div>')+'</div></div>';
+  if(C.mot.n){
+    var M=C.mot, pc=function(q){ return M.n?Math.round(q/M.n*100):0; }, inv=M.grupos.filter(function(g){ return g.id==='emp'||g.id==='fim'; }).reduce(function(s,g){ return s+g.q; },0), vol=M.grupos[0].q;
+    h+='<div class="ind-g"><div class="ind-c larga"><h2>Por que saíram</h2><p class="ds">Motivos lançados na aba Rescisões. '+M.n+' desligamento(s) no filtro.</p>'+
+      '<div class="mv-mot"><div>'+M.grupos.filter(function(g){ return g.q; }).map(function(g){ return '<div class="mv-gr"><div class="mv-gl"><span>'+g.nome+'</span><b>'+g.q+' <small>('+pc(g.q)+'%)</small></b></div><div class="mv-bar"><i style="width:'+pc(g.q)+'%;background:'+g.cor+'"></i></div></div>'; }).join('')+'</div>'+
+      '<div class="mv-sts">'+
+        '<div><span>Voluntário × involuntário</span><b>'+pc(vol)+'% × '+pc(inv)+'%</b><small>'+(vol>inv?'Mais gente pedindo para sair: olhe salário, liderança e clima.':(inv>vol?'Mais saídas por decisão da empresa: olhe recrutamento e período de experiência.':'Equilibrado.'))+'</small></div>'+
+        '<div><span>Saíram em até 90 dias</span><b>'+M.ate90+' <small>('+(M.comData?Math.round(M.ate90/M.comData*100):0)+'%)</small></b><small>ainda no período de experiência: sinal de contratação que não deu certo</small></div>'+
+        '<div><span>Tempo médio de casa</span><b>'+movTempoMedio(M.mediaDias)+'</b><small>entre quem saiu (com data de admissão na ficha)</small></div>'+
+      '</div></div>'+
+      '<div class="mv-scroll" style="margin-top:14px"><table class="gs-t mv-t"><thead><tr><th>Motivo</th><th class="n">Quantidade</th><th class="n">%</th>'+(V?'<th class="n">Custo das rescisões</th>':'')+'</tr></thead><tbody>'+
+      M.motivos.map(function(x){ return '<tr><td><b>'+esc(x.m)+'</b></td><td class="n">'+x.q+'</td><td class="n">'+pc(x.q)+'%</td>'+(V?'<td class="n">'+(x.v?moedaBR(x.v):'—')+'</td>':'')+'</tr>'; }).join('')+'</tbody></table></div></div></div>';
+  }
+  // detalhe mês a mês (do mais recente para o mais antigo)
+  var meses=C.ms.slice().reverse().filter(function(m){ return C.adm.some(function(x){ return x.mes===m; })||C.des.some(function(x){ return x.mes===m; }); });
+  h+='<h2 class="mv-tit">Quem entrou e quem saiu, mês a mês</h2>';
+  if(!meses.length) h+='<div class="ind-c larga"><p class="ds">Nenhuma admissão ou desligamento no período escolhido.</p></div>';
+  meses.forEach(function(m){
+    var A=C.adm.filter(function(x){ return x.mes===m; }), D=C.des.filter(function(x){ return x.mes===m; });
+    var prev=function(x){ return x.prev?' <em class="mv-prev">previsto</em>':''; };
+    h+='<div class="ind-c larga mv-mes"><div class="mv-mcab"><h2>'+esc(nomeMes(m))+'</h2><span><b class="mv-a">'+A.length+'</b> admitido(s) · <b class="mv-d">'+D.length+'</b> desligado(s)</span></div><div class="mv-2">';
+    h+='<div><h3 class="mv-a">🟢 Admitidos</h3>'+(A.length?'<table class="gs-t mv-t"><thead><tr><th>Nome</th><th>Empresa</th><th>Vínculo</th><th>Função</th><th class="n">Admissão</th>'+(V?'<th class="n">Salário</th>':'')+'</tr></thead><tbody>'+
+      A.map(function(x){ return '<tr><td><b>'+esc(x.c.nome||'—')+'</b></td><td>'+esc(x.emp)+'</td><td>'+x.vinc+'</td><td>'+esc(x.c.funcao||'—')+'</td><td class="n">'+fmtData(x.data)+prev(x)+'</td>'+(V?'<td class="n">'+(typeof x.sal==='number'?moedaBR(x.sal):esc(x.sal||'—'))+'</td>':'')+'</tr>'; }).join('')+'</tbody></table>':'<p class="ds">Ninguém entrou.</p>')+'</div>';
+    h+='<div><h3 class="mv-d">🔴 Desligados</h3>'+(D.length?'<table class="gs-t mv-t"><thead><tr><th>Nome</th><th>Empresa</th><th>Vínculo</th><th>Função</th><th class="n">Desligamento</th><th>Tempo de casa</th>'+(MOV.dados.resc?'<th>Motivo</th>':'')+(V?'<th class="n">Salário</th><th class="n">Rescisão</th>':'')+'</tr></thead><tbody>'+
+      D.map(function(x){ return '<tr><td><b>'+esc(x.c.nome||'—')+'</b></td><td>'+esc(x.emp)+'</td><td>'+x.vinc+'</td><td>'+esc(x.c.funcao||'—')+'</td><td class="n">'+fmtData(x.data)+prev(x)+'</td><td>'+esc(x.tempo||'—')+'</td>'+
+        (MOV.dados.resc?'<td>'+(x.fonte==='ficha'?'<span class="mv-prev" title="Desligado na ficha, mas sem rescisão lançada">só na ficha</span>':esc(x.motivo))+'</td>':'')+
+        (V?'<td class="n">'+(typeof x.sal==='number'?moedaBR(x.sal):esc(x.sal||'—'))+'</td><td class="n">'+(x.valor?moedaBR(x.valor):'—')+'</td>':'')+'</tr>'; }).join('')+'</tbody></table>':'<p class="ds">Ninguém saiu.</p>')+'</div>';
+    h+='</div></div>';
+  });
+  h+='<p class="ind-nota">Admitidos contam pela data de admissão da ficha (PJ sem admissão usa a assinatura do contrato); desligados, pela aba Rescisões do Painel DP (data de desligamento da rescisão) e, para quem não tem rescisão lançada, pela data de desligamento da ficha. Datas futuras aparecem como "previsto". Freelancers não entram. O motivo e o valor da rescisão vêm da aba Rescisões do Painel DP.</p>';
+  return h;
+}
+/* ---------- Excel e PDF ---------- */
+function movExportar(fmt){ try{ movExportar2(fmt); }catch(e){ console.error(e); aviso('Erro ao gerar o relatório: '+((e&&e.message)||e),true); } }
+function movExportar2(fmt){
+  if(!MOV.dados) return;
+  var C=movCalc(), V=movVerValores(), sens=cxSens(), temR=!!MOV.dados.resc;
+  if(!C.adm.length&&!C.des.length){ aviso('Nenhuma admissão ou desligamento neste filtro.'); return; }
+  var nome='admitidos_desligados_ILED_'+(MOV.per==='u12'?'12meses':MOV.per.replace('m:',''))+'_'+hoje(), quando=new Date().toLocaleString('pt-BR'), por=(EU&&EU.nome)||'';
+  var colA=['Mês','Empresa','Nome completo'].concat(sens?['CPF']:[]).concat(['Vínculo','Função','Setor','Data de admissão']).concat(V?['Salário']:[]);
+  var colD=['Mês','Empresa','Nome completo'].concat(sens?['CPF']:[]).concat(['Vínculo','Função','Setor','Data de admissão','Data de desligamento','Tempo de casa']).concat(temR?['Motivo']:[]).concat(V?['Salário','Valor da rescisão']:[]);
+  var linA=C.adm.map(function(x){ var o={'Mês':nomeMes(x.mes),'Empresa':x.emp,'Nome completo':x.c.nome||'','CPF':cxFmtCPF(x.c.cpf||''),'Vínculo':x.vinc,'Função':x.c.funcao||'','Setor':x.c.setor||'','Data de admissão':fmtData(x.data)+(x.prev?' (previsto)':''),'Salário':x.sal}; var r={}; colA.forEach(function(k){ r[k]=o[k]; }); return r; });
+  var linD=C.des.map(function(x){ var o={'Mês':nomeMes(x.mes),'Empresa':x.emp,'Nome completo':x.c.nome||'','CPF':cxFmtCPF(x.c.cpf||''),'Vínculo':x.vinc,'Função':x.c.funcao||'','Setor':x.c.setor||'','Data de admissão':fmtData(x.adm),'Data de desligamento':fmtData(x.data)+(x.prev?' (previsto)':''),'Tempo de casa':x.tempo,'Motivo':x.fonte==='ficha'?'sem rescisão lançada (só na ficha)':x.motivo,'Salário':x.sal,'Valor da rescisão':x.valor?Math.round(x.valor*100)/100:''}; var r={}; colD.forEach(function(k){ r[k]=o[k]; }); return r; });
+  var colR=['Mês','Admitidos','Desligados','Saldo','Quadro no fim do mês','Quadro médio','Turnover (%)'].concat(V?['Salários que entraram','Salários que saíram']:[]).concat(V&&temR?['Custo das rescisões','Ainda a pagar (previsto)']:[]);
+  var linR=C.res.map(function(r){ var o={'Mês':nomeMes(r.m),'Admitidos':r.adm,'Desligados':r.des,'Saldo':r.saldo,'Quadro no fim do mês':r.quadro,'Quadro médio':Math.round(r.med*10)/10,'Turnover (%)':Math.round(r.turn*10)/10,'Custo das rescisões':Math.round(r.custo*100)/100,'Ainda a pagar (previsto)':Math.round(r.prov*100)/100,'Salários que entraram':Math.round(r.salA*100)/100,'Salários que saíram':Math.round(r.salD*100)/100}; var x={}; colR.forEach(function(k){ x[k]=o[k]; }); return x; });
+  var moeda=['Salário','Valor da rescisão','Salários que entraram','Salários que saíram','Custo das rescisões','Ainda a pagar (previsto)'];
+  var colM=['Motivo','Grupo','Quantidade','% dos desligamentos'].concat(V?['Custo das rescisões']:[]);
+  var nomeG={}; MOV_GRUPOS.forEach(function(g){ nomeG[g[0]]=g[1].replace(/^\S+\s/,''); });
+  var linM=C.mot.motivos.map(function(x){ var o={'Motivo':x.m,'Grupo':nomeG[x.g],'Quantidade':x.q,'% dos desligamentos':C.mot.n?Math.round(x.q/C.mot.n*1000)/10:0,'Custo das rescisões':Math.round(x.v*100)/100}; var r={}; colM.forEach(function(k){ r[k]=o[k]; }); return r; });
+  linM.push({'Motivo':'Saíram em até 90 dias de casa','Grupo':'','Quantidade':C.mot.ate90});
+  linM.push({'Motivo':'Tempo médio de casa de quem saiu','Grupo':movTempoMedio(C.mot.mediaDias),'Quantidade':''});
+  try{ sb.from('dp_logs').insert({id:cxUUID(),tabela:'colaboradores',registro_id:cxUUID(),colaborador:'(exportação)',campo:'exportacao',valor_antigo:'',valor_novo:('Admitidos e desligados · '+fmt.toUpperCase()+' · +'+C.adm.length+'/−'+C.des.length+' · '+movFiltroTxt()).slice(0,300),usuario:por,quando:new Date().toISOString()}).then(function(){},function(){}); }catch(e){}
+  if(fmt==='xlsx'){
+    impCarregarXLSX().then(function(X){
+      var folha=function(lista,cols){
+        var ws=X.utils.json_to_sheet(lista.length?lista:[{}],{header:cols}), rg=X.utils.decode_range(ws['!ref']);
+        moeda.forEach(function(k){ var ci=cols.indexOf(k); if(ci<0) return; for(var r=1;r<=rg.e.r;r++){ var cell=ws[X.utils.encode_cell({r:r,c:ci})]; if(cell&&cell.t==='n') cell.z='"R$" #,##0.00'; } });
+        ws['!cols']=cols.map(function(k){ var m=k.length; lista.forEach(function(r){ m=Math.max(m,(''+(r[k]==null?'':r[k])).length); }); return {wch:Math.min(m+3,44)}; });
+        ws['!autofilter']={ref:X.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rg.e.r,1),c:cols.length-1}})};
+        return ws;
+      };
+      var colE=['Empresa','Mês','Admitidos','Desligados','Saldo','Turnover (%)'], linE=[];
+      C.porE.forEach(function(e){ C.ms.forEach(function(m,i){ var x=e.l[i]; if(x.a||x.d) linE.push({'Empresa':e.e,'Mês':nomeMes(m),'Admitidos':x.a,'Desligados':x.d,'Saldo':x.a-x.d,'Turnover (%)':Math.round(x.turn*10)/10}); });
+        linE.push({'Empresa':e.e,'Mês':'TOTAL DO PERÍODO','Admitidos':e.a,'Desligados':e.d,'Saldo':e.a-e.d,'Turnover (%)':Math.round(e.turn*10)/10}); });
+      var wb=X.utils.book_new();
+      X.utils.book_append_sheet(wb,folha(linR,colR),'Resumo mês a mês');
+      X.utils.book_append_sheet(wb,folha(linE,colE),'Por empresa');
+      X.utils.book_append_sheet(wb,folha(linA,colA),'Admitidos');
+      X.utils.book_append_sheet(wb,folha(linD,colD),'Desligados');
+      if(C.mot.n) X.utils.book_append_sheet(wb,folha(linM,colM),'Motivos');
+      if(C.conf.length) X.utils.book_append_sheet(wb,folha(C.conf.map(function(x){ return {'O que é':x.t,'Colaborador':x.n||'','Empresa':x.e||'','Detalhe':x.s}; }),['O que é','Colaborador','Empresa','Detalhe']),'Conferência');
+      var info=X.utils.aoa_to_sheet([['Relatório','Admitidos e desligados mês a mês · Grupo ILED'],['Filtros',movFiltroTxt()],['Admitidos',C.adm.length],['Desligados',C.des.length],['Turnover do período',movPct(C.tot.turn)+(C.ms.length>1?' (média de '+movPct(C.tot.turnMes)+' ao mês)':'')],['Fórmula do turnover','((admitidos + desligados) ÷ 2) ÷ quadro médio × 100'],['Regra','Admitidos pela data de admissão da ficha; desligados pela data de desligamento da aba Rescisões (e pela ficha para quem não tem rescisão lançada). Freelancers não entram.'],['Gerado em',quando],['Gerado por',por],[],['Aviso','Contém dados pessoais (LGPD). Uso interno, somente para a finalidade do setor. Não repassar.']]);
+      info['!cols']=[{wch:14},{wch:100}]; X.utils.book_append_sheet(wb,info,'Sobre');
+      X.writeFile(wb,nome+'.xlsx');
+      aviso('Excel baixado: '+C.adm.length+' admitido(s) e '+C.des.length+' desligado(s).');
+    }).catch(function(e){ console.error(e); aviso(e&&e.message==='xlsx'?'Não consegui carregar o gerador de Excel: a internet ou o antivírus da rede está bloqueando. Tente o PDF.':'Erro ao montar o Excel: '+((e&&e.message)||e),true); });
+    return;
+  }
+  var cel=function(k,v){ var n=moeda.indexOf(k)>=0; if(n&&typeof v==='number') return '<td class="n">'+esc(moedaBR(v))+'</td>'; return '<td'+(n?' class="n"':'')+'>'+esc(v==null||v===''?'—':v)+'</td>'; };
+  var tab=function(cols,lista,cor){ cols=cols.filter(function(k){ return k!=='Mês'; }); return '<table><thead><tr>'+cols.map(function(k){ return '<th'+(moeda.indexOf(k)>=0?' class="n"':'')+' style="background:'+cor+'">'+esc(k)+'</th>'; }).join('')+'</tr></thead><tbody>'+lista.map(function(r){ return '<tr>'+cols.map(function(k){ return cel(k,r[k]); }).join('')+'</tr>'; }).join('')+'</tbody></table>'; };
+  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(nome)+'</title><style>@page{size:A4 landscape;margin:9mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0}'+
+    '.cab{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;border-bottom:3px solid #e10600;padding-bottom:8px;margin-bottom:12px}h1{font-size:18px;margin:0}h1 span{color:#e10600}.cab p{margin:3px 0 0;color:#555;font-size:11px}.cab .q{text-align:right;font-size:11px;color:#555}.cab .q b{font-size:20px}.cab .q .a{color:#1f9d55}.cab .q .d{color:#e10600}'+
+    'h2{font-size:14px;margin:16px 0 6px}h3{font-size:11.5px;margin:8px 0 4px}table{width:100%;border-collapse:collapse;font-size:8.8px;margin-bottom:6px}th{background:#111;color:#fff;text-align:left;padding:5px 4px;font-weight:700;white-space:nowrap}td{padding:4px;border-bottom:1px solid #ddd;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}tr:nth-child(even) td{background:#f4f6f9}'+
+    'tfoot td{font-weight:700;border-top:2px solid #111;background:#fff!important}thead{display:table-header-group}tr{page-break-inside:avoid}.mes{page-break-inside:avoid;border:1px solid #ddd;border-radius:6px;padding:6px 8px;margin-bottom:8px}.mes h2{margin:0 0 4px;display:flex;justify-content:space-between}.mes h2 small{font-size:11px;color:#555;font-weight:400}.verde{color:#1f9d55}.verm{color:#e10600}.lgpd{margin-top:10px;font-size:9px;color:#777;border-top:1px solid #ddd;padding-top:6px}</style></head><body>'+
+    '<div class="cab"><div><h1>Grupo ILED · <span>Admitidos e desligados</span></h1><p>'+esc(movFiltroTxt())+' · admitidos pela data de admissão; desligados pela aba Rescisões · turnover = ((adm. + desl.) ÷ 2) ÷ quadro médio</p></div><div class="q"><b class="a">+'+C.adm.length+'</b> admitidos &nbsp; <b class="d">−'+C.des.length+'</b> desligados<br>gerado em '+esc(quando)+(por?' por '+esc(por):'')+'</div></div>'+
+    '<h2>Resumo mês a mês</h2><table><thead><tr>'+colR.map(function(k){ return '<th class="'+(k==='Mês'?'':'n')+'">'+esc(k)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+    linR.map(function(r){ return '<tr>'+colR.map(function(k){ var v=r[k]; if(moeda.indexOf(k)>=0) return '<td class="n">'+(v?esc(moedaBR(v)):'—')+'</td>'; if(k==='Saldo') v=movSinal(v); if(k==='Turnover (%)') v=movPct(v); return '<td'+(k==='Mês'?'':' class="n"')+'>'+esc(v)+'</td>'; }).join('')+'</tr>'; }).join('')+
+    '</tbody><tfoot><tr><td>Total</td><td class="n">'+C.adm.length+'</td><td class="n">'+C.des.length+'</td><td class="n">'+movSinal(C.adm.length-C.des.length)+'</td><td></td><td class="n">'+Math.round(C.tot.med*10)/10+'</td><td class="n">'+movPct(C.tot.turn)+'</td>'+(V?'<td class="n">'+esc(moedaBR(C.res.reduce(function(s,r){ return s+r.salA; },0)))+'</td><td class="n">'+esc(moedaBR(C.res.reduce(function(s,r){ return s+r.salD; },0)))+'</td>'+(temR?'<td class="n">'+esc(moedaBR(C.tot.custo))+'</td><td class="n">'+(C.tot.prov?esc(moedaBR(C.tot.prov)):'—')+'</td>':''):'')+'</tr></tfoot></table>'+
+    (C.mot.n?'<h2>Por que saíram</h2><table><thead><tr>'+colM.map(function(k){ return '<th'+(k==='Motivo'||k==='Grupo'?'':' class="n"')+'>'+esc(k)+'</th>'; }).join('')+'</tr></thead><tbody>'+
+      linM.map(function(r){ return '<tr>'+colM.map(function(k){ var v=r[k]; if(k==='Custo das rescisões') return '<td class="n">'+(v?esc(moedaBR(v)):'')+'</td>'; if(k==='% dos desligamentos'&&v!==undefined) v=(v+'').replace('.',',')+'%'; return '<td'+(k==='Motivo'||k==='Grupo'?'':' class="n"')+'>'+esc(v==null?'':v)+'</td>'; }).join('')+'</tr>'; }).join('')+'</tbody></table>':'')+
+    (C.porE.length?'<h2>Por empresa (entradas / saídas)</h2><table><thead><tr><th>Empresa</th>'+C.ms.map(function(m){ return '<th class="n">'+mesCurto(m)+'</th>'; }).join('')+'<th class="n">Total</th><th class="n">Turnover</th></tr></thead><tbody>'+
+      C.porE.map(function(e){ return '<tr><td><b>'+esc(e.e)+'</b></td>'+e.l.map(function(x){ return '<td class="n">'+(x.a||x.d?'<span class="verde">'+(x.a?'+'+x.a:'·')+'</span> / <span class="verm">'+(x.d?'−'+x.d:'·')+'</span>':'—')+'</td>'; }).join('')+'<td class="n"><b><span class="verde">'+movSinal(e.a)+'</span> / <span class="verm">'+movSinal(-e.d)+'</span></b></td><td class="n"><b>'+movPct(e.turn)+'</b></td></tr>'; }).join('')+'</tbody></table>':'')+
+    '<h2>Quem entrou e quem saiu, mês a mês</h2>'+
+    C.ms.slice().reverse().map(function(m){
+      var A=linA.filter(function(r){ return r['Mês']===nomeMes(m); }), D=linD.filter(function(r){ return r['Mês']===nomeMes(m); });
+      if(!A.length&&!D.length) return '';
+      return '<div class="mes"><h2>'+esc(nomeMes(m))+'<small><b class="verde">'+A.length+'</b> admitido(s) · <b class="verm">'+D.length+'</b> desligado(s)</small></h2>'+
+        (A.length?'<h3 class="verde">Admitidos</h3>'+tab(colA,A,'#1f9d55'):'')+(D.length?'<h3 class="verm">Desligados</h3>'+tab(colD,D,'#e10600'):'')+'</div>';
+    }).join('')+
+    '<div class="lgpd">🔒 Contém dados pessoais (LGPD). Uso interno, somente para a finalidade do setor. Não repassar nem deixar impresso à vista. Freelancers não entram neste relatório.</div>'+
+    '<script>window.onload=function(){ setTimeout(function(){ window.print(); },250); };<\/script></body></html>';
+  cxImprimirHtml(html);
+}
 
 /* ================= v13 · "Precisa de você" (prazos + tarefas num quadro só) ================= */
 var ABA_PRECISA='tudo';
