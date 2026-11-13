@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="09/11/2026 · v110">
-<meta name="central-novidades" content="🔄 Novo relatório de Admitidos e desligados no Painel de gestão: mês a mês ou um mês só, por empresa, com turnover, motivos dos desligamentos, saídas em até 90 dias e custo das rescisões — com Excel e PDF para o financeiro.">
+<meta name="central-versao" content="13/11/2026 · v114">
+<meta name="central-novidades" content="📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -4251,7 +4251,6 @@ function nmDescCompletaDe(base,per,ad){
   return t;
 }
 function nmDescCompleta(n){ return nmDescCompletaDe(nmDesc(n),nmPeriodo(n),nmAdic(n)); }
-function nmAdicTxt(n){ var a=nmAdic(n); return a?'+ '+moedaBR(a.v)+' de adicional'+(a.m?' ('+a.m+')':''):''; }
 // editor de valores na linha (base + adicional = total)
 function nmEditarValor(id){ NM.editVal=NM.editVal===id?null:id; desenharNotasMes(); setTimeout(function(){ var i=el('nmEB_'+id); if(i){ i.focus(); i.select(); } },40); }
 function nmTotEd(id,pre){ var b=nmNum(el(pre+'B_'+id).value)||0, a=nmNum(el(pre+'A_'+id).value)||0, t=el(pre+'T_'+id); if(t) t.textContent=moedaBR(b+a); }
@@ -4284,13 +4283,6 @@ function nmSalvarDescPadrao(pid,txt){
   NM.desc=NM.desc||{}; if(txt) NM.desc[pid]=txt; else delete NM.desc[pid];
   return sb.from('kv_store').upsert({storage_key:'nf-descricoes',shared:false,value:JSON.stringify(NM.desc),updated_at:new Date().toISOString()},{onConflict:'storage_key,shared'})
     .then(function(r){ if(r.error) throw r.error; });
-}
-function nmEditarDesc(id){ NM.editDesc=id; desenharNotasMes(); setTimeout(function(){ var i=el('nmD_'+id); if(i){ i.focus(); i.select(); } },40); }
-function nmGuardarDesc(id){
-  var n=nmNota(id), t=(el('nmD_'+id).value||'').trim(), pad=el('nmDP_'+id)&&el('nmDP_'+id).checked;
-  nmGravar(id,{descricao:t||null}).then(function(){ return pad?nmSalvarDescPadrao(n.colaborador_id,t):null; })
-    .then(function(){ NM.editDesc=null; aviso(pad?'Descrição salva e guardada como padrão de '+nomeCurto(nmPrest(n.colaborador_id).nome||'')+'.':'Descrição salva nesta nota.'); desenharNotasMes(); })
-    .catch(function(){ aviso('Não consegui salvar a descrição.',true); });
 }
 
 function nmId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -4384,20 +4376,7 @@ function nmGravar(id,patch){
     else if(patch.status&&NM.dados.pagas.indexOf(n)>=0){ NM.dados.pagas=NM.dados.pagas.filter(function(x){ return x.id!==id; }); NM.dados.abertas.push(n); }
   });
 }
-function nmCampo(id,campo,valor,inp){
-  var patch={}; patch[campo]=valor===''?null:valor;
-  nmGravar(id,patch).then(function(){ if(inp){ inp.classList.add('nm-ok'); setTimeout(function(){ inp.classList.remove('nm-ok'); },900); } nmTotais(); })
-    .catch(function(){ if(inp) inp.classList.add('nm-err'); });
-}
-function nmReceber(id){
-  var n=nmNota(id), num=(el('nmN_'+id).value||'').trim(), em=el('nmE_'+id).value, vi=el('nmV_'+id), val=vi?nmNum(vi.value):n.valor;
-  if(!num){ aviso('Digite o número da nota.'); el('nmN_'+id).focus(); return; }
-  if(n.tipo==='cache'&&!(val>0)){ aviso('Digite o valor do cachê.'); if(vi) vi.focus(); return; }
-  nmGravar(id,{numero:num,data_emissao:em||null,valor:val,status:'emitida'}).then(function(){ aviso('Nota recebida · agora está em "Recebidas".'); desenharNotasMes(); }).catch(function(){ aviso('Não salvou. Tente de novo.',true); });
-}
 function nmVoltarCobrar(id){ dialogo('Voltar esta nota para "Cobrar"? O número e a emissão são apagados.',{sim:function(){ nmGravar(id,{numero:null,data_emissao:null,status:'pendente'}).then(desenharNotasMes); }}); }
-function nmPagar(id){ nmGravar(id,{status:'paga',data_pagamento:hoje()}).then(function(){ aviso('Marcada como paga.'); desenharNotasMes(); }); }
-function nmDespagar(id){ dialogo('Desmarcar o pagamento desta nota? Ela volta para "No financeiro".',{sim:function(){ nmGravar(id,{status:'enviada',data_pagamento:null}).then(desenharNotasMes); }}); }
 function nmMais(id){ abrir('nf','notas'); quandoPronto('nf',function(){ try{ var w=janela('nf'); setTimeout(function(){ w.abrirModalNota(id); },300); }catch(e){} }); }
 /* v49 · período da prestação de serviço: do dia anterior ao vencimento (no mês anterior) até o vencimento.
    Ex.: vence 16/09 → serviço de 15/08 a 16/09. Usa o dia combinado na ficha (antes do ajuste de fim de semana). */
@@ -4447,8 +4426,6 @@ function nmWhatsFinanceiro(ids){
   aviso('Mensagem aberta no WhatsApp (e copiada). Escolha o grupo do financeiro.');
 }
 /* nmWhats (cobrança da NF): ver "MÓDULO · COBRANÇA DA NF" no fim do arquivo */
-function nmSel(id,on){ if(on) NM.sel[id]=1; else delete NM.sel[id]; nmTotais(); }
-function nmSelTodos(tipo){ NM.dados.abertas.filter(function(n){ return nmEtapa(n)==='rec'&&!n.travado&&(!tipo||n.tipo===tipo); }).forEach(function(n){ NM.sel[n.id]=1; }); desenharNotasMes(); }
 function nmDadosPag(n){
   var p=nmPrest(n.colaborador_id), c=NM.dados.fixos[p.id]||{};
   var banco=[c.banco,c.agencia?'ag. '+c.agencia:'',c.num_conta?'cc '+c.num_conta:''].filter(Boolean).join(' · ');
@@ -4489,22 +4466,6 @@ function nmPdfFinanceiro(notas,titulo){
   var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups para esta página.',true); return false; }
   w.document.open(); w.document.write(html); w.document.close(); return true;
 }
-function nmEnviarFinanceiro(){
-  var ns=NM.dados.abertas.filter(function(n){ return NM.sel[n.id]&&nmEtapa(n)==='rec'&&!n.travado; });
-  if(!ns.length){ aviso('Marque as notas que vão para o financeiro.'); return; }
-  if(!nmPdfFinanceiro(ns,'Notas fiscais para pagamento')) return;
-  setTimeout(function(){
-    dialogo('O PDF abriu em outra janela para imprimir ou salvar.\n\nMarcar estas '+ns.length+' nota(s) como enviadas ao financeiro?',{sim:function(){
-      var hj=hoje();
-      Promise.all(ns.map(function(n){ return nmGravar(n.id,{status:'enviada',data_envio:hj}); })).then(function(){ NM.sel={}; NM.aba='fin'; NM.lembrete=ns.map(function(n){ return n.id; }); aviso(ns.length+' nota(s) enviada(s) ao financeiro.'); desenharNotasMes(); })
-        .catch(function(){ aviso('Algumas notas não foram marcadas. Confira a lista.',true); desenharNotasMes(); });
-    }});
-  },600);
-}
-function nmReimprimir(data){
-  var ns=NM.dados.abertas.filter(function(n){ return nmEtapa(n)==='fin'&&(n.data_envio||'').slice(0,10)===data; });
-  if(ns.length) nmPdfFinanceiro(ns,'Notas fiscais para pagamento · envio de '+data.split('-').reverse().join('/'));
-}
 function nmNovaAvulsa(){
   var D=NM.dados, ops=D.lista.filter(function(p){ return !D.fixos[p.id]; }).sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||''); });
   if(!ops.length){ aviso('Nenhum freelancer ou avulso nas Notas. Use "Mais → Conferir quem falta".'); return; }
@@ -4519,129 +4480,18 @@ function nmCriarAvulsa(){
   sb.from('nf_notas').insert(n).then(function(r){ if(r.error) throw r.error; delete n.pdf_base64; NM.dados.abertas.push(n); el('nmAvulsaBox').classList.add('hidden'); NM.aba='cobrar'; desenharNotasMes(); })
     .catch(function(){ aviso('Não consegui criar a nota.',true); });
 }
-function nmTotais(){
-  var b=el('nmSelBar'); if(!b||!NM.dados) return;
-  var ns=NM.dados.abertas.filter(function(n){ return NM.sel[n.id]&&nmEtapa(n)==='rec'; }), t=0; ns.forEach(function(n){ t+=parseFloat(n.valor)||0; });
-  b.innerHTML='<span>'+(ns.length?ns.length+' selecionada(s) · <b>'+moedaBR(t)+'</b>':'Marque as notas que vão para o financeiro')+'</span>'+
-    '<button type="button" class="ind-bt on"'+(ns.length?'':' disabled')+' onclick="nmEnviarFinanceiro()">🖨 Gerar PDF e enviar ao financeiro</button>';
-}
-function nmCab(n){
-  var p=nmPrest(n.colaborador_id), c=NM.dados.fixos[p.id];
-  return '<span class="nm-q"><b>'+esc(p.nome||'—')+'</b><small>'+(n.tipo==='cache'?'<span class="nm-tp ca">Cachê</span>':'<span class="nm-tp sv">Serviço</span>')+' '+
-    esc(nomeMes((''+n.mes_referencia).slice(0,7)))+(c?'':' · freelancer/avulso')+(n.travado?' · 🔒 travada':'')+'</small></span>';
-}
-function nmPrazo(n){
-  if(!n.data_vencimento) return '<span class="nm-pz">sem vencimento</span>';
-  var d=diasAte(n.data_vencimento), cls=d<0?'crit':(d<=2?'urg':'');
-  var t=d<0?'venceu '+ddmm(n.data_vencimento):(d===0?'vence hoje':(d===1?'vence amanhã':'vence '+ddmm(n.data_vencimento)));
-  return '<span class="nm-pz '+cls+'">'+t+'</span>';
-}
-function nmLinhaCobrar(n){
-  var p=nmPrest(n.colaborador_id), c=NM.dados.fixos[p.id], dis=n.travado?' disabled':'';
-  var val=n.tipo==='cache'||n.valor==null?'<input class="nm-in" id="nmV_'+n.id+'" inputmode="decimal" placeholder="Valor R$" value="'+esc(nmMoeda(n.valor))+'"'+dis+'>':'<span class="nm-v">'+moedaBR(n.valor)+'</span>';
-  return '<div class="nm-r">'+nmCab(n)+'<span class="nm-vc">'+val+nmPrazo(n)+'</span>'+
-    '<input class="nm-in" id="nmN_'+n.id+'" placeholder="Nº da NF"'+dis+' onkeydown="if(event.key===\'Enter\')nmReceber(\''+n.id+'\')">'+
-    '<input class="nm-in" id="nmE_'+n.id+'" type="date" title="Data de emissão" value="'+hoje()+'"'+dis+'>'+
-    '<span class="nm-ac">'+(c&&soDig(c.telefone||'')?'<button type="button" class="nm-b wa" title="Cobrar no WhatsApp" onclick="nmWhats(\''+n.id+'\')">WhatsApp</button>':'')+
-    '<button type="button" class="nm-b pri" onclick="nmReceber(\''+n.id+'\')"'+dis+'>Chegou ✓</button>'+
-    '<button type="button" class="nm-mais" title="Mais opções" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></span></div>';
-}
-function nmLinhaRec(n){
-  var dis=n.travado?' disabled':'';
-  return '<div class="nm-r nm-rec"><input type="checkbox" class="nm-ck" aria-label="Selecionar" '+(NM.sel[n.id]?'checked':'')+dis+' onchange="nmSel(\''+n.id+'\',this.checked)">'+nmCab(n)+
-    '<span class="nm-vc"><input class="nm-in" inputmode="decimal" value="'+esc(nmMoeda(n.valor))+'"'+dis+' onchange="var v=nmNum(this.value);this.value=v==null?\'\':nmMoeda(v);nmCampo(\''+n.id+'\',\'valor\',v,this)">'+nmPrazo(n)+'</span>'+
-    '<input class="nm-in" value="'+esc(n.numero||'')+'"'+dis+' onchange="nmCampo(\''+n.id+'\',\'numero\',this.value.trim(),this)">'+
-    '<input class="nm-in" type="date" value="'+esc((n.data_emissao||'').slice(0,10))+'"'+dis+' onchange="nmCampo(\''+n.id+'\',\'data_emissao\',this.value,this)">'+
-    '<span class="nm-ac"><button type="button" class="nm-b" onclick="nmVoltarCobrar(\''+n.id+'\')">Voltar</button><button type="button" class="nm-mais" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></span></div>';
-}
-function nmLinhaFin(n){
-  return '<div class="nm-r nm-fin">'+nmCab(n)+'<span class="nm-vc"><span class="nm-v">'+moedaBR(n.valor||0)+'</span>'+nmPrazo(n)+'</span>'+
-    '<span class="nm-info">NF '+esc(n.numero||'—')+'</span><span class="nm-info">enviada '+esc(n.data_envio?ddmm(n.data_envio):'—')+'</span>'+
-    '<span class="nm-ac"><button type="button" class="nm-b ok" onclick="nmPagar(\''+n.id+'\')"'+(n.travado?' disabled':'')+'>Paga ✓</button><button type="button" class="nm-mais" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></span></div>';
-}
-function nmLinhaPaga(n){
-  return '<div class="nm-r nm-fin">'+nmCab(n)+'<span class="nm-vc"><span class="nm-v">'+moedaBR(n.valor||0)+'</span></span>'+
-    '<span class="nm-info">NF '+esc(n.numero||'—')+'</span><span class="nm-info">paga '+esc(n.data_pagamento?ddmm(n.data_pagamento):'—')+'</span>'+
-    '<span class="nm-ac"><button type="button" class="nm-b" onclick="nmDespagar(\''+n.id+'\')"'+(n.travado?' disabled':'')+'>Desfazer</button><button type="button" class="nm-mais" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></span></div>';
-}
-function desenharNotasMes(){
-  var bx=el('nmApp'); if(!bx||!NM.dados) return;
-  var D=NM.dados, q=chaveNome(NM.busca||'');
-  var filtra=function(l){ return l.filter(function(n){ return !q||chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)>=0; }).sort(function(a,b){ return (a.data_vencimento||'9')<(b.data_vencimento||'9')?-1:1; }); };
-  var cob=filtra(D.abertas.filter(function(n){ return nmEtapa(n)==='cobrar'; })), rec=filtra(D.abertas.filter(function(n){ return nmEtapa(n)==='rec'; })),
-      fin=filtra(D.abertas.filter(function(n){ return nmEtapa(n)==='fin'; })), pag=filtra(D.pagas);
-  var urg=cob.filter(function(n){ return n.data_vencimento&&diasAte(n.data_vencimento)<=2; });
-  if(!NM.aba) NM.aba=urg.length?'cobrar':(rec.length?'rec':'cobrar');
-  var totFin=0; fin.forEach(function(n){ totFin+=parseFloat(n.valor)||0; });
-  var aba=function(k,num,tit,sub,cls){ return '<button type="button" class="nm-aba'+(NM.aba===k?' on':'')+(cls?' '+cls:'')+'" onclick="NM.aba=\''+k+'\';desenharNotasMes()"><span>'+tit+'</span><b>'+num+'</b><small>'+sub+'</small></button>'; };
-  var h='<div class="nm-top"><div><h1>Notas fiscais</h1><p>Cobrar → receber e conferir → mandar ao financeiro → paga.</p></div></div>';
-  h+='<div class="nm-abas">'+aba('cobrar',cob.length,'① Cobrar',urg.length?urg.length+' para cobrar hoje':'nenhuma urgente',urg.length?'alerta':'')+
-     aba('rec',rec.length,'② Recebidas','conferir e mandar ao financeiro','')+aba('fin',fin.length,'③ No financeiro',fin.length?moedaBR(totFin)+' a pagar':'nada pendente','')+
-     aba('paga',pag.length,'Pagas',nomeMes(NM.mesPagas).toLowerCase(),'leve')+'</div>';
-  var err=nmVencErrados().length;
-  if(err) h+='<div class="nfst nfst-warn nm-av"><span>'+err+' nota(s) com vencimento diferente do dia combinado na ficha.</span><button type="button" class="ind-bt" onclick="nmCorrigirVenc()">Ver e corrigir</button></div>';
-  h+='<div class="nm-bar"><input class="nm-busca" placeholder="Buscar pelo nome" value="'+esc(NM.busca||'')+'" oninput="NM.busca=this.value;desenharNotasMes()">'+
-     '<button type="button" class="ind-bt" onclick="nmNovaAvulsa()">+ Nota de freelancer ou avulsa</button>'+
-     '<details class="cx-mais"><summary>Mais ▾</summary><div class="cx-menu">'+
-     '<button onclick="nmCriarAnterior()">Criar as notas da equipe de '+esc(nomeMes(nmSomaMes(nmMesAtual(),-1)).toLowerCase())+'</button>'+
-     '<button onclick="sincronizarNF(true)">Conferir quem falta nas Notas</button><button onclick="abrir(\'nf\',\'notas\')">Sistema completo (PDF, backup)</button></div></details></div>';
-  h+='<div class="nm-av hidden" id="nmAvulsaBox"><div class="nfst nfst-cz"><select id="nmAvulsa" class="nm-in"></select><select id="nmAvulsaTipo" class="nm-in"><option value="cache">Cachê</option><option value="servico">Serviço</option></select>'+
-     '<input type="month" id="nmAvulsaMes" class="nm-in"><button type="button" class="ind-bt on" onclick="nmCriarAvulsa()">Criar nota</button><button type="button" class="ind-bt" onclick="el(\'nmAvulsaBox\').classList.add(\'hidden\')">Cancelar</button></div></div>';
-  var vazio=function(t){ return '<div class="nm-vazio">'+(q?'Ninguém com esse nome nesta etapa.':t)+'</div>'; };
-  if(NM.aba==='cobrar'){
-    var prox=cob.filter(function(n){ return urg.indexOf(n)<0; });
-    h+='<div class="nm-sec"><h2>Cobrar hoje</h2><p>Vencem em até 2 dias (ou já venceram) e a nota ainda não chegou. Toque em WhatsApp para cobrar. Quando chegar, digite o número e toque em "Chegou".</p>'+
-       (urg.length?'<div class="nm-lista">'+urg.map(nmLinhaCobrar).join('')+'</div>':vazio('Ninguém para cobrar hoje.'))+'</div>';
-    h+='<div class="nm-sec"><h2>Próximas</h2><p>Ainda não chegaram, mas o vencimento não está perto.</p>'+(prox.length?'<div class="nm-lista">'+prox.map(nmLinhaCobrar).join('')+'</div>':vazio('Nada por aqui.'))+'</div>';
-  } else if(NM.aba==='rec'){
-    var nCa=rec.filter(function(n){ return n.tipo==='cache'; }).length;
-    h+='<div class="nm-sec"><h2>Recebidas · conferir e mandar ao financeiro</h2><p>Confira número, valor e emissão. Marque as que vão juntas e gere o PDF para o financeiro.</p>';
-    if(rec.length){
-      h+='<div class="nm-bar" style="margin:0 0 8px">'+(nCa?'<button type="button" class="ind-bt" onclick="nmSelTodos(\'cache\')">Selecionar todos os cachês ('+nCa+')</button>':'')+'<button type="button" class="ind-bt" onclick="nmSelTodos()">Selecionar todas</button><button type="button" class="ind-bt" onclick="NM.sel={};desenharNotasMes()">Limpar</button></div>';
-      h+='<div class="nm-lista"><div class="nm-r nm-rec nm-cab"><span></span><span>Prestador</span><span>Valor</span><span>Nº da NF</span><span>Emissão</span><span></span></div>'+rec.map(nmLinhaRec).join('')+'</div><div class="nm-selbar" id="nmSelBar"></div>';
-    } else h+=vazio('Nenhuma nota recebida esperando envio.');
-    h+='</div>';
-  } else if(NM.aba==='fin'){
-    var envios={}; fin.forEach(function(n){ var d=(n.data_envio||'').slice(0,10)||'sem data'; (envios[d]=envios[d]||[]).push(n); });
-    h+='<div class="nm-sec"><h2>No financeiro · aguardando pagamento</h2><p>Quando o financeiro pagar, toque em "Paga".</p>';
-    if(!fin.length) h+=vazio('Nada aguardando pagamento.');
-    Object.keys(envios).sort().reverse().forEach(function(d){
-      var t=0; envios[d].forEach(function(n){ t+=parseFloat(n.valor)||0; });
-      h+='<div class="nm-grupo"><span>Envio de <b>'+(d==='sem data'?d:esc(d.split('-').reverse().join('/')))+'</b> · '+envios[d].length+' nota(s) · '+moedaBR(t)+'</span>'+(d!=='sem data'?'<button type="button" class="ind-bt" onclick="nmReimprimir(\''+d+'\')">🖨 Imprimir de novo</button>':'')+'</div>'+
-         '<div class="nm-lista">'+envios[d].map(nmLinhaFin).join('')+'</div>';
-    });
-    h+='</div>';
-  } else {
-    h+='<div class="nm-sec"><div class="nm-mes"><button type="button" class="ind-bt" aria-label="Mês anterior" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,-1);carregarNotasMes()">‹</button><div><b>'+esc(nomeMes(NM.mesPagas))+'</b><small>notas pagas deste mês de referência</small></div><button type="button" class="ind-bt" aria-label="Próximo mês" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,1);carregarNotasMes()">›</button></div>'+
-       (pag.length?'<div class="nm-lista">'+pag.map(nmLinhaPaga).join('')+'</div>':vazio('Nenhuma nota paga neste mês de referência.'))+'</div>';
-  }
-  bx.innerHTML=h; nmTotais();
-  var bi=bx.querySelector('.nm-busca'); if(bi&&NM.busca){ bi.focus(); bi.setSelectionRange(bi.value.length,bi.value.length); }
-}
 
 /* ================= v40 · NOTAS EM DUAS TRILHAS =================
    🧾 Prestação de serviço: cada PJ tem o seu dia; a nota chega 1 dia antes; valor sempre o mesmo.
    🎤 Cachê: conferido no último dia do mês de referência e pago no dia 01 do mês seguinte (em lote).
    Fluxo: chegou a nota → mando ao financeiro → paga. */
 NM.trilha=NM.trilha||'servico'; NM.mesCache=NM.mesCache||'';
-function nmMesCachePadrao(){ var hj=hoje(), m=hj.slice(0,7), d=+hj.slice(8,10); return d>=20?m:nmSomaMes(m,-1); }
 function nmUltimoDia(M){ var y=+M.slice(0,4), mm=+M.slice(5,7); return M+'-'+String(new Date(y,mm,0).getDate()).padStart(2,'0'); }
 function nmLerPdf(id){
   var f=el('nmF_'+id)&&el('nmF_'+id).files[0];
   if(!f) return Promise.resolve(null);
   if(f.size>4*1024*1024){ aviso('O PDF passa de 4 MB. Comprima antes de anexar.',true); return Promise.reject('grande'); }
   return new Promise(function(ok,no){ var r=new FileReader(); r.onload=function(){ ok({b64:r.result,nome:f.name}); }; r.onerror=no; r.readAsDataURL(f); });
-}
-function nmChecar(id){
-  var n=nmNota(id), em=el('nmE_'+id)&&el('nmE_'+id).value, esp=nmEmissaoEsperada(n), vi=el('nmV_'+id), val=vi?nmNum(vi.value):n.valor;
-  var e=nmEsperado(n), fp=el('nmF_'+id)&&el('nmF_'+id).files[0];
-  var va=el('nmVA_'+id)?(nmNum(el('nmVA_'+id).value)||0):0, vm=el('nmVM_'+id)?el('nmVM_'+id).value.trim():'';
-  if(el('nmVT_'+id)) el('nmVT_'+id).textContent=moedaBR((val||0)+va);
-  if(el('nmDV_'+id)) el('nmDV_'+id).textContent='Vai na nota: '+nmDescCompletaDe(el('nmD_'+id).value,nmPeriodo(n),va>0?{v:va,m:vm}:null);
-  var set=function(k,st,txt){ var x=el('nmCk'+k+'_'+id); if(x){ x.className='nm-ck-i ck-'+st; x.querySelector('i').textContent=txt; } };
-  set('D', !esp?'ok':(em===esp?'ok':'dif'), !esp?'cachê: data livre':(em===esp?'igual ao pagamento ('+ddmm(esp)+')':'⚠ deveria ser '+ddmm(esp)+' (data do pagamento)'));
-  set('V', !(val>0)?'dif':(!e?'ok':(Math.abs(val-e.v)<0.01?'ok':'dif')), !(val>0)?'informe o valor':(!e?moedaBR(val):(Math.abs(val-e.v)<0.01?'confere com o '+e.de:'⚠ '+moedaBR(val)+' · esperado '+moedaBR(e.v))));
-  set('P', fp?'ok':'pend', fp?fp.name:'opcional, mas recomendado');
 }
 /* ================= v50 · LEITURA AUTOMÁTICA DO PDF DA NOTA + DUPLICIDADE =================
    Ao anexar o PDF (NFS-e padrão nacional ou municipal), o sistema lê o texto e tenta achar:
@@ -4659,102 +4509,9 @@ function nmPdfLib(){
   });
   return NM._pdfP;
 }
-function nmTextoPdf(file){
-  return file.arrayBuffer().then(function(buf){ return nmPdfLib().then(function(lib){ return lib.getDocument({data:new Uint8Array(buf)}).promise; }); })
-    .then(function(pdf){
-      var pags=[]; for(var i=1;i<=Math.min(pdf.numPages,3);i++) pags.push(pdf.getPage(i).then(function(pg){ return pg.getTextContent(); }));
-      return Promise.all(pags);
-    }).then(function(cs){
-      // monta linhas pela posição (y), em ordem de leitura
-      var linhas=[]; NM._itens=[];
-      cs.forEach(function(c,pi){
-        c.items.forEach(function(it){ if(it.str&&it.str.trim()) NM._itens.push({s:it.str.trim(),x:it.transform[4],y:it.transform[5],p:pi}); });
-        var por={}; c.items.forEach(function(it){ if(!it.str||!it.str.trim()) return; var y=Math.round(it.transform[5]/3)*3; (por[y]=por[y]||[]).push(it); });
-        Object.keys(por).map(Number).sort(function(a,b){ return b-a; }).forEach(function(y){ linhas.push(por[y].sort(function(a,b){ return a.transform[4]-b.transform[4]; }).map(function(it){ return it.str.trim(); }).join(' ')); });
-      });
-      return linhas;
-    });
-}
 function nmSoDig(t){ return String(t||'').replace(/\D/g,''); }
 // valor que fica logo ABAIXO do rótulo (layout em quadros, como o DANFSe) ou à direita na mesma linha
-function nmPerto(itens,rot,re){
-  var achou=null;
-  itens.some(function(l){
-    if(!rot.test(l.s)) return false;
-    var resto=l.s.replace(rot,''), m=resto.match(re); if(m){ achou=m[1]; return true; }
-    var cand=itens.filter(function(o){ return o.p===l.p&&o!==l&&((o.y<l.y-1&&o.y>l.y-34&&Math.abs(o.x-l.x)<45)||(Math.abs(o.y-l.y)<2&&o.x>l.x&&o.x-l.x<260)); })
-      .sort(function(a,b){ var da=Math.abs(a.y-l.y)<2?0:1, db=Math.abs(b.y-l.y)<2?0:1; return da-db||(b.y-a.y)||(a.x-b.x); });
-    cand.some(function(o){ var x=o.s.match(re); if(x){ achou=x[1]; return true; } return false; });
-    return !!achou;
-  });
-  return achou;
-}
-function nmLerNota(linhas){
-  var txt=linhas.join('\n'), plano=linhas.join(' ').replace(/\s+/g,' '), IT=NM._itens||[];
-  var r={}, m;
-  var dinheiro=function(s){ return s?parseFloat(s.replace(/\./g,'').replace(',','.')):null; };
-  var depois=function(rot,re,alcance){ // procura o valor logo depois do rótulo (mesma linha ou linhas seguintes)
-    var i=plano.search(rot); if(i<0) return null; var trecho=plano.slice(i,i+(alcance||160)).replace(rot,''); var x=trecho.match(re); return x?x[1]:null; };
-  var DT=/(\d{2}\/\d{2}\/\d{4})/, VAL=/R?\$?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/, NUM=/(?:n[º°o.]*\s*)?[:\-]?\s*(\d{1,15})\b/i;
-  var NUMp=/^\s*(?:n[º°o.]*\s*)?(\d{1,15})\s*$/i, DTp=/(\d{2}\/\d{2}\/\d{4})/, VALp=/(\d{1,3}(?:\.\d{3})*,\d{2})/;
-  r.numero=nmPerto(IT,/n[úu]mero\s+da\s+nfs-?e/i,NUMp)||nmPerto(IT,/n[úu]mero\s+da\s+nota/i,NUMp)||depois(/n[úu]mero\s+da\s+nfs-?e/i,NUM)||depois(/n[úu]mero\s+da\s+nota/i,NUM)||depois(/nfs-?e\s*n[º°o.]/i,NUM,40)||depois(/nota\s+fiscal\s*(?:eletr[ôo]nica\s*)?(?:de\s+servi[çc]os?\s*)?n[º°o.]/i,NUM,60)||depois(/\bn[úu]mero\b/i,NUM,40);
-  if(r.numero) r.numero=String(parseInt(r.numero,10));
-  var em=nmPerto(IT,/data\s+e\s+hora\s+da\s+emiss[ãa]o|data\s+(?:de\s+)?emiss[ãa]o/i,DTp)||depois(/data\s+e\s+hora\s+da\s+emiss[ãa]o/i,DT)||depois(/data\s+(?:de\s+)?emiss[ãa]o/i,DT)||depois(/emitida\s+em/i,DT)||depois(/emiss[ãa]o/i,DT);
-  if(em) r.emissao=em.split('/').reverse().join('-');
-  var cp=nmPerto(IT,/compet[êe]ncia/i,/(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/)||depois(/compet[êe]ncia/i,/(\d{2}\/\d{2}\/\d{4}|\d{2}\/\d{4})/); if(cp) r.competencia=cp;
-  var vl=nmPerto(IT,/valor\s+l[íi]quido/i,VALp)||depois(/valor\s+l[íi]quido/i,VAL)||depois(/valor\s+(?:total\s+)?(?:do|dos)\s+servi[çc]os?/i,VAL)||depois(/valor\s+total\s+da\s+nota/i,VAL)||depois(/valor\s+total/i,VAL);
-  if(vl) r.valor=dinheiro(vl);
-  var vb=nmPerto(IT,/valor\s+(?:total\s+)?(?:do|dos)\s+servi[çc]os?/i,VALp)||depois(/valor\s+(?:total\s+)?(?:do|dos)\s+servi[çc]os?/i,VAL); if(vb) r.bruto=dinheiro(vb);
-  // CNPJs na ordem em que aparecem; o tomador costuma vir depois do prestador/emitente
-  var cnpjs=[]; (plano.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g)||[]).forEach(function(c){ c=nmSoDig(c); if(c.length===14&&cnpjs.indexOf(c)<0) cnpjs.push(c); });
-  r.cnpjs=cnpjs;
-  var iTom=plano.search(/tomador/i), iPre=plano.search(/prestador|emitente/i);
-  var cnpjApos=function(i){ if(i<0) return null; var x=plano.slice(i,i+600).match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/); return x?nmSoDig(x[0]):null; };
-  r.cnpjTomador=cnpjApos(iTom); r.cnpjPrestador=cnpjApos(iPre);
-  var ds=nmPerto(IT,/discrimina[çc][ãa]o\s+(?:dos\s+)?servi[çc]os?|descri[çc][ãa]o\s+do\s+servi[çc]o/i,/^(.{6,200})$/)||depois(/discrimina[çc][ãa]o\s+(?:dos\s+)?servi[çc]os?|descri[çc][ãa]o\s+do\s+servi[çc]o/i,/[:\-]?\s*(.{6,160}?)(?:\s{2,}|valor|tributos|$)/i,260);
-  if(ds) r.descricao=ds.trim();
-  r.temTexto=plano.replace(/\s/g,'').length>40;
-  return r;
-}
 function nmPdfLido(id){ return (NM.lidos||{})[id]||null; }
-function nmAoEscolherPdf(id){
-  nmChecar(id);
-  var f=el('nmF_'+id)&&el('nmF_'+id).files[0], box=el('nmLeit_'+id); if(!f||!box) return;
-  NM.lidos=NM.lidos||{}; delete NM.lidos[id];
-  if(!/pdf/i.test(f.type)&&!/\.pdf$/i.test(f.name)){ box.innerHTML='<span class="nm-lt-tt">📎 Imagem anexada · leitura automática só funciona com PDF. Confira manualmente.</span>'; return; }
-  box.innerHTML='<span class="nm-lt-tt">🔎 Lendo a nota…</span>';
-  nmTextoPdf(f).then(function(linhas){
-    var r=nmLerNota(linhas); NM.lidos[id]=r;
-    var n=nmNota(id), p=nmPrest(n.colaborador_id), t=nmTomador(n);
-    if(!r.temTexto){ box.innerHTML='<span class="nm-lt-tt">📷 Este PDF é uma imagem (nota escaneada) · não há texto para ler. Confira manualmente.</span>'; return; }
-    var preenchidos=[];
-    var iN=el('nmN_'+id), iE=el('nmE_'+id), iV=el('nmV_'+id), iD=el('nmD_'+id);
-    if(r.numero&&iN&&!iN.value.trim()){ iN.value=r.numero; preenchidos.push('número'); }
-    if(r.emissao&&iE&&iE.value!==r.emissao){ iE.value=r.emissao; preenchidos.push('data de emissão'); }
-    var vAdL=el('nmVA_'+id)?(nmNum(el('nmVA_'+id).value)||0):0;
-    var totInf=(nmNum(iV&&iV.value)||0)+vAdL, totDif=r.valor&&totInf>0&&Math.abs(totInf-r.valor)>=0.01;
-    if(r.valor&&iV&&!(nmNum(iV.value)>0)){ iV.value=nmMoeda(Math.round((r.valor-vAdL)*100)/100); preenchidos.push('valor'); totDif=false; }
-    var per=nmPeriodo(n), perOk=null;
-    if(per){ var a1=per.ini.split('-').reverse().join('/'), a2=per.fim.split('-').reverse().join('/'), pl=(linhas||[]).join(' ');
-      perOk=(pl.indexOf(a1)>=0||pl.indexOf(a1.slice(0,5))>=0)&&(pl.indexOf(a2)>=0||pl.indexOf(a2.slice(0,5))>=0); }
-    var cTom=nmSoDig(t.cnpj), cPre=nmSoDig(p.doc);
-    var tomOk=cTom?(r.cnpjTomador===cTom||r.cnpjs.indexOf(cTom)>=0):null;
-    var preOk=cPre.length===14?(r.cnpjPrestador===cPre||r.cnpjs.indexOf(cPre)>=0):null;
-    var it=function(ok,txt){ return '<span class="nm-lt-i '+(ok===true?'ck-ok':(ok===false?'ck-dif':'ck-pend'))+'">'+(ok===true?'✓':(ok===false?'⚠':'•'))+' '+txt+'</span>'; };
-    var h='<span class="nm-lt-tt">🤖 Lido do PDF'+(preenchidos.length?' · preenchi: '+preenchidos.join(', '):'')+'</span>';
-    h+=it(r.numero?true:null,'Nº '+(r.numero?'<b>'+esc(r.numero)+'</b>':'não encontrado'));
-    h+=it(r.emissao?true:null,'Emissão '+(r.emissao?'<b>'+ddmm(r.emissao)+'/'+r.emissao.slice(0,4)+'</b>':'não encontrada')+(r.competencia?' · competência '+esc(r.competencia):''));
-    h+=it(r.valor?(totDif?false:true):null,'Total '+(r.valor?'<b>'+moedaBR(r.valor)+'</b>'+(totDif?' · <b>diferente do informado ('+moedaBR(totInf)+')</b>':'')+(r.bruto&&Math.abs(r.bruto-r.valor)>=0.01?' (bruto '+moedaBR(r.bruto)+' · há retenção)':''):'não encontrado'));
-    h+=it(tomOk,'Tomador '+(tomOk===true?'<b>'+esc(t.nome||'')+'</b> confere':(tomOk===false?'<b>CNPJ diferente</b> de '+esc(t.nome||'')+' ('+esc(t.cnpj||'')+')':'sem CNPJ cadastrado para comparar')));
-    if(per) h+=it(perOk,'Descrição '+(perOk?'com o período <b>'+ddmm(per.ini)+' a '+ddmm(per.fim)+'</b>':'<b>sem o período '+ddmm(per.ini)+' a '+ddmm(per.fim)+'</b>'));
-    h+=it(preOk,'Prestador '+(preOk===true?'CNPJ confere com a ficha':(preOk===false?'<b>CNPJ diferente</b> da ficha ('+esc(p.doc||'')+')':'sem CNPJ na ficha para comparar')));
-    box.innerHTML=h;
-    // marca os itens manuais quando o PDF confirma
-    if(tomOk===true&&el('nmCT_'+id)) el('nmCT_'+id).checked=true;
-    if(tomOk===false&&el('nmCT_'+id)) el('nmCT_'+id).checked=false;
-    nmChecar(id); nmChecarDuplicada(id);
-  }).catch(function(){ box.innerHTML='<span class="nm-lt-tt">⚠ Não consegui ler este PDF agora (sem internet ou arquivo protegido). Confira manualmente.</span>'; });
-}
 /* ---- duplicidade: mesmo número de NF do mesmo prestador, ou outra nota já registrada no mesmo mês ---- */
 function nmDuplicadas(id,num){
   var n=nmNota(id); if(!n) return Promise.resolve([]);
@@ -4774,16 +4531,6 @@ function nmDupTexto(n,lista,num){
     return (mesmoNum?'A NF '+x.numero+' já foi lançada':'Já existe a NF '+x.numero)+' para '+nomeCurto(nmPrest(n.colaborador_id).nome||'')+' ('+(x.tipo==='cache'?'cachê':'serviço')+' de '+nomeMes((''+x.mes_referencia).slice(0,7)).toLowerCase()+', '+st+').';
   });
 }
-function nmChecarDuplicada(id){
-  var box=el('nmDup_'+id), num=el('nmN_'+id)?el('nmN_'+id).value.trim():''; if(!box) return;
-  clearTimeout(NM._dupT);
-  NM._dupT=setTimeout(function(){
-    nmDuplicadas(id,num).then(function(l){
-      var n=nmNota(id);
-      box.innerHTML=l.length?'<span class="nm-dup">🚫 Possível duplicidade · '+esc(nmDupTexto(n,l,num).join(' '))+'</span>':(num?'<span class="nm-dup ok">✓ Nenhuma outra nota com este número para este prestador</span>':'');
-    });
-  },350);
-}
 
 /* ===================== v51 · ANOTAÇÕES + RECIBO DE PAGAMENTO E QUITAÇÃO =====================
    • Anotação por nota (coluna obs da nf_notas) e particularidade fixa por prestador (kv 'nf-anotacoes').
@@ -4800,26 +4547,6 @@ function kvLer(chave,padrao){
     .then(function(r){ try{ return r&&r.data&&r.data.value?JSON.parse(r.data.value):padrao; }catch(e){ return padrao; } },function(){ return padrao; });
 }
 /* ---------- anotações ---------- */
-function nmPart(pid){ return ((NM.part||{})[pid]||'').trim(); }
-function nmEditarObs(id){ NM.editObs=NM.editObs===id?null:id; desenharNotasMes(); setTimeout(function(){ var i=el('nmO_'+id); if(i) i.focus(); },40); }
-function nmGuardarObs(id){
-  var n=nmNota(id), o=(el('nmO_'+id).value||'').trim(), pt=(el('nmOP_'+id).value||'').trim();
-  var ps=[nmGravar(id,{obs:o||null})];
-  if(pt!==nmPart(n.colaborador_id)){ NM.part=NM.part||{}; if(pt) NM.part[n.colaborador_id]=pt; else delete NM.part[n.colaborador_id]; ps.push(kvSalvar('nf-anotacoes',NM.part)); }
-  Promise.all(ps).then(function(){ NM.editObs=null; aviso('Anotação salva.'); desenharNotasMes(); }).catch(function(){ aviso('Não consegui salvar a anotação.',true); });
-}
-function nmObsHtml(n){
-  var p=nmPrest(n.colaborador_id), part=nmPart(n.colaborador_id), o=(n.obs||'').trim();
-  if(NM.editObs===n.id) return '<div class="nm-obsed">'+
-    '<label>🗒 Anotação desta nota<textarea class="nm-in" id="nmO_'+n.id+'" rows="2" placeholder="Ex.: pediu para pagar na conta da esposa este mês; nota vai sair com atraso…">'+esc(o)+'</textarea></label>'+
-    '<label>📌 Particularidade de '+esc(nomeCurto(p.nome||''))+' <small>(aparece em todos os meses)</small><textarea class="nm-in" id="nmOP_'+n.id+'" rows="2" placeholder="Ex.: emite pelo contador; só manda nota depois das 18h…">'+esc(part)+'</textarea></label>'+
-    '<span class="nm-fbt"><button type="button" class="nm-b pri" onclick="nmGuardarObs(\''+n.id+'\')">Salvar anotação</button><button type="button" class="nm-b" onclick="NM.editObs=null;desenharNotasMes()">Cancelar</button></span></div>';
-  var h='';
-  if(part) h+='<button type="button" class="nm-obs pt" title="Particularidade do prestador · clique para editar" onclick="nmEditarObs(\''+n.id+'\')">📌 '+esc(part)+'</button>';
-  if(o) h+='<button type="button" class="nm-obs" title="Anotação desta nota · clique para editar" onclick="nmEditarObs(\''+n.id+'\')">🗒 '+esc(o)+'</button>';
-  if(!part&&!o) h+='<button type="button" class="nm-obs vz" onclick="nmEditarObs(\''+n.id+'\')">🗒 anotar</button>';
-  return h;
-}
 /* ---------- valor por extenso ---------- */
 function porExtenso(v){
   v=Math.round((parseFloat(v)||0)*100)/100;
@@ -4991,16 +4718,6 @@ function nmReciboDaNotaAbrir(id){
     pix:dp.pix||dp.banco,pixFonte:dp.fonte,dataPag:venc,prazoNF:isoLocal(pz),obs:(n.obs||'')});
 }
 // registrar a NF que chegou depois do recibo
-function nmRegNF(id){ NM.regNF=NM.regNF===id?null:id; desenharNotasMes(); setTimeout(function(){ var i=el('nmRN_'+id); if(i) i.focus(); },40); }
-function nmSalvarRegNF(id){
-  var num=(el('nmRN_'+id).value||'').trim(), em=el('nmRE_'+id).value; if(!num){ aviso('Digite o número da NF.'); return; }
-  nmDuplicadas(id,num).then(function(d){
-    var ir=function(){ nmGravar(id,{numero:num,data_emissao:em||null}).then(function(){
-      var l=recLista(); l.forEach(function(r){ if(r.notaId===id){ r.nfRecebida=true; r.nfNum=num; r.nfEm=new Date().toISOString(); } });
-      return kvSalvar('recibos-quitacao',l); }).then(function(){ NM.regNF=null; aviso('NF '+num+' registrada. Recibo regularizado.'); desenharNotasMes(); }).catch(function(){ aviso('Não salvou.',true); }); };
-    if(d.length) dialogo('🚫 POSSÍVEL NOTA DUPLICADA\n'+nmDupTexto(nmNota(id),d,num).join('\n')+'\n\nSalvar mesmo assim?',{sim:ir}); else ir();
-  });
-}
 function recPendentesNF(){ return recLista().filter(function(r){ return r.notaId&&!r.nfRecebida; }); }
 /* ===== Recibos: limite sem NF, motivo e envio para assinatura ===== */
 var REC_MOTIVOS=['MEI irregular / com pendência','Sistema da prefeitura fora do ar','Ainda sem cadastro de emissor de NF','Atraso do prestador','Outro'];
@@ -5143,92 +4860,6 @@ function nmReceberEnviar(id){
     if(avisos.length) dialogo(avisos.join('\n\n')+'\n\nSalvar mesmo assim?',{sim:seguir}); else seguir();
   });
 }
-function nmMandarUma(id){ var n=nmNota(id); if(!n) return; if(!nmPdfFinanceiro([n],'Nota fiscal para pagamento')) return; nmGravar(id,{status:'enviada',data_envio:hoje()}).then(function(){ NM.lembrete=[id]; aviso('Mandada ao financeiro.'); desenharNotasMes(); }); }
-function nmLoteCache(M){
-  var ns=NM.dados.abertas.filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===M&&nmEtapa(n)==='rec'&&!n.travado; });
-  if(!ns.length){ aviso('Nenhum cachê recebido esperando envio.'); return; }
-  if(!nmPdfFinanceiro(ns,'Cachês de '+nomeMes(M).toLowerCase()+' · pagamento em '+ddmm(nmVenc(M,1)))) return;
-  setTimeout(function(){ dialogo('O PDF do lote abriu em outra janela.\n\nMarcar os '+ns.length+' cachê(s) como mandados ao financeiro?',{sim:function(){
-    Promise.all(ns.map(function(n){ return nmGravar(n.id,{status:'enviada',data_envio:hoje()}); })).then(function(){ aviso('Lote de cachês mandado ao financeiro.'); desenharNotasMes(); });
-  }}); },600);
-}
-function nmPagarLote(M){
-  var ns=NM.dados.abertas.filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===M&&nmEtapa(n)==='fin'&&!n.travado; });
-  if(!ns.length) return;
-  dialogo('Marcar os '+ns.length+' cachê(s) do lote como pagos?',{sim:function(){ Promise.all(ns.map(function(n){ return nmGravar(n.id,{status:'paga',data_pagamento:hoje()}); })).then(function(){ aviso('Lote marcado como pago.'); desenharNotasMes(); }); }});
-}
-function nmStatusPill(n){
-  var e=nmEtapa(n);
-  if(e==='fin') return '<span class="nm-pill fin">No financeiro · '+(n.data_envio?ddmm(n.data_envio):'')+'</span>';
-  if(e==='rec') return '<span class="nm-pill rec">Recebida · NF '+esc(n.numero||'')+'</span>';
-  if(e==='paga') return '<span class="nm-pill ok">Paga</span>';
-  return '<span class="nm-pill esp">Aguardando nota</span>';
-}
-function nmLinhaServico(n){
-  var p=nmPrest(n.colaborador_id), c=NM.dados.fixos[p.id], e=nmEtapa(n), dis=n.travado?' disabled':'';
-  var venc=n.data_vencimento, emitirAte=venc?(function(){ var d=new Date(venc.slice(0,10)+'T12:00:00'); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); })():'';
-  var dd=emitirAte?diasAte(emitirAte):null, urg=e==='cobrar'&&dd!==null&&dd<=1;
-  var prazo=e==='cobrar'?(emitirAte?'<span class="nm-pz '+(dd<0?'crit':(urg?'urg':''))+'">'+(dd<0?'NF atrasada · era até '+ddmm(emitirAte):(dd===0?'NF tem que chegar hoje':(dd===1?'NF chega amanhã':'NF até '+ddmm(emitirAte))))+'</span>':''):'<span class="nm-pz">paga em '+(venc?ddmm(venc):'—')+'</span>';
-  var acao;
-  if(e==='cobrar') acao='<div class="nm-rcv"><input class="nm-in" id="nmN_'+n.id+'" placeholder="Nº da NF"'+dis+' onkeydown="if(event.key===\'Enter\')nmReceberEnviar(\''+n.id+'\')"><input class="nm-in" id="nmE_'+n.id+'" type="date" value="'+hoje()+'"'+dis+'>'+
-      '<label class="nm-x"><input type="checkbox" id="nmX_'+n.id+'" checked> já mandar ao financeiro</label><button class="nm-b pri" onclick="nmReceberEnviar(\''+n.id+'\')"'+dis+'>Chegou ✓</button>'+
-      (c&&soDig(c.telefone||'')?'<button class="nm-b wa" title="Cobrar no WhatsApp" onclick="nmWhats(\''+n.id+'\')">WhatsApp</button>':'')+'</div>';
-  else if(e==='rec') acao='<div class="nm-rcv"><button class="nm-b pri" onclick="nmMandarUma(\''+n.id+'\')">🖨 Mandar ao financeiro</button><button class="nm-b" onclick="nmVoltarCobrar(\''+n.id+'\')">Desfazer</button></div>';
-  else acao='<div class="nm-rcv"><button class="nm-b ok" onclick="nmPagar(\''+n.id+'\')"'+dis+'>Paga ✓</button><button class="nm-b" title="Imprimir de novo" onclick="nmPdfFinanceiro([nmNota(\''+n.id+'\')],\'Nota fiscal para pagamento\')">🖨</button></div>';
-  return '<div class="nm-sv'+(urg||(dd!==null&&dd<0&&e==='cobrar')?' urg':'')+'"><div class="nm-sv-d"><b>'+(venc?venc.slice(8,10):'—')+'</b><span>'+(venc?['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+venc.slice(5,7)-1]:'')+'</span></div>'+
-    '<div class="nm-sv-p"><b>'+esc(p.nome||'—')+'</b><small>'+esc(nomeMes((''+n.mes_referencia).slice(0,7)))+' · '+moedaBR(n.valor||0)+(nmZerada(n)?' · <b style="color:#b00020">🚫 zerada</b>':'')+'</small>'+nmStatusPill(n)+prazo+'</div>'+acao+
-    '<button class="nm-mais" title="Mais opções (PDF da nota, observação)" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></div>';
-}
-function nmLinhaCache(n){
-  var p=nmPrest(n.colaborador_id), e=nmEtapa(n), dis=n.travado||e==='fin'?' disabled':'';
-  return '<div class="nm-ca '+e+'"><span class="nm-ca-n"><b>'+esc(p.nome||'—')+'</b>'+(NM.dados.fixos[p.id]?'':'<small>freelancer/avulso</small>')+'</span>'+
-    '<span class="nm-money"><em>R$</em><input class="nm-in" inputmode="decimal" placeholder="Valor" value="'+esc(nmMoeda(n.valor))+'"'+dis+' onchange="var v=nmNum(this.value);this.value=v==null?\'\':nmMoeda(v);nmCampo(\''+n.id+'\',\'valor\',v,this)"></span>'+
-    '<input class="nm-in" placeholder="Nº da NF" value="'+esc(n.numero||'')+'"'+dis+' onchange="nmCampo(\''+n.id+'\',\'numero\',this.value.trim(),this);var nn=nmNota(\''+n.id+'\');if(this.value.trim()&&nn&&nn.status===\'pendente\')nmGravar(\''+n.id+'\',{status:\'emitida\'}).then(desenharNotasMes)">'+
-    '<input class="nm-in" type="date" title="Emissão" value="'+esc((n.data_emissao||'').slice(0,10))+'"'+dis+' onchange="nmCampo(\''+n.id+'\',\'data_emissao\',this.value,this)">'+
-    nmStatusPill(n)+'<button class="nm-mais" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></div>';
-}
-function desenharNotasMes(){
-  var bx=el('nmApp'); if(!bx||!NM.dados) return;
-  var D=NM.dados, q=chaveNome(NM.busca||''); if(!NM.mesCache) NM.mesCache=nmMesCachePadrao();
-  var bate=function(n){ return !q||chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)>=0; };
-  var sv=D.abertas.filter(function(n){ return n.tipo==='servico'&&bate(n); }).sort(function(a,b){ return (a.data_vencimento||'9')<(b.data_vencimento||'9')?-1:1; });
-  var svUrg=sv.filter(function(n){ if(nmEtapa(n)!=='cobrar'||!n.data_vencimento) return false; return diasAte(n.data_vencimento)<=2; }).length;
-  var M=NM.mesCache, ca=D.abertas.filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)===M&&bate(n); }).sort(function(a,b){ return (nmPrest(a.colaborador_id).nome||'').localeCompare(nmPrest(b.colaborador_id).nome||''); });
-  var caOutros=D.abertas.filter(function(n){ return n.tipo==='cache'&&(''+n.mes_referencia).slice(0,7)!==M; }).length;
-  var caRec=ca.filter(function(n){ return nmEtapa(n)==='rec'; }), caFin=ca.filter(function(n){ return nmEtapa(n)==='fin'; }), caEsp=ca.filter(function(n){ return nmEtapa(n)==='cobrar'; });
-  var totCa=0; ca.forEach(function(n){ totCa+=parseFloat(n.valor)||0; });
-  var aba=function(k,tit,sub,alerta){ return '<button type="button" class="nm-tri'+(NM.trilha===k?' on':'')+(alerta?' alerta':'')+'" onclick="NM.trilha=\''+k+'\';desenharNotasMes()"><span>'+tit+'</span><small>'+sub+'</small></button>'; };
-  var h='<div class="nm-top"><div><h1>Notas fiscais</h1><p>Chegou a nota → mando ao financeiro → paga.</p></div></div>';
-  h+='<div class="nm-tris">'+aba('servico','🧾 Prestação de serviço',sv.length+' em aberto'+(svUrg?' · '+svUrg+' para cobrar':''),svUrg)+
-     aba('cache','🎤 Cachê de '+nomeMes(M).split('/')[0].toLowerCase(),ca.length?(caEsp.length+' aguardando · pago em '+ddmm(nmVenc(M,1))):'nenhum cachê no mês',false)+aba('paga','Pagas',nomeMes(NM.mesPagas).toLowerCase(),false)+'</div>';
-  var err=nmVencErrados().length;
-  if(err) h+='<div class="nfst nfst-warn nm-av"><span>'+err+' nota(s) com vencimento diferente da regra (serviço no dia do contrato, cachê no dia 01).</span><button type="button" class="ind-bt" onclick="nmCorrigirVenc()">Ver e corrigir</button></div>';
-  h+='<div class="nm-bar"><input class="nm-busca" placeholder="Buscar pelo nome" value="'+esc(NM.busca||'')+'" oninput="NM.busca=this.value;desenharNotasMes()">'+
-     '<details class="cx-mais"><summary>Mais ▾</summary><div class="cx-menu"><button onclick="nmNovaAvulsa()">+ Nota de freelancer ou avulsa</button><button onclick="nmCriarAnterior()">Criar as notas da equipe de '+esc(nomeMes(nmSomaMes(nmMesAtual(),-1)).toLowerCase())+'</button>'+
-     '<button onclick="sincronizarNF(true)">Conferir quem falta nas Notas</button><button onclick="abrir(\'nf\',\'notas\')">Sistema completo (PDF, backup)</button></div></details></div>';
-  h+='<div class="nm-av hidden" id="nmAvulsaBox"><div class="nfst nfst-cz"><select id="nmAvulsa" class="nm-in"></select><select id="nmAvulsaTipo" class="nm-in"><option value="cache">Cachê</option><option value="servico">Serviço</option></select>'+
-     '<input type="month" id="nmAvulsaMes" class="nm-in"><button type="button" class="ind-bt on" onclick="nmCriarAvulsa()">Criar nota</button><button type="button" class="ind-bt" onclick="el(\'nmAvulsaBox\').classList.add(\'hidden\')">Cancelar</button></div></div>';
-  if(NM.trilha==='servico'){
-    h+='<div class="nm-sec"><h2>Prestação de serviço</h2><p>Cada um tem o seu dia de pagamento. A nota precisa chegar <b>1 dia antes</b>; o valor é sempre o mesmo. Ao marcar "Chegou", ela já pode ir direto ao financeiro.</p>'+
-       (sv.length?'<div class="nm-lista">'+sv.map(nmLinhaServico).join('')+'</div>':'<div class="nm-vazio">Nenhuma nota de serviço em aberto.</div>')+'</div>';
-  } else if(NM.trilha==='cache'){
-    h+='<div class="nm-sec"><div class="nm-ca-top"><div class="nm-mes"><button type="button" class="ind-bt" aria-label="Mês anterior" onclick="NM.mesCache=nmSomaMes(NM.mesCache,-1);desenharNotasMes()">‹</button><div><b>Cachê de '+esc(nomeMes(M).toLowerCase())+'</b><small>conferência em '+ddmm(nmUltimoDia(M))+' · pagamento em '+ddmm(nmVenc(M,1))+'</small></div><button type="button" class="ind-bt" aria-label="Próximo mês" onclick="NM.mesCache=nmSomaMes(NM.mesCache,1);desenharNotasMes()">›</button></div>'+
-       '<div class="nm-ca-k"><span><b>'+caRec.length+'/'+ca.length+'</b> notas recebidas</span><span><b>'+moedaBR(totCa)+'</b> total do lote</span></div></div>';
-    if(caOutros) h+='<p class="nm-nota">Há '+caOutros+' cachê(s) em aberto de outros meses. Use as setas para ver.</p>';
-    if(ca.length){
-      h+='<div class="nm-lista"><div class="nm-ca nm-ca-cab"><span>Prestador</span><span>Valor</span><span>Nº da NF</span><span>Emissão</span><span>Situação</span><span></span></div>'+ca.map(nmLinhaCache).join('')+'</div>';
-      h+='<div class="nm-selbar"><span>'+(caEsp.length?'<b>'+caEsp.length+'</b> aguardando nota · ':'')+'<b>'+caRec.length+'</b> recebida(s) prontas para o lote'+(caFin.length?' · <b>'+caFin.length+'</b> no financeiro':'')+'</span>'+
-         '<span style="display:flex;gap:8px;flex-wrap:wrap">'+(caFin.length?'<button class="ind-bt" onclick="nmPagarLote(\''+M+'\')">✓ Marcar lote como pago</button>':'')+'<button class="ind-bt on"'+(caRec.length?'':' disabled')+' onclick="nmLoteCache(\''+M+'\')">🖨 Mandar lote ao financeiro</button></span></div>';
-    } else h+='<div class="nm-vazio">Nenhum cachê neste mês.</div>';
-    h+='</div>';
-  } else {
-    var pag=D.pagas.filter(bate);
-    h+='<div class="nm-sec"><div class="nm-mes"><button type="button" class="ind-bt" aria-label="Mês anterior" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,-1);carregarNotasMes()">‹</button><div><b>'+esc(nomeMes(NM.mesPagas))+'</b><small>notas pagas deste mês de referência</small></div><button type="button" class="ind-bt" aria-label="Próximo mês" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,1);carregarNotasMes()">›</button></div>'+
-       (pag.length?'<div class="nm-lista">'+pag.map(nmLinhaPaga).join('')+'</div>':'<div class="nm-vazio">Nenhuma nota paga neste mês de referência.</div>')+'</div>';
-  }
-  bx.innerHTML=h;
-  var bi=bx.querySelector('.nm-busca'); if(bi&&NM.busca){ bi.focus(); bi.setSelectionRange(bi.value.length,bi.value.length); }
-}
 
 /* ================= v49 · NOTAS FISCAIS: UMA LISTA SÓ, SITUAÇÃO CLARA E CONFERÊNCIA DE VALOR =================
    Mesmos status no banco: pendente (Cobrar) → emitida (Recebida) → enviada (No financeiro) → paga (Paga). */
@@ -5244,180 +4875,7 @@ function nmEsperado(n){
   if(c&&parseFloat(c.cache)>0) return {v:parseFloat(c.cache),de:'cachê da ficha'};
   return null;
 }
-function nmConf(n){
-  if(nmZerada(n)) return {st:'sem'};
-  var e=nmEsperado(n), v=nmBase(n); if(!e) return {st:'sem'};
-  if(!v) return {st:'vazio',e:e};
-  var d=Math.round((v-e.v)*100)/100;
-  return Math.abs(d)<0.01?{st:'ok',e:e}:{st:'dif',e:e,d:d};
-}
-function nmConfHtml(n){
-  var c=nmConf(n);
-  if(c.st==='ok') return '<small class="nm-cf ok" title="Valor confere com o '+c.e.de+'">✓ confere</small>';
-  if(c.st==='dif') return '<small class="nm-cf dif" title="Esperado pelo '+c.e.de+': '+moedaBR(c.e.v)+'">⚠ '+(c.d>0?'+':'')+moedaBR(c.d)+' do '+c.e.de+'</small>';
-  if(c.st==='vazio') return '<small class="nm-cf" title="Valor esperado">esperado '+moedaBR(c.e.v)+'</small>';
-  return '';
-}
-function nmPassos(n){
-  var e=nmEtapa(n), ord=['cobrar','rec','fin','paga'], i=ord.indexOf(e), dis=n.travado?' disabled':'';
-  var p=function(k,rot,j){
-    var on=j<=i&&j>0, prox=j===i+1, fn='';
-    if(k==='rec') fn=on?'nmVoltarCobrar(\''+n.id+'\')':'NM.abrindo=\''+n.id+'\';desenharNotasMes()';
-    if(k==='fin') fn=on?'nmVoltarRecebida(\''+n.id+'\')':(i===1?'nmMandarUma(\''+n.id+'\')':'aviso(\'Registre a nota antes.\')');
-    if(k==='paga') fn=on?'nmDespagar(\''+n.id+'\')':(i===2?'nmPagar(\''+n.id+'\')':'aviso(\'Mande ao financeiro antes.\')');
-    return '<button type="button" class="nm-s'+(on?' on':'')+(prox?' prox':'')+'"'+dis+' onclick="'+fn+'" title="'+(on?'Clique para desfazer':(prox?'Próximo passo':''))+'">'+(on?'✓ ':'')+rot+'</button>';
-  };
-  return '<span class="nm-tr">'+p('rec','Recebida',1)+'<i></i>'+p('fin','Financeiro',2)+'<i></i>'+p('paga','Paga',3)+'</span>';
-}
 function nmVoltarRecebida(id){ dialogo('Voltar esta nota para "Recebida"? Ela sai do financeiro.',{sim:function(){ nmGravar(id,{status:'emitida',data_envio:null}).then(function(){ desenharNotasMes(); }); }}); }
-function nmLinha(n){
-  var p=nmPrest(n.colaborador_id), e=nmEtapa(n), E=NM_ET[e], c=NM.dados.fixos[p.id], emp=(NM.dados.emp[p.empresa_id]||{}).nome||'', dis=n.travado?' disabled':'';
-  var venc=n.data_vencimento, dd=venc?diasAte(venc):null, cob=nmDiaCobrar(n), dc=cob?diasAte(cob):null;
-  var urg=e!=='paga'&&dd!==null&&(dd<0?'crit':(dd<=2?'urg':''));
-  if(e==='cobrar'&&dc!==null&&dc<=0) urg=dd<0?'crit':'urg';
-  var quando;
-  if(!venc) quando='sem data de pagamento';
-  else if(e==='paga') quando='paga'+(n.data_pagamento?' em '+ddmm(n.data_pagamento):'');
-  else if(e==='cobrar') quando=dd<0?'pagamento era '+ddmm(venc)+' · nota atrasada':(dc<0?'nota atrasada · pagamento '+(dd===0?'hoje':ddmm(venc)):(dc===0?'📨 cobrar hoje · pagamento '+ddmm(venc):'pagamento '+ddmm(venc)+' · cobrar '+ddmm(cob)));
-  else quando=dd<0?'pagamento era '+ddmm(venc):(dd===0?'pagamento hoje':(dd===1?'pagamento amanhã':'pagamento '+ddmm(venc)));
-  var acao='';
-  if(e==='cobrar') acao='<button type="button" class="nm-b" title="Prestador sem NF: liberar o pagamento com Recibo de Quitação assinado" onclick="nmReciboDaNota(\''+n.id+'\')">🧾</button><button type="button" class="nm-b pri" onclick="NM.abrindo=\''+n.id+'\';desenharNotasMes()">Chegou a nota</button>'+(c&&soDig(c.telefone||'')?'<button type="button" class="nm-b wa" title="Cobrar no WhatsApp (com data, valor, tomador e descrição)" onclick="nmWhats(\''+n.id+'\')">📲</button>':'');
-  else if(e==='rec') acao='<label class="nm-ck" title="Marcar para mandar em lote"><input type="checkbox"'+(NM.sel[n.id]?' checked':'')+' onchange="nmSel(\''+n.id+'\',this.checked);desenharNotasMes()"></label><button type="button" class="nm-b pri" onclick="nmMandarUma(\''+n.id+'\')">🖨 Mandar</button>';
-  else if(e==='fin') acao='<button type="button" class="nm-b wa" title="Lembrete de pagamento no grupo do financeiro" onclick="nmWhatsFinanceiro(\''+n.id+'\')">🔔 Lembrete</button><button type="button" class="nm-b ok" onclick="nmPagar(\''+n.id+'\')">Paga ✓</button>';
-  if(e==='rec') acao='<button type="button" class="nm-b wa" title="Lembrete de pagamento no grupo do financeiro" onclick="nmWhatsFinanceiro(\''+n.id+'\')">🔔</button>'+acao;
-  var desc=nmDesc(n), descFull=nmDescCompleta(n), editVal=(e==='cobrar'||e==='rec')&&!n.travado;
-  var val=nmValorHtml(n,editVal);
-  var descHtml;
-  if(NM.editDesc===n.id) descHtml='<span class="nm-dsed"><input class="nm-in" id="nmD_'+n.id+'" value="'+esc(desc)+'" placeholder="Ex.: Prestação de serviços técnicos de LED" title="O período e o adicional entram sozinhos no fim" onkeydown="if(event.key===\'Enter\')nmGuardarDesc(\''+n.id+'\');if(event.key===\'Escape\'){NM.editDesc=null;desenharNotasMes()}"><label><input type="checkbox" id="nmDP_'+n.id+'" checked> padrão de '+esc(nomeCurto(p.nome||''))+'</label><button type="button" class="nm-b pri" onclick="nmGuardarDesc(\''+n.id+'\')">Salvar</button></span>';
-  else descHtml='<button type="button" class="nm-ds'+(desc?'':' vz')+'"'+dis+' title="Editar a descrição da nota" onclick="nmEditarDesc(\''+n.id+'\')">📝 '+esc(descFull)+'</button>';
-  var h='<div class="nm-row '+E.cls+(urg?' '+urg:'')+(NM.abrindo===n.id?' aberto':'')+'">'+
-    '<div class="nm-dt" title="Data do pagamento"><b>'+(venc?venc.slice(8,10):'—')+'</b><span>'+(venc?['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+venc.slice(5,7)-1]:'')+'</span></div>'+
-    '<div class="nm-who"><b>'+esc(p.nome||'—')+'</b><small>'+(n.tipo==='cache'?'🎤 Cachê':'🧾 Serviço')+' · '+esc(nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase())+(emp?' · '+esc(emp):'')+'</small>'+(nmPeriodoTxt(n)?'<small>🗓 serviço '+esc(nmPeriodoTxt(n,true))+'</small>':'')+'<small class="nm-q'+(urg?' '+urg:'')+'">'+esc(quando)+'</small>'+descHtml+nmObsHtml(n)+'</div>'+
-    '<div class="nm-val">'+val+nmConfHtml(n)+'</div>'+
-    '<div class="nm-nf">'+(!n.numero&&recDaNota(n.id)?(function(){ var r=recDaNota(n.id), atr=r.prazoNF&&diasAte(r.prazoNF)<0; return '<b>🧾 '+esc(r.num)+'</b><small class="'+(atr?'nm-atr':'')+'">'+(r.semPrazo&&!r.prazoNF?'NF pendente · sem prazo':'NF pendente até '+(r.prazoNF?ddmm(r.prazoNF):'—'))+(atr?' · atrasada':'')+'</small><button type="button" class="nm-b sm" onclick="nmRegNF(\''+n.id+'\')">📥 Registrar NF</button>'; })():'')+(n.numero?'<b>NF '+esc(n.numero)+'</b>'+(n.data_emissao?'<small>emitida '+ddmm(n.data_emissao)+(nmEmissaoEsperada(n)&&n.data_emissao.slice(0,10)!==nmEmissaoEsperada(n)?' <span class="nm-alerta" title="Diferente da data do pagamento">⚠</span>':'')+'</small>':'')+(n.pdf_nome?'<small>📎 PDF anexado</small>':''):(recDaNota(n.id)?'':'<span class="mut">—</span>'))+'</div>'+
-    '<div class="nm-sit"><span class="nm-st '+E.cls+'">'+E.ic+' '+E.rot+'</span>'+nmPassos(n)+'</div>'+
-    '<div class="nm-ac">'+acao+'<button type="button" class="nm-mais" title="Mais opções (PDF da nota, observação)" aria-label="Mais opções" onclick="nmMais(\''+n.id+'\')">⋯</button></div></div>';
-  if(NM.regNF===n.id) h+='<div class="nm-form"><b>Registrar a NF que chegou depois do recibo '+esc((recDaNota(n.id)||{}).num||'')+'</b><label>Nº da NF<input class="nm-in" id="nmRN_'+n.id+'" onkeydown="if(event.key===\'Enter\')nmSalvarRegNF(\''+n.id+'\')"></label><label>Data de emissão<input class="nm-in" id="nmRE_'+n.id+'" type="date" value="'+(nmEmissaoEsperada(n)||hoje())+'"></label><span class="nm-fbt"><button type="button" class="nm-b pri" onclick="nmSalvarRegNF(\''+n.id+'\')">Salvar NF ✓</button><button type="button" class="nm-b" onclick="NM.regNF=null;desenharNotasMes()">Cancelar</button></span></div>';
-  if(NM.abrindo===n.id&&e==='cobrar'){
-    var esp=nmEsperado(n), vPad=nmBase(n)||(esp?esp.v:''), emEsp=nmEmissaoEsperada(n), t=nmTomador(n);
-    h+='<div class="nm-form"><b>Conferir e registrar a nota de '+esc(nomeCurto(p.nome||''))+'</b>'+
-      '<label class="nm-pdfup">📎 PDF da nota <small>anexe primeiro: o sistema lê e preenche sozinho</small><input class="nm-in" id="nmF_'+n.id+'" type="file" accept="application/pdf,image/*" onchange="nmAoEscolherPdf(\''+n.id+'\')"></label>'+
-      '<div class="nm-leit" id="nmLeit_'+n.id+'"></div>'+
-      '<label>Nº da NF<input class="nm-in" id="nmN_'+n.id+'" placeholder="Ex.: 1234" oninput="nmChecarDuplicada(\''+n.id+'\')" onkeydown="if(event.key===\'Enter\')nmReceberEnviar(\''+n.id+'\')"></label>'+
-      '<label>Data de emissão<input class="nm-in" id="nmE_'+n.id+'" type="date" value="'+(emEsp||hoje())+'" onchange="nmChecar(\''+n.id+'\')"></label>'+
-      '<label>Valor base<span class="nm-money"><em>R$</em><input class="nm-in" id="nmV_'+n.id+'" inputmode="decimal" value="'+esc(vPad?nmMoeda(vPad):'')+'" oninput="nmChecar(\''+n.id+'\')"></span></label>'+
-      '<label>+ Adicional <small>(se houver)</small><span class="nm-money"><em>R$</em><input class="nm-in" id="nmVA_'+n.id+'" inputmode="decimal" value="'+esc(nmAdic(n)?nmMoeda(nmAdic(n).v):'')+'" placeholder="0,00" oninput="nmChecar(\''+n.id+'\')"></span></label>'+
-      '<label>Adicional de…<input class="nm-in" id="nmVM_'+n.id+'" value="'+esc(nmAdic(n)?nmAdic(n).m:'')+'" placeholder="Ex.: 5 dias trabalhados em agosto" oninput="nmChecar(\''+n.id+'\')"></label>'+
-      '<span class="nm-valtot">Total da nota <b id="nmVT_'+n.id+'">—</b></span>'+
-      '<label>− Desconto <small>(se houver)</small><span class="nm-money"><em>R$</em><input class="nm-in" id="nmVD_'+n.id+'" inputmode="decimal" value="'+esc(nmDesct(n)?nmMoeda(nmDesct(n).v):'')+'" placeholder="0,00"></span></label>'+
-      '<label>Desconto de…<input class="nm-in" id="nmVDM_'+n.id+'" value="'+esc(nmDesct(n)?nmDesct(n).m:'')+'" placeholder="Ex.: adiantamento, multa, equipamento"></label>'+
-      '<label class="nm-lg">Descrição da nota<input class="nm-in" id="nmD_'+n.id+'" value="'+esc(desc)+'" placeholder="Ex.: Prestação de serviços técnicos de LED" oninput="nmChecar(\''+n.id+'\')"><small class="nm-dprev" id="nmDV_'+n.id+'"></small><span class="nm-x"><input type="checkbox" id="nmDP_'+n.id+'" checked> guardar como padrão de '+esc(nomeCurto(p.nome||''))+'</span></label>'+
-      '<div class="nm-dupbox" id="nmDup_'+n.id+'"></div>'+
-      '<div class="nm-cklist"><b>✅ Conferência</b>'+
-        '<label class="nm-ck-i man"><input type="checkbox" id="nmCT_'+n.id+'"> Tomador correto: <b>'+esc(t.nome||'—')+'</b>'+(t.cnpj?' · CNPJ '+esc(t.cnpj):'')+'</label>'+
-        '<label class="nm-ck-i man"><input type="checkbox" id="nmCS_'+n.id+'"> Descrição e dados do prestador conferidos na nota</label>'+
-        '<span class="nm-ck-i" id="nmCkD_'+n.id+'">📅 Data de emissão: <i></i></span>'+
-        '<span class="nm-ck-i" id="nmCkV_'+n.id+'">💰 Valor: <i></i></span>'+
-        '<span class="nm-ck-i" id="nmCkP_'+n.id+'">📎 PDF: <i></i></span></div>'+
-      '<label class="nm-lg">🗒 Anotação desta nota <small>(opcional)</small><input class="nm-in" id="nmOA_'+n.id+'" value="'+esc(n.obs||'')+'" placeholder="Alguma particularidade deste mês?"></label>'+
-      '<label class="nm-x"><input type="checkbox" id="nmX_'+n.id+'" checked> já mandar ao financeiro hoje (abre a ordem de pagamento)</label>'+
-      '<span class="nm-fbt"><button type="button" class="nm-b pri" onclick="nmReceberEnviar(\''+n.id+'\')">Salvar ✓</button><button type="button" class="nm-b" onclick="NM.abrindo=null;desenharNotasMes()">Cancelar</button></span></div>';
-    setTimeout(function(){ nmChecar(n.id); var i=el('nmN_'+n.id); if(i) i.focus(); },50);
-  }
-  return h;
-}
-function nmConfVivo(id,v){
-  var n=nmNota(id), s=el('nmCV_'+id), e=n?nmEsperado(n):null; if(!s||!e) return;
-  var val=nmNum(v), d=val!=null?Math.round((val-e.v)*100)/100:null;
-  s.className=d===null?'':(Math.abs(d)<0.01?'ok':'dif');
-  s.textContent=d===null?'esperado '+moedaBR(e.v):(Math.abs(d)<0.01?'✓ confere com o '+e.de:'⚠ '+(d>0?'+':'')+moedaBR(d)+' do '+e.de+' ('+moedaBR(e.v)+')');
-}
-function desenharNotasMes(){
-  var bx=el('nmApp'); if(!bx||!NM.dados) return;
-  var D=NM.dados, q=chaveNome(NM.busca||'');
-  var bateSemEmp=function(n){ return n.tipo===NM.tipo&&(!q||chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)>=0); };
-  var bate=function(n){ return bateSemEmp(n)&&nmEmpPassa(n); };
-  var ab=D.abertas.filter(bate), pg=D.pagas.filter(bate);
-  var grp={cobrar:[],rec:[],fin:[]}; ab.forEach(function(n){ var e=nmEtapa(n); if(grp[e]) grp[e].push(n); });
-  var soma=function(l){ var t=0; l.forEach(function(n){ t+=parseFloat(n.valor)||0; }); return t; };
-  var difs=ab.concat(pg).filter(function(n){ return nmConf(n).st==='dif'; });
-  var venc=grp.cobrar.concat(grp.rec,grp.fin).filter(function(n){ return n.data_vencimento&&diasAte(n.data_vencimento)<0; }).length;
-  var f=NM.f;
-  // v48 · painel "Hoje": cobrar (dia útil antes do pagamento), conferir/mandar, pagamentos do dia
-  var hCob=grp.cobrar.filter(function(n){ var c=nmDiaCobrar(n); return c&&diasAte(c)<=0; });
-  var hPag=grp.fin.filter(function(n){ return n.data_vencimento&&diasAte(n.data_vencimento)<=0; });
-  var tile=function(k,cls,ic,tit,l,sub){ return '<button type="button" class="nm-h '+cls+(f===k?' on':'')+(l.length?'':' zero')+'" onclick="NM.f=NM.f===\''+k+'\'?\'falta\':\''+k+'\';NM.abrindo=null;desenharNotasMes()"><span class="nm-h-ic">'+ic+'</span><span class="nm-h-tx"><b>'+l.length+' · '+tit+'</b><small>'+(l.length?sub+' · '+moedaBR(soma(l)):'nada pendente')+'</small></span></button>'; };
-  var card=function(k,ic,tit,l,sub){ return '<button type="button" class="nm-k '+(NM_ET[k]?NM_ET[k].cls:'')+(f===k?' on':'')+'" onclick="NM.f=NM.f===\''+k+'\'?\'falta\':\''+k+'\';NM.abrindo=null;desenharNotasMes()"><span>'+ic+' '+tit+'</span><b>'+l.length+'</b><small>'+(l.length?moedaBR(soma(l)):'nada')+(sub?' · '+sub:'')+'</small></button>'; };
-  var T=NM.tipo, TI=NM_TIPO[T], mesAnt=esc(nomeMes(nmMesGerar()).toLowerCase());
-  var bateNome=function(n){ return !q||chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)>=0; };
-  var contaTipo=function(t){ var l=D.abertas.filter(function(n){ return n.tipo===t&&bateNome(n)&&nmEmpPassa(n); }); return {n:l.length,v:soma(l)}; };
-  var cS=contaTipo('servico'), cC=contaTipo('cache');
-  var aba=function(t,c){ var x=NM_TIPO[t]; return '<button type="button" class="nm-tp nm-tp-'+t+(T===t?' on':'')+'" onclick="nmTrocarTipo(\''+t+'\')"><span class="nm-tp-ic">'+x.ic+'</span><span class="nm-tp-tx"><b>'+x.nome+'</b><small>'+(c.n?c.n+' em aberto · '+moedaBR(c.v):'nada em aberto')+'</small></span></button>'; };
-  // 1) título  2) abas Serviço x Cachê
-  var h='<div class="nm-top"><div><h1>Notas fiscais</h1><p>Escolha o tipo de nota, depois a empresa. A lista mostra só o que você escolheu.</p></div></div>';
-  h+='<div class="nm-tps">'+aba('servico',cS)+aba('cache',cC)+'</div>';
-  h+='<div class="nm-regra nm-tp-'+T+'"><b>'+TI.ic+' Como funciona a '+TI.nome.toLowerCase()+':</b> '+TI.regra+'</div>';
-  // 3) empresa
-  D.emp=D.emp||{}; var empCont={}, semEmp=0; D.abertas.filter(bateSemEmp).forEach(function(n){ var e=nmPrest(n.colaborador_id).empresa_id; if(e&&D.emp[e]) empCont[e]=(empCont[e]||0)+1; else semEmp++; });
-  var empIds=Object.keys(D.emp).sort(function(a,b){ return (D.emp[a].nome||'').localeCompare(D.emp[b].nome||''); });
-  var totAb=D.abertas.filter(bateSemEmp).length;
-  var chip=function(id,rot,cnt,cor,tit){ return '<button type="button" class="nm-ec'+((NM.emp||'')===id?' on':'')+'" style="--ec:'+cor+'" title="'+esc(tit||rot)+'" onclick="nmFiltrarEmpresa(\''+id+'\')"><i></i>'+esc(rot)+'<em>'+cnt+'</em></button>'; };
-  h+='<div class="nm-emps"><span class="nm-emps-t">🏢 Empresa</span>'+chip('','Todas',totAb,'#e10600','Todas as empresas do grupo')+
-    empIds.map(function(id,k){ var e=D.emp[id]; return chip(id,e.nome||'—',empCont[id]||0,NM_EMP_COR[k%NM_EMP_COR.length],(e.nome||'')+(e.cnpj?' · CNPJ '+e.cnpj:'')); }).join('')+
-    (semEmp?chip('__sem','Sem empresa',semEmp,'#8a8f9c','Prestadores sem empresa no cadastro'):'')+'</div>';
-  // 4) os 4 passos, numerados (servem de filtro)
-  var passo=function(k,num,ic,tit,l,sub){ return '<button type="button" class="nm-ps '+(NM_ET[k]?NM_ET[k].cls:'')+(f===k?' on':'')+(l.length?'':' zero')+'" onclick="NM.f=NM.f===\''+k+'\'?\'falta\':\''+k+'\';NM.abrindo=null;desenharNotasMes()"><span class="nm-ps-n">'+num+'</span><span class="nm-ps-tx"><span>'+ic+' '+tit+'</span><b>'+l.length+'</b><small>'+(l.length?moedaBR(soma(l)):'nada')+' · '+sub+'</small></span></button>'; };
-  h+='<div class="nm-pss">'+passo('cobrar','1','📨','Cobrar a nota',grp.cobrar,'ainda não chegou')+'<i class="nm-ps-seta">›</i>'+passo('rec','2','📥','Conferir e mandar',grp.rec,'já chegou')+'<i class="nm-ps-seta">›</i>'+passo('fin','3','💼','No financeiro',grp.fin,'esperando pagar')+'<i class="nm-ps-seta">›</i>'+passo('paga','4','✅','Pagas',pg,nomeMes(NM.mesPagas).split('/')[0].toLowerCase())+'</div>';
-  // 5) hoje + alertas numa linha só
-  var err=nmVencErrados().length, avisos=[];
-  var av=function(k,cls,txt){ return '<button type="button" class="nm-av-c '+cls+(f===k?' on':'')+'" onclick="NM.f=NM.f===\''+k+'\'?\'falta\':\''+k+'\';NM.abrindo=null;desenharNotasMes()">'+txt+'</button>'; };
-  if(hCob.length) avisos.push(av('hcob','cob','📨 '+hCob.length+' para cobrar hoje'));
-  if(grp.rec.length) avisos.push(av('rec','rec','🔎 '+grp.rec.length+' para mandar ao financeiro hoje'));
-  if(hPag.length) avisos.push(av('hpag','pag','💰 '+hPag.length+' pagamento(s) hoje'));
-  if(venc) avisos.push('<span class="nm-av-c crit">⏰ '+venc+' já venceram</span>');
-  if(difs.length) avisos.push(av('dif','dif','⚠ '+difs.length+' com valor diferente do contrato'));
-  if(err) avisos.push('<button type="button" class="nm-av-c" onclick="nmCorrigirVenc()">📅 '+err+' vencimento(s) fora da regra · corrigir</button>');
-  h+='<div class="nm-hj"><span class="nm-hj-t">📌 Hoje</span>'+(avisos.length?avisos.join(''):'<span class="nm-hj-ok">Tudo em dia 🎉</span>')+'</div>';
-  // 6) barra de ações
-  h+='<div class="nm-bar"><div class="nm-fs"><button type="button" class="'+(f==='falta'?'on':'')+'" onclick="NM.f=\'falta\';NM.abrindo=null;desenharNotasMes()">📋 Tudo em aberto</button>'+(f!=='falta'?'<button type="button" class="on" onclick="NM.f=\'falta\';desenharNotasMes()">'+esc(NM_FROT[f]||'Filtro')+' ✕</button>':'')+'</div>'+
-    '<input class="nm-busca" placeholder="🔎 Buscar pelo nome" value="'+esc(NM.busca||'')+'" oninput="NM.busca=this.value;desenharNotasMes()">'+
-    '<button type="button" class="nm-novo" title="Para freelancer ou alguém fora da equipe fixa" onclick="nmNovaAvulsa()">＋ Nova nota de '+(T==='cache'?'cachê':'serviço')+' avulsa</button>'+
-    '<details class="nm-tools"><summary>🧰 Ferramentas ▾</summary><div class="nm-tmenu">'+
-      '<div class="nm-tsec">📅 Começo do mês</div>'+
-      '<button type="button" onclick="this.closest(\'details\').open=false;nmCriarAnterior()"><b>Gerar as notas de '+TI.nome.toLowerCase()+' de '+mesAnt+'</b><small>Cria de uma vez as notas de '+TI.nome.toLowerCase()+' da equipe fixa que ainda não existem nesse mês. Se já existirem, ele só avisa.</small></button>'+
-      '<div class="nm-tsec">🔍 Conferências</div>'+
-      '<button type="button" onclick="this.closest(\'details\').open=false;sincronizarNF(true)"><b>Conferir quem falta nas Notas</b><small>Compara as fichas do Painel DP com os prestadores daqui e mostra quem precisa ser incluído ou atualizado.</small></button>'+
-      '<button type="button" onclick="this.closest(\'details\').open=false;recListaAbrir()"><b>🧾 Recibos de quitação emitidos</b><small>Pagamentos liberados sem NF, com recibo assinado. Mostra quem ainda deve a nota.</small></button>'+
-      '<div class="nm-tsec">🗂 Arquivo</div>'+
-      '<button type="button" onclick="this.closest(\'details\').open=false;abrir(\'nf\',\'notas\')"><b>Abrir o sistema completo</b><small>Para baixar o PDF de cada nota, relatórios e fazer backup.</small></button>'+
-    '</div></details></div>';
-  if(NM.emp){ var eSel=NM.emp==='__sem'?{nome:'Sem empresa'}:(D.emp[NM.emp]||{}); h+='<div class="nm-efil">Mostrando <b>'+TI.nome.toLowerCase()+'</b> de <b>'+esc(eSel.nome||'')+'</b>'+(eSel.cnpj?' · CNPJ '+esc(eSel.cnpj):'')+' <button type="button" onclick="nmFiltrarEmpresa(\'\')">✕ ver todas as empresas</button></div>'; }
-  h+='<div class="nm-av hidden" id="nmAvulsaBox"><div class="nfst nfst-cz"><select id="nmAvulsa" class="nm-in"></select><select id="nmAvulsaTipo" class="nm-in"><option value="cache">Cachê</option><option value="servico">Serviço</option></select>'+
-    '<input type="month" id="nmAvulsaMes" class="nm-in"><button type="button" class="ind-bt on" onclick="nmCriarAvulsa()">Criar nota</button><button type="button" class="ind-bt" onclick="el(\'nmAvulsaBox\').classList.add(\'hidden\')">Cancelar</button></div></div>';
-  var rp=recPendentesNF();
-  if(rp.length){ var atr=rp.filter(function(r){ return r.prazoNF&&diasAte(r.prazoNF)<0; }).length;
-    h+='<div class="nm-recav'+(atr?' atr':'')+'"><span>🧾 <b>'+rp.length+' pagamento(s) feito(s) com recibo aguardando a NF</b>'+(atr?' · <b>'+atr+' com prazo vencido</b>':'')+' · '+esc(rp.map(function(r){ return nomeCurto(r.nome)+(r.semPrazo&&!r.prazoNF?' (sem prazo)':' (até '+(r.prazoNF?ddmm(r.prazoNF):'—')+')'); }).join(', '))+'</span><button type="button" class="ind-bt" onclick="recListaAbrir()">Ver recibos</button></div>'; }
-  var lemb=(NM.lembrete||[]).map(nmNota).filter(function(n){ return n&&nmEtapa(n)==='fin'; });
-  if(lemb.length) h+='<div class="nm-lemb"><span>🔔 <b>'+lemb.length+' nota(s) no financeiro.</b> Mande o lembrete de data de pagamento no grupo do financeiro.</span><button type="button" class="ind-bt on" onclick="nmWhatsFinanceiro(NM.lembrete);NM.lembrete=null;desenharNotasMes()">🔔 Mandar lembrete</button><button type="button" class="ind-bt" onclick="NM.lembrete=null;desenharNotasMes()">Agora não</button></div>';
-  var lista;
-  if(f==='paga') lista=pg;
-  else if(f==='dif') lista=difs;
-  else if(f==='hcob') lista=hCob;
-  else if(f==='hpag') lista=hPag;
-  else lista=ab.filter(function(n){ return f==='falta'||f===nmEtapa(n)||f===n.tipo; });
-  lista=lista.slice().sort(function(a,b){ return (a.data_vencimento||'9')<(b.data_vencimento||'9')?-1:((a.data_vencimento||'9')>(b.data_vencimento||'9')?1:(nmPrest(a.colaborador_id).nome||'').localeCompare(nmPrest(b.colaborador_id).nome||'')); });
-  if(f==='paga') h+='<div class="nm-mes"><button type="button" class="ind-bt" aria-label="Mês anterior" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,-1);carregarNotasMes()">‹</button><div><b>'+esc(nomeMes(NM.mesPagas))+'</b><small>notas pagas deste mês de referência</small></div><button type="button" class="ind-bt" aria-label="Próximo mês" onclick="NM.mesPagas=nmSomaMes(NM.mesPagas,1);carregarNotasMes()">›</button></div>';
-  if(!lista.length) h+='<div class="nm-vazio">'+(f==='falta'?'🎉 Nenhuma nota em aberto. Tudo pago!':'Nada aqui.')+'</div>';
-  else {
-    h+='<div class="nm-tab"><div class="nm-row nm-cab"><span>Venc.</span><span>Prestador</span><span>Valor</span><span>Nota</span><span>Situação</span><span></span></div>'+lista.map(nmLinha).join('')+'</div>';
-    var recs=lista.filter(function(n){ return nmEtapa(n)==='rec'&&!n.travado; }), sel=recs.filter(function(n){ return NM.sel[n.id]; });
-    var fins=lista.filter(function(n){ return nmEtapa(n)==='fin'&&!n.travado; });
-    if(recs.length||fins.length) h+='<div class="nm-selbar"><span>'+(recs.length?'<b>'+recs.length+'</b> recebida(s) prontas para o financeiro'+(sel.length?' · <b>'+sel.length+'</b> marcada(s)':''):'')+(fins.length?(recs.length?' · ':'')+'<b>'+fins.length+'</b> no financeiro':'')+'</span><span style="display:flex;gap:8px;flex-wrap:wrap">'+
-      (recs.length?'<button type="button" class="ind-bt on" onclick="nmMandarLista(\''+(sel.length?'sel':'todas')+'\')">🖨 Mandar '+(sel.length?'as '+sel.length+' marcadas':'as '+recs.length+' recebidas')+' ao financeiro</button>':'')+'</span></div>';
-  }
-  bx.innerHTML=h;
-  var bi=bx.querySelector('.nm-busca'); if(bi&&NM.busca){ bi.focus(); bi.setSelectionRange(bi.value.length,bi.value.length); }
-}
 /* ================= v50 · FILTRO POR EMPRESA + MENU "FERRAMENTAS" ORGANIZADO ================= */
 try{ NM.emp=localStorage.getItem('nm_emp')||''; }catch(e){ NM.emp=''; }
 var NM_EMP_COR=['#3ddc84','#4da3ff','#ffb020','#c07bff','#ff6bb5','#2ee6d6'];
@@ -5430,10 +4888,6 @@ function nmFiltrarEmpresa(id){
   NM.emp=(NM.emp===id&&id)?'':id; NM.sel={}; NM.abrindo=null;
   try{ localStorage.setItem('nm_emp',NM.emp); }catch(e){}
   desenharNotasMes();
-}
-function nmTrocarCache(){
-  NM.cache=!NM.cache; try{ localStorage.setItem('nm_cache',NM.cache?'1':'0'); }catch(e){}
-  if(NM.f==='cache'&&!NM.cache) NM.f='falta'; desenharNotasMes();
 }
 document.addEventListener('click',function(ev){ document.querySelectorAll('details.nm-tools[open]').forEach(function(d){ if(!d.contains(ev.target)) d.open=false; }); });
 /* ================= v51 · SERVIÇO E CACHÊ SEPARADOS ================= */
@@ -5669,10 +5123,6 @@ function nmPagHtml(n){
   return 'pagamento <b>'+nm2Br(c)+'</b>';
 }
 function nmPagTxt(n){ var c=nmPagCad(n), u=(n.data_vencimento||'').slice(0,10), b=function(i){ return i.split('-').reverse().join('/'); }; return !c?'':b(c)+(u&&u!==c?' ('+nmDiaSem(c)+'; dia útil: '+b(u)+')':''); }
-function nmMandarLista(modo){
-  if(modo==='todas'){ NM.sel={}; NM.dados.abertas.forEach(function(n){ if(nmEtapa(n)==='rec'&&!n.travado&&nmEmpPassa(n)&&n.tipo===NM.tipo&&(NM.cache||n.tipo!=='cache')&&(NM.f==='falta'||NM.f==='rec'||NM.f===n.tipo)) NM.sel[n.id]=1; }); }
-  nmEnviarFinanceiro();
-}
 /* ================= v59 · PDF DE CONFERÊNCIA DAS NOTAS =================
    Lista simples para conferir: NOME · DESCRIÇÃO DO PERÍODO PRESTADO · VALOR · DATA DE PAGAMENTO.
    Busca direto no banco pelo período de pagamento (inclui as já pagas), agrupa por data de pagamento.
@@ -5692,20 +5142,6 @@ function nmConfExtrasDesenhar(){
     l.map(function(x){ return '<tr><td>'+esc(x.data.split('-').reverse().join('/'))+'</td><td><b>'+esc(nmExtraNome(x))+'</b></td><td>'+esc(x.obs)+'</td><td class="r"><b>'+esc(moedaBR(x.valor))+'</b></td><td class="r"><button type="button" class="nm2-b ghost sm" title="Remover" onclick="nmExtraRemover(\''+x.id+'\')">🗑</button></td></tr>'; }).join('')+
     '<tr><td colspan="3" class="r"><b>Total de extras no período</b></td><td class="r"><b>'+esc(moedaBR(t))+'</b></td><td></td></tr></tbody></table>'
     :'<div class="nmc-vz">Nenhum valor extra lançado para esse período'+(emp?' e empresa':'')+'.</div>';
-}
-function nmExtraAdicionar(){
-  var pid=el('nmcExP').value, nome=(el('nmcExN').value||'').trim(), v=nmNum(el('nmcExV').value), obs=(el('nmcExO').value||'').trim(), d=el('nmcExD').value;
-  if(!pid&&!nome){ aviso('Escolha a pessoa ou digite o nome.'); el('nmcExP').focus(); return; }
-  if(!(v>0)){ aviso('Informe o valor.'); el('nmcExV').focus(); return; }
-  if(!obs){ aviso('Diga do que é esse valor (a observação vai no relatório).'); el('nmcExO').focus(); return; }
-  if(!d){ aviso('Informe a data de pagamento.'); el('nmcExD').focus(); return; }
-  var x={id:nmId(),colaborador_id:pid||null,nome:pid?(nmPrest(pid).nome||''):nome,valor:Math.round(v*100)/100,obs:obs,data:d,criado:new Date().toISOString(),por:(EU&&EU.nome)||''};
-  var bt=el('nmcExBt'); if(bt) bt.disabled=true;
-  nmExtrasCarregar().then(function(l){ l.push(x); NM.extras=l; return kvSalvar('nf-extras',l); }).then(function(){
-    el('nmcExV').value=''; el('nmcExO').value=''; el('nmcExN').value=''; el('nmcExP').value='';
-    if(d<el('nmcIni').value||d>el('nmcFim').value) aviso('Valor salvo, mas a data '+d.split('-').reverse().join('/')+' está fora do período escolhido.'); else aviso('Valor extra incluído.');
-    nmConfExtrasDesenhar();
-  }).catch(function(){ aviso('Não consegui salvar o valor extra. Tente de novo.',true); }).then(function(){ var bt=el('nmcExBt'); if(bt) bt.disabled=false; });
 }
 function nmExtraRemover(id){
   dialogo('Remover este valor extra?',{sim:function(){
@@ -7391,7 +6827,6 @@ function pcRecalc(c,visto){
   CG_EDIT.cargos.forEach(function(x){ if(x!==c&&(x.estado||'DF')===(c.estado||'DF')&&x.pctP!=null&&chaveNome(x.promoDe||'')===chaveNome(c.funcao||'')) pcRecalc(x,visto); });
 }
 function pcAlterou(msg){ sujar(); desenharCG(); if(msg) aviso(msg); }
-function pcSetBase(id,v){ var c=pcCargo(id); if(!c) return; var val=pcLerMoeda(v); if(c.pctV==null) c.pctV=pcPctInferido(c); c.niveis=Object.assign({},c.niveis||{}); c.niveis.I=val||null; pcRecalc(c); pcAlterou(); }
 function pcSetPct(id,v){ var c=pcCargo(id); if(!c) return; var p=pcLerPct(v); c.pctV=p==null?0:p; c.manual=false; pcRecalc(c); pcAlterou(); }
 function pcSetQtd(id,v){ var c=pcCargo(id); if(!c) return; c.nNiv=Math.max(1,Math.min(5,parseInt(v,10)||5)); if(c.pctV==null) c.pctV=pcPctInferido(c)||0; pcRecalc(c); pcAlterou(); }
 function pcSetPromoDe(id,v){
@@ -7411,47 +6846,6 @@ function pcReajustar(){
     alvo.forEach(function(c){ var nv={}; Object.keys(c.niveis||{}).forEach(function(k){ var v=pcNum(c.niveis[k]); if(v) nv[k]=pcR2(v*(1+p/100)); }); c.niveis=nv; });
     PCR.reaj=false; pcAlterou('Reajuste de '+pcPctFmt(p)+'% aplicado. Confira e toque em "Salvar e distribuir".');
   }});
-}
-function pcPlanoTabela(lin,doUF,minimo,tb){
-  var ext=tb==='Equipe externa', fmt=function(v){ return v>0?v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):''; };
-  var h='<div class="pc-tw"><table class="pcs-t pc-plano"><thead><tr><th class="pc-fn">Função</th>'+
-    '<th class="num pc-ed-h">Nível I<small>entrada</small></th>'+(ext?'':'<th class="ctr pc-ed-h">% entre níveis<small>aumento a cada nível</small></th>')+
-    (ext?'':['II','III','IV','V'].map(function(n){ return '<th class="num">Nível '+n+'</th>'; }).join(''))+
-    (ext?'':'<th class="pc-ed-h">Promoção<small>vem de · % sobre o topo dela</small></th>')+'<th class="num">Pessoas</th></tr></thead><tbody>';
-  var cols=ext?3:9;
-  if(!lin.length) h+='<tr><td colspan="'+cols+'" class="pc-vazio">Nenhuma função nesta tabela. Cadastre em <b>🧩 Funções e setores</b>.</td></tr>';
-  var ultG=null, eqT=function(p){ return (equipe(p)==='externa')===ext; };
-  lin.forEach(function(c){
-    var g=(c.classe||'')+'|'+(c.cargo||'');
-    if((c.classe||c.cargo)&&g!==ultG) h+='<tr class="pc-grp"><td colspan="'+cols+'">'+(c.classe?'<em>'+esc(c.classe)+'</em>':'')+'<b>'+esc(c.cargo||'')+'</b></td></tr>';
-    ultG=g;
-    var nv=c.niveis||{}, n=pcQtdNiveis(c), pct=pcPctDe(c), viaPromo=pcBasePromo(c)!=null;
-    var pes=contarPessoas(function(p){ return chaveNome(p.funcao)===chaveNome(c.funcao)&&pessoaUF(p)===CG_UF&&eqT(p); });
-    var fr=contarPessoas(function(p){ if(chaveNome(p.funcao)!==chaveNome(c.funcao)||pessoaUF(p)!==CG_UF||!eqT(p)) return false; var v=parseFloat(nv[romano(p.nivel)]); return v>0&&Math.abs((parseFloat(p.salario)||0)-v)>0.009; });
-    var v1=pcNum(nv.I), b1=minimo&&v1&&v1<minimo&&!ext;
-    var cI=viaPromo?'<span class="pc-calc'+(b1?' abaixo':'')+'" title="Calculado pela promoção">'+fmt(v1)+'<small>pela promoção</small></span>'
-      :'<div class="pc-in'+(b1?' abaixo':'')+'"><span>R$</span><input inputmode="decimal" value="'+fmt(v1)+'" placeholder="0,00" aria-label="Nível I de '+esc(c.funcao)+'" onchange="pcSetBase(\''+c.id+'\',this.value)"></div>'+(minimo&&v1&&!ext?'<small class="pc-piso'+(b1?' abaixo':'')+'">'+pcPctTxt(v1/minimo-1)+' do piso</small>':'');
-    h+='<tr data-id="'+c.id+'"><td class="pc-fn"><b>'+esc(c.funcao||'(sem nome)')+'</b>'+(c.setor?'<small>'+esc(c.setor)+'</small>':'')+'</td><td class="num">'+cI+'</td>';
-    if(!ext){
-      h+='<td class="ctr">'+(c.manual?'<button type="button" class="pc-man on" onclick="pcManual(\''+c.id+'\')" title="Voltar ao cálculo por %">✏️ manual</button>'
-        :'<div class="pc-pin"><input inputmode="decimal" value="'+pcPctFmt(pct)+'" placeholder="0" aria-label="% entre níveis de '+esc(c.funcao)+'" onchange="pcSetPct(\''+c.id+'\',this.value)"><span>%</span></div>'+
-         '<div class="pc-mini"><select title="Quantos níveis a função tem" onchange="pcSetQtd(\''+c.id+'\',this.value)">'+[1,2,3,4,5].map(function(k){ return '<option value="'+k+'"'+(k===n?' selected':'')+'>'+k+' nív.</option>'; }).join('')+'</select><button type="button" class="pc-man" onclick="pcManual(\''+c.id+'\')" title="Digitar cada nível à mão">✏️</button></div>')+'</td>';
-      ['II','III','IV','V'].forEach(function(k,i){
-        var v=pcNum(nv[k]), bx=minimo&&v&&v<minimo;
-        if(i+2>n){ h+='<td class="num"><span class="mut">—</span></td>'; return; }
-        if(c.manual) h+='<td class="num"><div class="pc-in"><span>R$</span><input inputmode="decimal" value="'+fmt(v)+'" placeholder="—" onchange="pcNivelManual(\''+c.id+'\',\''+k+'\',this)"></div>'+pcPctNivel(c,k)+'</td>';
-        else h+='<td class="num"><span class="cg-v'+(bx?' abaixo':'')+'">'+(fmt(v)||'<i>—</i>')+'</span>'+pcPctNivel(c,k)+'</td>';
-      });
-      var ops=doUF.filter(function(x){ return x.id!==c.id&&x.funcao&&(x.tabela||'')!=='Equipe externa'; }).sort(function(a,b){ return (''+a.funcao).localeCompare(''+b.funcao,'pt-BR'); });
-      var o=c.promoDe?pcDaFuncao(c.promoDe,c.estado||'DF'):null, t=o?pcTopo(o):null;
-      h+='<td class="pc-pr"><div class="pc-promo-ed"><select aria-label="Promoção vem de" onchange="pcSetPromoDe(\''+c.id+'\',this.value)"><option value="">— sem promoção —</option>'+
-        ops.map(function(x){ return '<option value="'+esc(x.funcao)+'"'+(chaveNome(x.funcao)===chaveNome(c.promoDe||'')?' selected':'')+'>'+esc(x.funcao)+'</option>'; }).join('')+'</select>'+
-        (c.promoDe?'<div class="pc-pin"><span>+</span><input inputmode="decimal" value="'+pcPctFmt(c.pctP!=null?c.pctP:(t&&pcNum(nv.I)?Math.round((pcNum(nv.I)/t.v-1)*1000)/10:null))+'" aria-label="% da promoção" onchange="pcSetPromoPct(\''+c.id+'\',this.value)"><span>%</span></div>':'')+'</div>'+
-        (t?'<small>sobre o nível '+t.n+' de '+esc(o.funcao)+' ('+fmt(t.v)+')</small>':'')+'</td>';
-    }
-    h+='<td class="num">'+(pes?'<b>'+pes+'</b>':'<span class="mut">0</span>')+(fr?'<span class="pc-fora" title="Pessoas com salário diferente do nível">'+fr+' fora</span>':'')+'</td></tr>';
-  });
-  return h+'</tbody></table></div>';
 }
 /* ================= v46 · PLANO DE SALÁRIOS LIMPO =================
    Só os valores. O Nível I é digitável e, embaixo de cada nível seguinte, o % verdinho
@@ -7474,34 +6868,6 @@ function pcSetPctNivel(id,k,v){
   var p=pcLerPct(v);
   if(p==null){ /* apagou o %: tira este nível e os de cima */ var nv=Object.assign({},c.niveis||{}); for(var j=i;j<NIVEIS.length;j++) delete nv[NIVEIS[j]]; c.niveis=nv; pcAlterou(); return; }
   pcAplicarDesde(c,i,pcR2(ant*(1+p/100))); pcAlterou();
-}
-function pcPlanoTabela(lin,doUF,minimo,tb){
-  var ext=tb==='Equipe externa', fmt=function(v){ return v>0?v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):''; };
-  var niv=ext?['I']:NIVEIS, cols=niv.length+2;
-  var h='<div class="pc-tw"><table class="pcs-t pc-plano"><thead><tr><th class="pc-fn">Função</th>'+niv.map(function(n){ return '<th class="num">'+(ext?'Valor mensal':'Nível '+n)+'</th>'; }).join('')+'<th class="num">Pessoas</th></tr></thead><tbody>';
-  if(!lin.length) h+='<tr><td colspan="'+cols+'" class="pc-vazio">Nenhuma função nesta tabela. Cadastre em <b>🧩 Funções e setores</b>.</td></tr>';
-  var ultG=null, eqT=function(p){ return (equipe(p)==='externa')===ext; };
-  lin.forEach(function(c){
-    var g=(c.classe||'')+'|'+(c.cargo||'');
-    if((c.classe||c.cargo)&&g!==ultG) h+='<tr class="pc-grp"><td colspan="'+cols+'">'+(c.classe?'<em>'+esc(c.classe)+'</em>':'')+'<b>'+esc(c.cargo||'')+'</b></td></tr>';
-    ultG=g;
-    var nv=c.niveis||{};
-    var pes=contarPessoas(function(p){ return chaveNome(p.funcao)===chaveNome(c.funcao)&&pessoaUF(p)===CG_UF&&eqT(p); });
-    var fr=contarPessoas(function(p){ if(chaveNome(p.funcao)!==chaveNome(c.funcao)||pessoaUF(p)!==CG_UF||!eqT(p)) return false; var v=parseFloat(nv[romano(p.nivel)]); return v>0&&Math.abs((parseFloat(p.salario)||0)-v)>0.009; });
-    h+='<tr data-id="'+c.id+'"><td class="pc-fn"><b>'+esc(c.funcao||'(sem nome)')+'</b>'+(c.setor?'<small>'+esc(c.setor)+'</small>':'')+'</td>';
-    niv.forEach(function(k,i){
-      var v=pcNum(nv[k]), bx=minimo&&v&&v<minimo&&!ext, ant=i?pcNum(nv[niv[i-1]]):0;
-      if(i===0){
-        h+='<td class="num"><input class="pc-v1'+(bx?' abaixo':'')+'" inputmode="decimal" value="'+fmt(v)+'" placeholder="0,00" title="Nível I: clique para alterar'+(minimo&&v&&!ext?' · '+pcPctTxt(v/minimo-1)+' sobre o piso da CCT':'')+'" aria-label="Nível I de '+esc(c.funcao)+'" onchange="pcSetBase(\''+c.id+'\',this.value)"></td>';
-        return;
-      }
-      var pct=(v&&ant)?Math.round((v/ant-1)*1000)/10:null;
-      h+='<td class="num"><span class="cg-v'+(bx?' abaixo':'')+'">'+(fmt(v)||'<i>—</i>')+'</span>'+
-        (ant?'<label class="pc-pg" title="Aumento do nível '+niv[i-1]+' para o '+k+' · clique para alterar"><input inputmode="decimal" value="'+pcPctFmt(pct)+'" placeholder="0" aria-label="% do nível '+niv[i-1]+' para o '+k+' em '+esc(c.funcao)+'" onchange="pcSetPctNivel(\''+c.id+'\',\''+k+'\',this.value)"><span>%</span></label>':'')+'</td>';
-    });
-    h+='<td class="num">'+(pes?'<b>'+pes+'</b>':'<span class="mut">0</span>')+(fr?'<span class="pc-fora" title="Pessoas com salário diferente do nível">'+fr+' fora</span>':'')+'</td></tr>';
-  });
-  return h+'</tbody></table></div>';
 }
 /* ================= v56 · PLANO DE SALÁRIOS: TUDO EDITÁVEL, COM SEGURANÇA =================
    · A tabela abre TRAVADA (só leitura). "Editar tabela" destrava — só para quem tem permissão.
@@ -8425,45 +7791,6 @@ function cfSugestoes(){
   });
   return Object.keys(out).sort().map(function(k){ return out[k]; });
 }
-function cfAbaHtml(){
-  return '<div class="cf-atalho"><span>📋 O <b>plano de cargos confidencial</b> agora fica em <b>Cadastro geral → Funções, salários e setores → 🔐 Confidencial</b>.</span><button type="button" class="nm-b" onclick="PC.sub=\'conf\';abrir(\'cadastro\',\'cargos\')">Abrir</button></div>';
-  return '<div class="cf-abas" role="tablist"><button type="button" role="tab" aria-selected="'+(CF.aba==='grat')+'" class="'+(CF.aba==='grat'?'on':'')+'" onclick="CF.aba=\'grat\';desenharConfid()">🔐 Salários protegidos</button>'+
-    '<button type="button" role="tab" aria-selected="'+(CF.aba==='cargos')+'" class="'+(CF.aba==='cargos'?'on':'')+'" onclick="CF.aba=\'cargos\';desenharConfid()">📋 Plano de cargos confidencial</button></div>';
-}
-function cfRedesenhar(){ if(CF.alvo==='cgConf'&&el('cgConf')) desenharConfCargos(); else desenharConfid(); }
-function cfRenderEmbutido(){ CF.alvo='cgConf'; CF.uf=CG_UF; if(!CF.cargos){ el('cgConf').innerHTML='<p class="cf-vz">Carregando…</p>'; cfCarregarCargos(true).then(function(){ if(el('cgConf')) desenharConfCargos(); }); return; } desenharConfCargos(); }
-function desenharConfCargos(){
-  var emb=CF.alvo==='cgConf', app=el(emb?'cgConf':'cfApp'); if(!app) return;
-  if(emb) CF.uf=CG_UF;
-  var h=(emb?'<div class="ind-top cf-emb"><div><p>🔒 Só você vê esta aba. Deixe aqui as funções que não podem ficar nas abas visíveis.</p></div>':'<div class="ind-top"><div><h1>📋 Plano de cargos confidencial</h1><p>Funções e salários que não podem aparecer no Cadastro geral. Só você vê.</p></div>')+
-    '<div class="flex" style="gap:8px">'+(Object.keys(CF.cSujo).length?'<button type="button" class="cf-bt sm" onclick="cfSalvarCargos()">💾 Salvar alterações</button>':'')+'<button type="button" class="cf-bt" onclick="cfNovoCargo()">+ Adicionar função</button></div></div>';
-  if(!emb) h+=cfAbaHtml();
-  if(CF.cErro){ app.innerHTML=h+'<div class="cf-err"><b>Não consegui abrir o plano confidencial.</b> Rode o arquivo <b>7_CONFIDENCIAL.sql</b> (versão nova) no Supabase e recarregue.<small>'+esc(CF.cErro.slice(0,160))+'</small></div>'; return; }
-  if(!emb) h+='<div class="cf-uf">'+['DF','SP'].map(function(u){ var n=(CF.cargos||[]).filter(function(x){ return x.estado===u; }).length; return '<button type="button" class="'+(CF.uf===u?'on':'')+'" onclick="CF.uf=\''+u+'\';desenharConfid()">'+(u==='DF'?'Distrito Federal':'São Paulo')+'<span>'+n+'</span></button>'; }).join('')+'</div>';
-  var sug=cfSugestoes();
-  if(sug.length) h+='<div class="cf-sug"><b>🔎 Funções da equipe sem tabela em '+CF.uf+'</b><small>Provavelmente as que você tirou do Cadastro geral. Toque para trazer para o plano confidencial:</small><div>'+
-    sug.map(function(s,i){ return '<button type="button" onclick="cfTrazer('+i+')">+ '+esc(s.funcao)+' <em>'+s.n+' pessoa'+(s.n>1?'s':'')+'</em></button>'; }).join('')+'</div></div>';
-  var lista=(CF.cargos||[]).filter(function(x){ return x.estado===CF.uf; }).sort(function(a,b){ return (CF_TABS.indexOf(a.tabela)-CF_TABS.indexOf(b.tabela))||(a.funcao||'').localeCompare(b.funcao||'','pt-BR'); });
-  if(!lista.length) h+='<div class="cf-vz">Nenhuma função confidencial em '+(CF.uf==='DF'?'Distrito Federal':'São Paulo')+'. Use <b>+ Adicionar função</b>'+(sug.length?' ou traga uma das sugestões acima':'')+'.</div>';
-  else {
-    var setores=cxSetores();
-    h+='<div class="cf-tab cf-ct"><div class="cf-cl cf-cab"><span>Função</span><span>Setor</span><span>Tabela</span>'+CF_NIV.map(function(n){ return '<span>Nível '+n+'</span>'; }).join('')+'<span>% entre níveis</span><span>Pessoas</span><span></span></div>';
-    lista.forEach(function(x){
-      var sj=!!CF.cSujo[x.id], nv=x.niveis||{}, ps=cfPessoas(x.funcao,x.estado);
-      var fora=ps.filter(function(p){ var v=parseFloat(nv[(''+(p.nivel||'')).toUpperCase().trim()]); return v>0&&Math.abs((parseFloat(p.salario)||0)-v)>0.009; }).length;
-      h+='<div class="cf-cl'+(sj?' sujo':'')+'" data-cc="'+esc(x.id)+'">'+
-        '<span><input data-k="funcao" value="'+esc(x.funcao||'')+'" placeholder="Nome da função" oninput="this.value=this.value.toUpperCase();cfCMudou(\''+x.id+'\')"></span>'+
-        '<span><select data-k="setor" onchange="cfCMudou(\''+x.id+'\')"><option value="">—</option>'+setores.concat(x.setor&&setores.indexOf(x.setor)<0?[x.setor]:[]).map(function(s){ return '<option'+(s===x.setor?' selected':'')+'>'+esc(s)+'</option>'; }).join('')+'</select></span>'+
-        '<span><select data-k="tabela" onchange="cfCMudou(\''+x.id+'\')">'+CF_TABS.map(function(t){ return '<option'+(t===x.tabela?' selected':'')+'>'+t+'</option>'; }).join('')+'</select></span>'+
-        CF_NIV.map(function(n){ return '<span><div class="cx-money"><span>R$</span><input inputmode="decimal" data-n="'+n+'" value="'+esc(cxMoeda(nv[n]))+'" placeholder="—" oninput="cfCMudou(\''+x.id+'\')"></div></span>'; }).join('')+
-        '<span class="cf-vt"><div class="pc-pin"><input inputmode="decimal" value="'+pcPctFmt(pcPctInferido({niveis:nv}))+'" placeholder="0" title="% entre níveis: calcula do II ao V a partir do I" onchange="cfPctAplicar(\''+x.id+'\',this.value)"><span>%</span></div></span>'+
-        '<span class="cf-ps" title="'+esc(ps.map(function(p){ return p.nome+(p.nivel?' · nível '+p.nivel:''); }).join('\n'))+'">'+ps.length+(fora?' <em title="Salário diferente da tabela">'+fora+' fora</em>':'')+'</span>'+
-        '<span class="cf-ac">'+(sj?'<button type="button" class="cf-bt sm" onclick="cfSalvarCargos([\''+x.id+'\'])">💾</button>':'')+'<button type="button" class="cf-ic" title="Excluir função" onclick="cfExcluirCargo(\''+x.id+'\')">🗑</button></span></div>';
-    });
-    h+='</div><p class="cf-nota">Deixe em branco os níveis que a função não usa. Passe o mouse sobre o número de pessoas para ver quem está em cada função.</p>';
-  }
-  app.innerHTML=h;
-}
 function cfPctAplicar(id,v){
   var l=document.querySelector('.cf-cl[data-cc="'+id+'"]'); if(!l) return;
   var p=pcLerPct(v), i1=l.querySelector('[data-n="I"]'), base=i1?cxNum(i1.value):null;
@@ -8472,25 +7799,11 @@ function cfPctAplicar(id,v){
   cfCMudou(id);
 }
 function cfNovoId(){ return 'cc-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function cfNovoCargo(dados){
-  dados=dados||{};
-  var x={id:cfNovoId(),estado:CF.uf,tabela:dados.tabela||'Operacional',funcao:dados.funcao||'',setor:dados.setor||'',niveis:{},__novo:true};
-  CF.cargos=(CF.cargos||[]).concat([x]); CF.cSujo[x.id]=true; cfRedesenhar();
-  setTimeout(function(){ var i=document.querySelector('.cf-cl[data-cc="'+x.id+'"] '+(dados.funcao?'[data-n="I"]':'[data-k="funcao"]')); if(i){ i.focus(); i.scrollIntoView({block:'center',behavior:'smooth'}); } },60);
-}
 function cfTrazer(i){ var s=cfSugestoes()[i]; if(!s) return; cfNovoCargo({funcao:s.funcao,setor:s.setor,tabela:s.ext?'Equipe externa':'Operacional'}); aviso('Preencha os valores dos níveis e clique em 💾 Salvar.'); }
 function cfCMudou(id){
   if(CF.cSujo[id]) return; CF.cSujo[id]=true;
   var l=document.querySelector('.cf-cl[data-cc="'+id+'"]'); if(l){ l.classList.add('sujo'); var ac=l.querySelector('.cf-ac'); if(ac&&!ac.querySelector('.cf-bt')) ac.insertAdjacentHTML('afterbegin','<button type="button" class="cf-bt sm" onclick="cfSalvarCargos([\''+id+'\'])">💾</button>'); }
   var top=document.querySelector('#'+(CF.alvo==='cgConf'?'cgConf':'cfApp')+' .ind-top .flex'); if(top&&!top.querySelector('.cf-bt.sm')) top.insertAdjacentHTML('afterbegin','<button type="button" class="cf-bt sm" onclick="cfSalvarCargos()">💾 Salvar alterações</button>');
-}
-function cfLerCargo(id){
-  var x=(CF.cargos||[]).find(function(c){ return c.id===id; }), l=document.querySelector('.cf-cl[data-cc="'+id+'"]');
-  if(!x) return null; if(!l) return x;
-  var v=function(k){ var i=l.querySelector('[data-k="'+k+'"]'); return i?i.value:''; }, nv={};
-  CF_NIV.forEach(function(n){ var i=l.querySelector('[data-n="'+n+'"]'), val=i?cxNum(i.value):null; if(val>0) nv[n]=val; });
-  x.funcao=(v('funcao')||'').toUpperCase().trim(); x.setor=v('setor'); x.tabela=v('tabela')||'Operacional'; x.niveis=nv;
-  return x;
 }
 function cfSalvarCargos(ids){
   ids=ids||Object.keys(CF.cSujo);
@@ -15695,7 +15008,6 @@ function opProximo(oi){
   if(ii<0){ aviso('Todos já receberam a mensagem desta OP. 🎉'); return; }
   opWhats(oi,ii);
 }
-function opConferido(oi,ii){ var o=OP.lista[oi], i=o&&o.itens[ii]; if(!i) return; i.conferido=!i.conferido; opSalvarItens(o); }
 function opTelefone(oi,ii,v){ var o=OP.lista[oi], i=o&&o.itens[ii]; if(!i) return; i.telefone=(''+v).trim()||null; opSalvarItens(o,true);
   if(OP.vinc[i.chave]) sb.from('nf_op_vinculos').update({telefone:i.telefone,atualizado_em:new Date().toISOString()}).eq('chave',i.chave).then(function(){ OP.vinc[i.chave].telefone=i.telefone; }); }
 function opSalvarItens(o,quieto){
@@ -19724,6 +19036,616 @@ function hiVoltarInicio(ids){
     }).catch(function(){ aviso('Não consegui voltar agora. Tente de novo.',true); });
   }});
 }
+
+/* ================= MÓDULO · AVISO AO FINANCEIRO + 📅 PAGAMENTOS (organizado em 13/11/2026) =================
+   O problema: "🔔 Liberar" abria o WhatsApp e, no mesmo clique, já marcava a nota como avisada.
+   Se o WhatsApp não abrisse, o grupo não fosse escolhido ou a janela fosse fechada, a nota ficava
+   "liberada" sem o Financeiro saber. O recibo de quitação também liberava sem mensagem.
+   Agora:
+     1) Liberar / Reenviar abre a janela "Avisar o Financeiro" com a mensagem pronta (dá para ajustar).
+     2) Você abre o WhatsApp ou copia e manda no grupo do Financeiro.
+     3) Só no "✅ Mandei no grupo" a nota vira Liberada e o aviso fica registrado na nota (quando e quem).
+        Fechou sem confirmar? Nada muda.
+     4) Nota liberada por outro caminho (recibo, PDF, correção) sem a mensagem fica marcada
+        "⚠ sem aviso" até você avisar.
+     5) Aba 📅 Pagamentos: escolhe o dia (hoje, amanhã, semana…) e vê quem paga, se já foi liberado,
+        se o Financeiro foi avisado e reenvia a mensagem de uma pessoa, das marcadas ou do dia todo.
+   kv 'nf-aviso-pendente' {notaId:{em,por,nome,valor,tipo,mes}} · kv 'nf-aviso-registro' {notaId:{em,por,n}} */
+var AVF={pend:{},reg:{},lido:false,carregando:null,ids:[],ns:[],abriu:false,confirmando:false};
+function avfLerKv(k){
+  return sb.from('kv_store').select('value').eq('storage_key',k).eq('shared',false).maybeSingle().then(function(r){
+    if(r&&r.error) throw r.error; var v={}; try{ v=r&&r.data&&r.data.value?JSON.parse(r.data.value):{}; }catch(e){ v={}; }
+    return (v&&typeof v==='object'&&!Array.isArray(v))?v:{};
+  });
+}
+function avfCarregar(){
+  if(AVF.carregando) return AVF.carregando;
+  AVF.carregando=Promise.all([avfLerKv('nf-aviso-pendente'),avfLerKv('nf-aviso-registro')]).then(function(rs){
+    Object.keys(AVF.pend).forEach(function(k){ rs[0][k]=AVF.pend[k]; }); Object.keys(AVF.reg).forEach(function(k){ rs[1][k]=AVF.reg[k]; });
+    AVF.pend=rs[0]; AVF.reg=rs[1]; AVF.lido=true; AVF.carregando=null; return AVF;
+  }).catch(function(e){ AVF.carregando=null; throw e; });
+  return AVF.carregando;
+}
+/* muda e grava; nunca grava por cima sem ter lido o que já estava salvo */
+function avfMudar(fn){
+  var go=function(){ fn(AVF.pend,AVF.reg); return Promise.all([kvSalvar('nf-aviso-pendente',AVF.pend),kvSalvar('nf-aviso-registro',AVF.reg)]).catch(function(){}); };
+  if(AVF.lido) return go();
+  return avfCarregar().then(go,function(){ fn(AVF.pend,AVF.reg); });
+}
+function avfQuem(){ return (typeof EU!=='undefined'&&EU&&EU.nome)||''; }
+function avfNota(id){
+  var n=null; try{ n=nmNota(id); }catch(e){}
+  if(!n&&typeof HI!=='undefined'&&HI.dados) n=HI.dados.find(function(x){ return x.id===id; })||null;
+  return n;
+}
+function avfInfo(n){
+  var p={}; try{ p=nmPrest(n.colaborador_id)||{}; }catch(e){}
+  return {em:new Date().toISOString(),por:avfQuem(),nome:String(p.nome||'').toUpperCase().trim(),valor:nmLiquido(n),tipo:n.tipo||'',mes:(''+(n.mes_referencia||'')).slice(0,7)};
+}
+/* tira da lista de "falta avisar" o que já não está liberado (voltou para cobrar, foi paga) */
+function avfLimpar(){
+  if(!AVF.lido||!NM||!NM.dados) return;
+  var tirar=[];
+  Object.keys(AVF.pend).forEach(function(id){ var n=avfNota(id); if(n&&n.status!=='enviada') tirar.push(id); });
+  if(tirar.length) avfMudar(function(p){ tirar.forEach(function(id){ delete p[id]; }); });
+}
+function avfLista(){
+  return Object.keys(AVF.pend).map(function(id){ var x=AVF.pend[id]||{}; return {id:id,nome:x.nome||'—',valor:+x.valor||0,tipo:x.tipo,em:x.em}; })
+    .sort(function(a,b){ return (a.em||'').localeCompare(b.em||''); });
+}
+/* situação do aviso de uma nota: ok (confirmado) · gerada (mensagem aberta antes desta versão) · sem · nao (não liberada) */
+function avfAvisoDe(n){
+  var r=AVF.reg[n.id];
+  if(r) return {k:'ok',t:'✅ Avisado '+ddmm(r.em)+' '+new Date(r.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+(r.n>1?' · '+r.n+'x':''),tt:'Mensagem confirmada no grupo do Financeiro'+(r.por?' por '+r.por:'')};
+  if(n.status!=='enviada'&&n.status!=='paga') return {k:'nao',t:'—',tt:'Ainda não liberada'};
+  if(AVF.pend[n.id]) return {k:'sem',t:'⚠ Sem aviso',tt:'Liberada sem a mensagem ao Financeiro'};
+  var nome=''; try{ nome=String((nmPrest(n.colaborador_id)||{}).nome||'').toUpperCase().trim(); }catch(e){}
+  var lt=(NM.lotes||[]).find(function(l){ return (l.ids&&l.ids.indexOf(n.id)>=0)||(nome&&l.msg&&String(l.msg).toUpperCase().indexOf(nome)>=0&&(!n.data_envio||(l.em||'').slice(0,10)>=String(n.data_envio).slice(0,10))); });
+  if(lt) return {k:'ger',t:'🟡 Mensagem gerada '+ddmm(lt.em),tt:'A mensagem foi aberta no WhatsApp, mas a versão antiga não pedia confirmação. Se tiver dúvida, reenvie.'};
+  if(n.status==='paga') return {k:'pag',t:'💸 Já paga',tt:'O Financeiro já pagou'};
+  return {k:'sem',t:'⚠ Sem aviso registrado',tt:'Liberada antes desta versão, sem registro de mensagem. Confira no grupo ou reenvie.'};
+}
+
+/* 1) toda nota que vira "Liberada" sem passar pela confirmação entra na lista de "falta avisar" */
+(function(){
+  var _g=nmGravar; nmGravar=function(id,patch){
+    var n=avfNota(id), antes=n&&n.status, p=_g.apply(this,arguments);
+    if(!patch||!patch.status||!p||typeof p.then!=='function') return p;
+    return p.then(function(r){
+      try{
+        if(patch.status==='enviada'&&antes!=='enviada'&&!AVF.confirmando){ var info=avfInfo(avfNota(id)||n); avfMudar(function(x){ x[id]=info; }); }
+        else if(patch.status!=='enviada'&&AVF.pend[id]) avfMudar(function(x){ delete x[id]; });
+        if(patch.status==='emitida'&&NM.__avisarDepois===id){ NM.__avisarDepois=null; setTimeout(function(){ avfAbrir([id]); },350); }
+      }catch(e){}
+      return r;
+    });
+  };
+  /* "💾 Salvar e avisar o Financeiro" (serviço): salva como recebida e abre a janela de aviso */
+  if(typeof nm2Salvar==='function'){ var _s=nm2Salvar; nm2Salvar=function(id,avisar){ if(avisar){ NM.__avisarDepois=id; return _s.call(this,id,false); } return _s.apply(this,arguments); }; }
+})();
+
+/* 2) Liberar e "🔔 de novo" passam pela janela de aviso */
+nm2Avisar=function(ids){ avfAbrir(ids); };
+nmWhatsFinanceiro=function(ids){ avfAbrir(ids); };
+
+function avfAbrir(ids){
+  var ns=(Array.isArray(ids)?ids:[ids]).map(avfNota).filter(function(n){ return n&&!n.travado; });
+  if(!ns.length){ aviso('Nenhuma nota para avisar (as travadas 🔒 não entram).'); return; }
+  if(!AVF.lido&&!AVF.carregando) avfCarregar().catch(function(){});
+  AVF.ids=ns.map(function(n){ return n.id; }); AVF.ns=ns; AVF.abriu=false;
+  var e=esc, R=moedaBR, msg=nm2Msg(ns), tot=ns.reduce(function(a,n){ return a+nmLiquido(n); },0);
+  var lib=ns.filter(function(n){ return n.status==='enviada'||n.status==='paga'; }), novas=ns.length-lib.length;
+  var sit=!lib.length?'Liberar '+ns.length+' pessoa(s) para pagamento':(novas?novas+' para liberar · '+lib.length+' já liberada(s)':'Reenviar o aviso ('+ns.length+' pessoa(s) já liberada(s))');
+  var ov=el('avfOv'); if(!ov){ ov=document.createElement('div'); ov.id='avfOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(ev){ if(ev.target===ov) avfFechar(); }); }
+  var pes=ns.map(function(n){ var p=nmPrest(n.colaborador_id)||{}; return '<span class="avf-p'+(AVF.pend[n.id]?' w':'')+'">'+(n.tipo==='cache'?'🎤':'🧾')+' '+e(String(p.nome||'—'))+' <b>'+R(nmLiquido(n))+'</b></span>'; }).join('');
+  ov.innerHTML='<div class="rec-box avf-box" role="dialog" aria-label="Avisar o Financeiro">'+
+    '<div class="rec-hd"><div><b>🔔 Avisar o Financeiro</b><small>'+e(sit)+' · total '+R(tot)+'</small></div><button type="button" class="rec-x" onclick="avfFechar()" title="Fechar sem mudar nada">✕</button></div>'+
+    '<div class="rec-bd">'+
+      '<div class="avf-pas"><span class="on" id="avfP1"><i>1</i> Abrir o WhatsApp</span><em>›</em><span id="avfP2"><i>2</i> Mandar no grupo do Financeiro</span><em>›</em><span id="avfP3"><i>3</i> Confirmar aqui</span></div>'+
+      '<div class="avf-ps">'+pes+'</div>'+
+      '<label class="avf-l">Mensagem (pode ajustar antes de mandar)<textarea id="avfTxt" class="nm-in" rows="11" spellcheck="false">'+e(msg)+'</textarea></label>'+
+      '<div class="avf-bts"><button type="button" class="nm2-b wa" onclick="avfWa()">📲 Abrir o WhatsApp (e copiar)</button><button type="button" class="nm2-b" onclick="avfCopiar()">📋 Só copiar</button></div>'+
+    '</div>'+
+    '<div class="rec-ft avf-ft"><small>Fechou sem confirmar? <b>Nada muda</b>'+(novas?': a nota continua em "Pronto para liberar".':'.')+'</small>'+
+      '<button type="button" class="nm2-b ghost" onclick="avfFechar()">Ainda não</button>'+
+      '<button type="button" class="nm2-b fin" id="avfOk" onclick="avfConfirmar()">✅ Mandei no grupo · concluir</button></div>'+
+  '</div>';
+  ov.classList.add('on');
+}
+function avfFechar(){ var o=el('avfOv'); if(o) o.classList.remove('on'); }
+function avfPasso(){ var a=el('avfP1'), b=el('avfP2'), c=el('avfP3'), ok=el('avfOk'); if(a) a.className='ok'; if(b) b.className='on'; if(c) c.className='on'; if(ok) ok.classList.add('avf-pulse'); }
+function avfTexto(){ var t=el('avfTxt'); return t?t.value:''; }
+function avfWa(){ nm2AbrirWa(null,avfTexto()); AVF.abriu=true; avfPasso(); aviso('📲 WhatsApp aberto e texto copiado. Escolha o grupo do Financeiro, mande e volte aqui para confirmar.'); }
+function avfCopiar(){
+  var t=avfTexto();
+  try{ navigator.clipboard.writeText(t).then(function(){ aviso('📋 Copiado. Cole no grupo do Financeiro e volte aqui para confirmar.'); },function(){ aviso('Não consegui copiar. Selecione o texto e copie com Ctrl+C.',true); }); }
+  catch(e){ var x=el('avfTxt'); if(x){ x.focus(); x.select(); } aviso('Selecione o texto e copie com Ctrl+C.'); }
+  AVF.abriu=true; avfPasso();
+}
+/* libera uma nota (status "enviada"), esteja ela na tela de Notas ou só no Histórico */
+function avfLiberar(n,hj){
+  if(n.status==='enviada'||n.status==='paga') return Promise.resolve();
+  var p={status:'enviada',data_envio:hj};
+  var sync=function(){ try{ var h=(typeof HI!=='undefined'&&HI.dados)?HI.dados.find(function(x){ return x.id===n.id; }):null; if(h&&h!==n) Object.keys(p).forEach(function(k){ h[k]=p[k]; }); }catch(e){} };
+  var m=null; try{ m=nmNota(n.id); }catch(e){}
+  if(m) return nmGravar(n.id,p).then(sync);
+  return sb.from('nf_notas').update(p).eq('id',n.id).then(function(r){ if(r&&r.error) throw r.error; Object.keys(p).forEach(function(k){ n[k]=p[k]; }); sync(); });
+}
+function avfConfirmar(){
+  var go=function(){
+    var ns=(AVF.ns||[]).filter(function(n){ return n&&!n.travado; }); if(!ns.length){ avfFechar(); return; }
+    var hj=hoje(), agora=new Date().toISOString(), txt=avfTexto(), tot=ns.reduce(function(a,n){ return a+nmLiquido(n); },0), ok=el('avfOk'); if(ok) ok.disabled=true;
+    AVF.confirmando=true;
+    Promise.all(ns.map(function(n){ return avfLiberar(n,hj); }))
+      .then(function(){
+        AVF.confirmando=false;
+        avfMudar(function(p,reg){ ns.forEach(function(n){ delete p[n.id]; var a=reg[n.id]; reg[n.id]={em:agora,por:avfQuem(),n:(a&&a.n||0)+1}; }); });
+        var tipos={}; ns.forEach(function(n){ tipos[n.tipo]=1; }); var tk=Object.keys(tipos);
+        NM.lotes=[{em:agora,n:ns.length,total:Math.round(tot*100)/100,msg:txt,tipo:tk.length===1?tk[0]:'',por:avfQuem(),ids:ns.map(function(n){ return n.id; }),confirmado:true}].concat(NM.lotes||[]).slice(0,60);
+        kvSalvar('nf-lotes',NM.lotes).catch(function(){});
+        avfFechar(); aviso('✅ Financeiro avisado · '+ns.length+' nota(s) · '+moedaBR(tot));
+        desenharNotasMes(); try{ desenharRadar(); }catch(e){}
+      })
+      .catch(function(){ AVF.confirmando=false; if(ok) ok.disabled=false; aviso('Não consegui marcar todas como liberadas. Tente de novo.',true); desenharNotasMes(); });
+  };
+  if(!AVF.abriu) dialogo('Você não abriu nem copiou a mensagem por aqui.\n\nJá mandou o aviso no grupo do Financeiro mesmo assim?',{sim:go}); else go();
+}
+
+/* 3) aviso vermelho nas telas de Serviço e Cachê + marca nas linhas */
+
+/* 4) 📅 PAGAMENTOS: quem paga no dia, se foi liberado e se o Financeiro foi avisado */
+var PG={de:'',ate:'',atalho:'hoje',tipo:'',emp:'',q:'',sel:{},st:''};
+function pgData(n){ return String((n.status==='paga'&&n.data_pagamento)?n.data_pagamento:(n.data_vencimento||'')).slice(0,10); }
+function pgSemana(iso){ var d=new Date(iso+'T12:00:00'), w=(d.getDay()+6)%7; var ini=somaDias(iso,-w); return [ini,somaDias(ini,6)]; }
+function pgAtalho(a){
+  var hj=hoje(); PG.atalho=a; PG.sel={};
+  if(a==='hoje'){ PG.de=PG.ate=hj; }
+  else if(a==='amanha'){ var d=somaDias(hj,1); var g=0; while(typeof diaUtilBancario==='function'&&!diaUtilBancario(d)&&g++<10) d=somaDias(d,1); PG.de=PG.ate=d; }
+  else if(a==='semana'){ var s=pgSemana(hj); PG.de=s[0]; PG.ate=s[1]; }
+  else if(a==='prox'){ var s2=pgSemana(somaDias(hj,7)); PG.de=s2[0]; PG.ate=s2[1]; }
+  else if(a==='mes'){ PG.de=hj.slice(0,8)+'01'; PG.ate=nmUltimoDia(hj.slice(0,7)); }
+  desenharNotasMes();
+}
+function pgAndar(n){ var d=somaDias(PG.de||hoje(),n); PG.de=PG.ate=d; PG.atalho=''; PG.sel={}; desenharNotasMes(); }
+function pgDia(v){ if(!v) return; PG.de=PG.ate=v; PG.atalho=''; PG.sel={}; desenharNotasMes(); }
+function pgAbrir(){ NM.tela='pag'; try{ localStorage.setItem('nm_tela',''); }catch(e){} if(!PG.de) pgAtalho('hoje'); else desenharNotasMes(); }
+function pgSit(n){
+  if(nmZerada&&nmZerada(n)) return {k:'zer',t:'Zerada'};
+  if(n.status==='paga') return {k:'paga',t:'💸 Paga'};
+  if(n.status==='enviada') return {k:'lib',t:'🔔 Liberado'};
+  if(n.numero||n.status==='emitida'||(typeof recDaNota==='function'&&recDaNota(n.id))) return {k:'pronto',t:'✅ Pronto para liberar'};
+  return {k:'falta',t:'⏳ Falta NF / recibo'};
+}
+function pgEmp(n){ return (typeof lpEmp==='function'&&LP&&LP.emp&&Object.keys(LP.emp).length)?lpEmp(n):((NM.dados.emp||{})[(nmPrest(n.colaborador_id)||{}).empresa_id]||{}).nome||'—'; }
+function pgNome(n){ var p=nmPrest(n.colaborador_id)||{}; return p.nome||(typeof lpNome==='function'?lpNome(n):'—'); }
+function pgTopo(){ return '<div class="nm2-top"><div><h1>Notas fiscais</h1><p>📅 Pagamentos · escolha o dia e confira se tudo foi liberado e avisado ao Financeiro</p></div>'+afTabs('pg')+'</div>'; }
+function pgDesenhar(){
+  var bx=el('nmApp'); if(!bx) return;
+  if(!PG.de){ var hj=hoje(); PG.de=PG.ate=hj; PG.atalho='hoje'; }
+  if(!NM.dados||!HI.dados||!AVF.lido){
+    bx.innerHTML=pgTopo()+'<div class="op-card"><div class="op-lendo">'+(PG.erro?'Não consegui ler as notas agora. <button class="nm2-b sm" onclick="PG.erro=false;desenharNotasMes()">Tentar de novo</button>':'Lendo os pagamentos…')+'</div></div>';
+    if(!PG.lendo&&!PG.erro){ PG.lendo=true;
+      Promise.all([HI.dados?null:lpLer().then(function(){ HI.dados=LP.dados; }),AVF.lido?null:avfCarregar(),(NM.lotes&&NM.lotes.length)?null:kvLer('nf-lotes',[]).then(function(l){ NM.lotes=Array.isArray(l)?l:[]; })])
+        .then(function(){ PG.lendo=false; if(NM.tela==='pag') desenharNotasMes(); },function(){ PG.lendo=false; PG.erro=true; if(NM.tela==='pag') desenharNotasMes(); });
+    }
+    return;
+  }
+  avfLimpar();
+  var e=esc, R=moedaBR, br=nm2Br, q=chaveNome(PG.q||''), um=PG.de===PG.ate, hj=hoje();
+  var base=HI.dados.map(function(n){ var m=null; try{ m=nmNota(n.id); }catch(x){} return m||n; })
+    .filter(function(n){ var d=pgData(n); if(!d||(nmZerada&&nmZerada(n))) return false; if(d>=PG.de&&d<=PG.ate) return true; return PG.de===hoje()&&d<PG.de&&d>=somaDias(hoje(),-60)&&pgPendente(n); });
+  var empresas={}; base.forEach(function(n){ empresas[pgEmp(n)]=1; });
+  base=base.filter(function(n){ return (!PG.tipo||n.tipo===PG.tipo)&&(!PG.emp||pgEmp(n)===PG.emp)&&(!q||chaveNome(pgNome(n)).indexOf(q)>=0); });
+  /* placar */
+  var C={tot:[0,0],ok:[0,0],sem:[0,0],pronto:[0,0],falta:[0,0],paga:[0,0]};
+  var add=function(k,v){ C[k][0]++; C[k][1]+=v; };
+  base.forEach(function(n){
+    var v=nmLiquido(n), s=pgSit(n), a=avfAvisoDe(n); if(pgData(n)>=PG.de) add('tot',v);
+    if(s.k==='paga') add('paga',v);
+    if(s.k==='lib'||s.k==='paga'){ if(a.k==='ok'||a.k==='ger'||a.k==='pag') add('ok',v); else add('sem',v); }
+    else if(s.k==='pronto') add('pronto',v); else add('falta',v);
+  });
+  var lista=base.filter(function(n){
+    if(!PG.st) return true; var s=pgSit(n), a=avfAvisoDe(n);
+    if(PG.st==='ok') return (s.k==='lib'||s.k==='paga')&&(a.k==='ok'||a.k==='ger'||a.k==='pag');
+    if(PG.st==='sem') return (s.k==='lib'||s.k==='paga')&&!(a.k==='ok'||a.k==='ger'||a.k==='pag');
+    return s.k===PG.st;
+  }).sort(function(a,b){ return pgData(a).localeCompare(pgData(b))||pgEmp(a).localeCompare(pgEmp(b))||pgNome(a).localeCompare(pgNome(b)); });
+  var titulo=um?(PG.de===hj?'Hoje, ':(PG.de===somaDias(hj,1)?'Amanhã, ':''))+new Date(PG.de+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'}):br(PG.de)+' a '+br(PG.ate);
+  var at=function(k,t){ return '<button type="button" class="'+(PG.atalho===k?'on':'')+'" onclick="pgAtalho(\''+k+'\')">'+t+'</button>'; };
+  var h=pgTopo();
+  h+='<div class="pg-bar hi-filtro"><div class="hi-seg">'+at('hoje','Hoje')+at('amanha','Próximo dia útil')+at('semana','Esta semana')+at('prox','Próxima semana')+at('mes','Este mês')+'</div>'+
+    '<span class="pg-dia"><button type="button" class="nm2-b sm" onclick="pgAndar(-1)" title="Dia anterior">◀</button><input type="date" class="nm-in" value="'+e(PG.de)+'" onchange="pgDia(this.value)"><button type="button" class="nm2-b sm" onclick="pgAndar(1)" title="Próximo dia">▶</button></span>'+
+    '<div class="hi-seg">'+[['','Tudo'],['servico','🧾 Serviço'],['cache','🎤 Cachê']].map(function(x){ return '<button type="button" class="'+(PG.tipo===x[0]?'on':'')+'" onclick="PG.tipo=\''+x[0]+'\';PG.sel={};desenharNotasMes()">'+x[1]+'</button>'; }).join('')+'</div>'+
+    '<select class="nm-in" onchange="PG.emp=this.value;PG.sel={};desenharNotasMes()"><option value="">🏢 Todas as empresas</option>'+Object.keys(empresas).sort().map(function(x){ return '<option'+(PG.emp===x?' selected':'')+'>'+e(x)+'</option>'; }).join('')+'</select>'+
+    '<input class="nm-busca" placeholder="🔎 Buscar pelo nome" value="'+e(PG.q||'')+'" oninput="PG.q=this.value;clearTimeout(window._pgT);window._pgT=setTimeout(function(){desenharNotasMes();var i=document.querySelector(\'.pg-bar .nm-busca\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)"><button type="button" class="nm2-b" onclick="pgPrevisao()" title="Mensagem para o Financeiro com os pagamentos previstos da semana">📤 Previsão da semana</button></div>';
+  var pend=C.sem[0]+C.pronto[0]+C.falta[0];
+  /* topo enxuto: total do período + UM botão, que muda conforme o que falta */
+  Object.keys(PG.sel).forEach(function(id){ if(!lista.some(function(n){ return n.id===id; })) delete PG.sel[id]; });
+  var selIds=Object.keys(PG.sel), libDia=base.filter(function(n){ var s=pgSit(n).k; return s==='lib'||s==='paga'; }).map(function(n){ return n.id; });
+  var semIds=base.filter(function(n){ var s=pgSit(n).k, a=avfAvisoDe(n).k; return (s==='lib'||s==='paga')&&!(a==='ok'||a==='ger'||a==='pag'); }).map(function(n){ return n.id; });
+  var prIds=base.filter(function(n){ return pgSit(n).k==='pronto'; }).map(function(n){ return n.id; });
+  var ids=function(l){ return '['+l.map(function(x){ return '\''+x+'\''; }).join(',')+']'; };
+  var bt=selIds.length?'<button type="button" class="nm2-b wa" onclick="avfAbrir('+ids(selIds)+')">🔁 Mandar mensagem das '+selIds.length+' marcadas</button><button type="button" class="nm2-b ghost sm" onclick="PG.sel={};desenharNotasMes()">limpar</button>':
+    semIds.length?'<button type="button" class="nm2-b fin" onclick="avfAbrir('+ids(semIds)+')">⚠️ Avisar o Financeiro ('+semIds.length+' sem aviso)</button>':
+    prIds.length?'<button type="button" class="nm2-b fin" onclick="avfAbrir('+ids(prIds)+')">🔔 Liberar os prontos ('+prIds.length+')</button>':
+    libDia.length?'<button type="button" class="nm2-b ghost" onclick="avfAbrir('+ids(libDia)+')">🔁 Reenviar mensagem '+(um?'do dia':'do período')+'</button>':'';
+  h+='<div class="pg-res '+(!C.tot[0]?'vz':(pend?'w':'ok'))+'"><div><small>'+e(titulo)+'</small><b>'+R(C.tot[1])+'</b><span>'+C.tot[0]+' pessoa(s) · '+(!C.tot[0]?'nada para pagar':(pend?'⚠️ falta resolver '+pend:'✅ tudo certo'))+'</span>'+pgFechadoTxt()+'</div><div class="pg-bt">'+bt+pgBtFechar(pend,C.tot[0])+'</div></div>';
+  var chip=function(k,t,c,cls){ if(!c[0]&&PG.st!==k) return ''; return '<button type="button" class="pg-chip '+cls+(PG.st===k?' on':'')+'" onclick="PG.st=PG.st===\''+k+'\'?\'\':\''+k+'\';PG.sel={};desenharNotasMes()"><span>'+t+'</span><b>'+c[0]+'</b><small>'+R(c[1])+'</small></button>'; };
+  if(C.tot[0]) h+='<div class="pg-chips">'+chip('ok','✅ Financeiro avisado',C.ok,'c-ok')+chip('sem','⚠️ Liberado sem aviso',C.sem,'c-sem')+chip('pronto','🔔 Pronto para liberar',C.pronto,'c-pr')+chip('falta','⏳ Falta NF / recibo',C.falta,'c-fa')+chip('paga','💸 Já pagas',C.paga,'c-pg')+'</div>';
+  if(!lista.length) h+='<div class="op-card"><div class="op-lendo">'+(C.tot[0]?'Nenhuma nota com esse filtro.':'Nada para pagar '+(um?'neste dia':'neste período')+'. Use ◀ ▶ ou os atalhos para ver outros dias.')+'</div></div>';
+  var grupo=null;
+  lista.forEach(function(n){
+    var g=pgGrupo(n,um);
+    if(g!==grupo){ if(grupo!==null) h+='</section>'; grupo=g;
+      var tg=lista.filter(function(x){ return pgGrupo(x,um)===g; });
+      h+='<section class="hi-grp pg-grp'+(g.charAt(0)==='⏮'?' pg-atras':'')+'"><div class="hi-gh"><b>'+(g.charAt(0)==='⏮'?'':(um?'🏢 ':'📅 '))+e(g)+'</b><span>'+tg.length+' pessoa(s) · '+R(tg.reduce(function(a,x){ return a+nmLiquido(x); },0))+'</span></div>'; }
+    var s=pgSit(n), a=avfAvisoDe(n), rc=!n.numero&&typeof recDaNota==='function'?recDaNota(n.id):null;
+    var doc=n.numero&&n.numero!=='RECIBO'?'NF <b>'+e(n.numero)+'</b>':((n.numero==='RECIBO'||rc)?'<span class="hi-rc">🧾 recibo</span>':'<span class="hi-z">sem NF</span>');
+    var ac='';
+    if(s.k==='pronto') ac='<button type="button" class="nm2-b fin sm" onclick="avfAbrir([\''+n.id+'\'])">🔔 Liberar</button>';
+    else if(s.k==='lib'||s.k==='paga') ac='<button type="button" class="nm2-b '+(a.k==='sem'?'fin':'ghost')+' sm" onclick="avfAbrir([\''+n.id+'\'])">'+(a.k==='sem'?'🔔 Avisar':'🔁 Reenviar')+'</button>';
+    else { var mm=null; try{ mm=nmNota(n.id); }catch(x){} if(mm) ac='<button type="button" class="nm2-b wa sm" onclick="nmWhats(\''+n.id+'\')">📲 Cobrar NF</button>'; }
+    var info=[n.tipo==='cache'?'🎤 Cachê de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase():'🧾 Serviço',um?'':pgEmp(n),n.data_envio&&(s.k==='lib'||s.k==='paga')?'liberado '+br(n.data_envio).slice(0,5):''].filter(Boolean).join(' · ');
+    var podeSel=s.k!=='falta';
+    h+='<div class="pg-row s-'+s.k+' a-'+a.k+(PG.sel[n.id]?' sel':'')+'">'+
+      '<span class="pg-ck">'+(podeSel?'<input type="checkbox"'+(PG.sel[n.id]?' checked':'')+' onchange="if(this.checked)PG.sel[\''+n.id+'\']=1;else delete PG.sel[\''+n.id+'\'];desenharNotasMes()">':'')+'</span>'+
+      '<span class="pg-nm"><b>'+e(pgNome(n))+'</b><small>'+e(info)+'</small></span>'+
+      '<span class="pg-doc">'+doc+'</span><span class="pg-v">'+R(nmLiquido(n))+'</span>'+
+      '<span class="pg-st k-'+s.k+'">'+s.t+'</span>'+
+      '<span class="pg-av k-'+a.k+'" title="'+e(a.tt||'')+'">'+e(a.t)+'</span>'+
+      '<span class="pg-ac">'+ac+'</span></div>';
+  });
+  if(grupo!==null) h+='</section>';
+  bx.innerHTML=h;
+}
+
+/* ================= TELAS DAS NOTAS FISCAIS: 3 ABAS =================
+   📋 A fazer (serviço e cachê juntos: liberar, cobrar, recibo) · 📅 Pagamentos · 📚 Histórico.
+   Ordens de Pagamento e a Conferência do cachê viram botões dentro de "A fazer".
+   Saíram as repetições: lista "Liberado ao Financeiro", "Últimas liberações" e o aviso vermelho
+   dentro das telas de trabalho (o aviso fica no Início e em Pagamentos). */
+var AF={tipo:'',q:''};
+function afTabs(at){
+  var b=function(k,t,fn){ return '<button type="button" class="nm2-tp t-'+k+(at===k?' on':'')+'" onclick="'+fn+'">'+t+'</button>'; };
+  return '<div class="nm2-tps">'+b('af','📋 A fazer','afAbrir()')+b('pg','📅 Pagamentos','pgAbrir()')+b('hi','📚 Histórico','hiAbrir()')+'</div>';
+}
+function afAbrir(){ NM.tela=''; NM.abrindo=null; try{ localStorage.setItem('nm_tela',''); }catch(e){} desenharNotasMes(); }
+function afConf(){ NM.tela='cx'; try{ localStorage.setItem('nm_tela',''); }catch(e){} desenharNotasMes(); }
+function afEmp(n){ var p=nmPrest(n.colaborador_id)||{}; return ((NM.dados.emp||{})[p.empresa_id]||{}).nome||'Sem empresa'; }
+function afFila(n){
+  if(n.travado||(typeof nmZerada==='function'&&nmZerada(n))) return null;
+  var e=nmEtapa(n);
+  if(e==='fin'||e==='paga') return null;
+  if(e==='rec') return 'pronto';
+  if(n.tipo==='cache') return (NM.semNF||{})[n.colaborador_id]?'recibo':'cobrar';
+  var c=nmDiaCobrar(n); return (c&&diasAte(c)>0)?'prox':'cobrar';
+}
+function afValor(n){ var v=nmLiquido(n); if(!v){ var es=null; try{ es=nmEsperado(n); }catch(e){} if(es&&es.v) v=es.v; } return v||0; }
+function afLinha(n,fila){
+  var e=esc, R=moedaBR, id=n.id, venc=(n.data_vencimento||'').slice(0,10), dd=venc?diasAte(venc):null;
+  var rc=(!n.numero&&typeof recDaNota==='function')?recDaNota(id):null, cb=(typeof nmCobrancas==='function')?nmCobrancas(id):null;
+  var tp=n.tipo==='cache'?'🎤 Cachê de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase():'🧾 Serviço';
+  var info=[tp,afEmp(n)];
+  if(fila==='cobrar'&&cb) info.push('📲 cobrado '+cb.n+'x');
+  if(fila==='cobrar'&&dd!==null&&dd<0) info.push('⏰ atrasada');
+  if(fila==='prox'){ var c=nmDiaCobrar(n); if(c) info.push('cobrar em '+nm2Br(c).slice(0,5)); }
+  if(fila==='pronto') info.push(n.numero&&n.numero!=='RECIBO'?'NF '+n.numero+(n.data_emissao?' de '+nm2Br(n.data_emissao).slice(0,5):''):(rc?'recibo '+(rc.num||''):'✍️ recibo assinado'));
+  var dt=venc?'<span class="af-dt'+(dd<0&&fila!=='pronto'?' late':(dd===0?' hj':''))+'" title="Data de pagamento"><b>'+venc.slice(8,10)+'</b>'+['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+venc.slice(5,7)-1]+'</span>':'<span class="af-dt">—</span>';
+  var tg=function(fn,t,cls,tt){ return '<button type="button" class="nm2-b '+(cls||'')+' sm"'+(tt?' title="'+tt+'"':'')+' onclick="'+fn+'">'+t+'</button>'; };
+  var abre="NM.abrindo=NM.abrindo==='"+id+"'?null:'"+id+"';desenharNotasMes()";
+  var ac='';
+  if(fila==='pronto') ac=tg("avfAbrir(['"+id+"'])",'🔔 Liberar','fin')+(n.numero&&n.numero!=='RECIBO'?tg("nmVoltarCobrar('"+id+"')",'↩','ghost','Voltar para cobrar'):'');
+  else if(fila==='cobrar') ac=tg("nmWhats('"+id+"')",cb?'📲 Cobrar de novo':'📲 Cobrar','wa')+tg("nmReciboDaNota('"+id+"')",'🧾','ghost','Sem NF: recibo de pagamento e quitação')+tg(abre,'✅ Chegou','pri');
+  else if(fila==='recibo') ac=tg("cx2Assinado('"+id+"')",'✍️ Assinado','pri','O recibo voltou assinado')+tg("nmReciboDaNota('"+id+"')",'🧾 Gerar','ghost','Gerar o recibo para assinar');
+  else if(fila==='prox') ac=tg(abre,'✅ Já chegou','ghost');
+  var v=afValor(n);
+  var h='<div class="af-row f-'+fila+(NM.abrindo===id?' aberto':'')+'">'+dt+'<span class="af-nm"><b>'+e(nmPrest(n.colaborador_id).nome||'—')+'</b><small>'+e(info.join(' · '))+'</small></span>'+
+    '<span class="af-v">'+(v?R(v):'<i>sem valor</i>')+'</span><span class="af-ac">'+ac+'<button type="button" class="nm-mais" title="Mais opções" onclick="nmMais(\''+id+'\')">⋯</button></span></div>';
+  if(NM.abrindo===id&&(fila==='cobrar'||fila==='prox')){
+    if(n.tipo==='servico'){ NM.extra=NM.extra||{}; h+=nm2Form(n); }
+    else h+='<div class="cx2-form af-form"><label>Nº da NF<input class="nm-in" id="cxN_'+id+'" placeholder="Ex.: 1234" onkeydown="if(event.key===\'Enter\')cx2Chegou(\''+id+'\')"></label><label>Data de emissão<input class="nm-in" id="cxE_'+id+'" type="date" value="'+hoje()+'"></label>'+
+      '<button type="button" class="nm2-b pri" onclick="cx2Chegou(\''+id+'\')">✅ Salvar · a nota chegou</button><button type="button" class="nm2-b ghost" onclick="NM.abrindo=null;desenharNotasMes()">Cancelar</button><small>Valor da OP: <b>'+R(v)+'</b> · a NF tem que vir com esse valor.</small></div>';
+    setTimeout(function(){ var i=el('nmN_'+id)||el('cxN_'+id); if(i) i.focus(); },50);
+  }
+  return h;
+}
+function afDesenhar(){
+  var bx=el('nmApp'); if(!bx||!NM.dados) return;
+  var e=esc, R=moedaBR, D=NM.dados, q=chaveNome(AF.q||'');
+  var F={pronto:[],cobrar:[],recibo:[],prox:[]};
+  D.abertas.forEach(function(n){
+    if(AF.tipo&&n.tipo!==AF.tipo) return; if(!nmEmpPassa(n)) return;
+    if(q&&chaveNome(nmPrest(n.colaborador_id).nome||'').indexOf(q)<0) return;
+    var f=afFila(n); if(f) F[f].push(n);
+  });
+  var ord=function(a,b){ return (a.data_vencimento||'9').localeCompare(b.data_vencimento||'9')||(nmPrest(a.colaborador_id).nome||'').localeCompare(nmPrest(b.colaborador_id).nome||''); };
+  Object.keys(F).forEach(function(k){ F[k].sort(ord); });
+  var soma=function(l){ return l.reduce(function(a,n){ return a+afValor(n); },0); };
+  var ids=function(l){ return '['+l.map(function(n){ return '\''+n.id+'\''; }).join(',')+']'; };
+  var empIds=Object.keys(D.emp||{}).sort(function(a,b){ return (D.emp[a].nome||'').localeCompare(D.emp[b].nome||''); });
+  var h='<div class="nm2-top"><div><h1>Notas fiscais</h1><p>📨 Cobrar <span>›</span> ✅ Chegou a nota ou ✍️ recibo <span>›</span> 🔔 Liberar ao Financeiro</p></div>'+afTabs('af')+'</div>';
+  h+='<div class="af-bar hi-filtro"><div class="hi-seg">'+[['','Tudo'],['servico','🧾 Serviço'],['cache','🎤 Cachê']].map(function(x){ return '<button type="button" class="'+(AF.tipo===x[0]?'on':'')+'" onclick="AF.tipo=\''+x[0]+'\';NM.abrindo=null;desenharNotasMes()">'+x[1]+'</button>'; }).join('')+'</div>'+
+    '<select class="nm-in" onchange="nmFiltrarEmpresa(this.value)"><option value="">🏢 Todas as empresas</option>'+empIds.map(function(id){ return '<option value="'+id+'"'+(NM.emp===id?' selected':'')+'>'+e(D.emp[id].nome||'—')+'</option>'; }).join('')+'</select>'+
+    '<input class="nm-busca" placeholder="🔎 Buscar pelo nome" value="'+e(AF.q||'')+'" oninput="AF.q=this.value;clearTimeout(window._afT);window._afT=setTimeout(function(){desenharNotasMes();var i=document.querySelector(\'.af-bar .nm-busca\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},250)">'+
+    '<button type="button" class="nm2-b" onclick="opAbrir()">📥 Ordens de Pagamento</button>'+
+    '<details class="nm-tools nm2-mais"><summary class="nm2-b">Mais ▾</summary><div class="nm2-mais-m">'+
+      '<button class="nm2-mi" onclick="afConf()">🧮 Conferência do cachê (OP × lançado)</button>'+
+      '<button class="nm2-mi" onclick="nmNovaAvulsa()">＋ Nota avulsa</button>'+
+      '<button class="nm2-mi" onclick="recListaAbrir()">🧾 Recibos emitidos</button>'+
+      '<button class="nm2-mi" onclick="nmConfAbrir()">📄 PDF de conferência</button>'+
+      '<button class="nm2-mi" onclick="sincronizarNF(true)">👥 Conferir as fichas PJ</button>'+
+      '<button class="nm2-mi" onclick="nfLimpezaAbrir()">🧹 Arrumar as notas</button></div></details></div>';
+  h+='<div class="nm-av hidden" id="nmAvulsaBox"><div class="nfst nfst-cz"><select id="nmAvulsa" class="nm-in"></select><select id="nmAvulsaTipo" class="nm-in"><option value="cache">Cachê</option><option value="servico">Serviço</option></select>'+
+    '<input type="month" id="nmAvulsaMes" class="nm-in"><button type="button" class="ind-bt on" onclick="nmCriarAvulsa()">Criar nota</button><button type="button" class="ind-bt" onclick="el(\'nmAvulsaBox\').classList.add(\'hidden\')">Cancelar</button></div></div>';
+  /* alertas de cadastro (só quando existem) */
+  try{
+    var semDia=D.abertas.filter(function(n){ return n.tipo==='servico'&&afFila(n)&&!nm2TemDia(n); });
+    if(semDia.length) h+='<div class="nm2-alerta">⚠️ <span><b>'+semDia.length+' prestador(es) sem dia de pagamento na ficha PJ</b> ('+e(semDia.map(function(n){ return nomeCurto(nmPrest(n.colaborador_id).nome||''); }).join(', '))+'): a data de pagamento pode estar errada.</span></div>';
+    var err=nmVencErrados().length; if(err) h+='<div class="nm2-alerta">📅 '+err+' nota(s) com data de pagamento fora da regra <button type="button" class="nm2-b sm" onclick="nmCorrigirVenc()">corrigir</button></div>';
+  }catch(x){}
+  var bloco=function(cls,ic,tit,sub,l,fila,extra){
+    if(!l.length) return '';
+    return '<section class="af-bl '+cls+'"><div class="af-bh"><span class="af-bi">'+ic+'</span><div><b>'+tit+' <em>'+l.length+'</em> <span>'+R(soma(l))+'</span></b><small>'+sub+'</small></div>'+(extra||'')+'</div>'+
+      l.map(function(n){ return afLinha(n,fila); }).join('')+'</section>';
+  };
+  var tot=F.pronto.length+F.cobrar.length+F.recibo.length;
+  if(!tot) h+='<div class="af-vazio"><b>🎉 Nada pendente agora</b><span>Tudo o que chegou já foi liberado ao Financeiro.</span><button type="button" class="nm2-b" onclick="pgAbrir()">📅 Conferir os pagamentos de hoje</button></div>';
+  h+=bloco('b-pr','🔔','Pronto para liberar','a NF chegou ou o recibo está assinado · libere ao Financeiro',F.pronto,'pronto',F.pronto.length>1?'<button type="button" class="nm2-b fin" onclick="avfAbrir('+ids(F.pronto)+')">🔔 Liberar todos ('+F.pronto.length+')</button>':'');
+  h+=bloco('b-nf','📨','Cobrar NF','a nota ainda não chegou · cobre ou registre quando chegar',F.cobrar,'cobrar',F.cobrar.length>1?'<button type="button" class="nm2-b wa" onclick="cobAbrir()">📲 Cobrar em lote</button>':'');
+  h+=bloco('b-rc','🧾','Recibo para assinar','não emitem NF · quando o recibo voltar assinado, ✍️ Assinado',F.recibo,'recibo',F.recibo.length>1?'<button type="button" class="nm2-b pri" onclick="cx2Assinado('+ids(F.recibo)+')">✍️ Todos assinados</button>':'');
+  if(F.prox.length) h+='<details class="af-prox"'+(NM.verProx?' open':'')+' ontoggle="NM.verProx=this.open"><summary>⚪ Próximas <em>'+F.prox.length+'</em> <small>serviço · ainda não chegou o dia de cobrar</small></summary>'+F.prox.map(function(n){ return afLinha(n,'prox'); }).join('')+'</details>';
+  bx.innerHTML=h;
+}
+/* Conferência do cachê: só a conta OP × lançado e o resumo por empresa (as filas ficam em "A fazer") */
+function afConfDesenhar(){
+  cx2Desenhar();
+  var bx=el('nmApp'); if(!bx||NM.tela!=='cx') return;
+  try{
+    bx.querySelectorAll('.cx2-grid,.cx2-bl,.cx2-pend,details.nm2-dt-bl,.nm2-lotes,.nm-av,.cx2-bar details').forEach(function(x){ x.remove(); });
+    var t=bx.querySelector('.nm2-tps'); if(t) t.outerHTML=afTabs('af');
+    var p=bx.querySelector('.nm2-top p'); if(p) p.innerHTML='🧮 Conferência do cachê · OP × lançado, por empresa · <button type="button" class="nm2-link" onclick="afAbrir()">← voltar para A fazer</button>';
+    bx.querySelectorAll('.cx2-bar .nm2-b.wa').forEach(function(x){ x.remove(); });
+  }catch(e){}
+}
+(function(){
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    if(NM.tela==='pag') return pgDesenhar();
+    if(NM.tela==='cx') return NM.dados?afConfDesenhar():null;
+    if(!NM.tela) return NM.dados?afDesenhar():null;
+    var r=_d.apply(this,arguments);   // Ordens de Pagamento e Histórico continuam como eram
+    try{ var t=document.querySelector('#nmApp .nm2-tps'); if(t) t.outerHTML=afTabs(NM.tela==='hist'?'hi':'af');
+      if(NM.tela==='op'){ var p=document.querySelector('#nmApp .nm2-top p'); if(p&&!p.querySelector('.af-volta')) p.insertAdjacentHTML('beforeend',' · <button type="button" class="nm2-link af-volta" onclick="afAbrir()">← voltar para A fazer</button>'); } }catch(e){}
+    return r;
+  };
+  /* botões antigos de Serviço / Cachê viram o filtro de "A fazer" */
+  var _t=nmTrocarTipo; nmTrocarTipo=function(t){ AF.tipo=t||''; var r=_t.apply(this,arguments); return r; };
+  var _ab=abrir; abrir=function(v){ if(v==='notasmes'&&NM.tela==='pag'&&!PG.de) PG.atalho='hoje'; return _ab.apply(this,arguments); };
+})();
+
+/* 5) Início: o mesmo alerta, até avisar */
+(function(){
+  var _r=desenharRadar; desenharRadar=function(){
+    try{
+      if(typeof podeNF==='function'&&podeNF()){
+        if(!AVF.lido){ if(!AVF.carregando&&typeof sb!=='undefined') avfCarregar().then(function(){ try{ desenharRadar(); }catch(e){} },function(){}); }
+        else{
+          RADAR.itens=(RADAR.itens||[]).filter(function(x){ return !x.avf; });
+          var l=avfLista();
+          if(l.length){
+            var y={cat:'nf',ic:'nf',avf:true,t:'Avisar o Financeiro · '+l.length+' liberado(s) sem mensagem',
+              s:l.slice(0,4).map(function(x){ return x.nome+' '+moedaBR(x.valor); }).join(' · ')+(l.length>4?' · +'+(l.length-4):''),d:hoje(),
+              abrir:"NM.tela='pag';PG.st='sem';pgAtalho('mes');abrir('notasmes')"};
+            y.dias=0; y.nivel='urg'; RADAR.itens=[y].concat(RADAR.itens||[]);
+          }
+        }
+      }
+    }catch(e){}
+    return _r.apply(this,arguments);
+  };
+})();
+(function(){
+  var css=document.createElement('style');
+  css.textContent=
+    '.avf-box{width:min(640px,100%);margin-top:6vh}'+
+    '.avf-pas{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:14px 0 12px;font-size:12.5px;color:var(--mut)}'+
+    '.avf-pas span{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:999px}'+
+    '.avf-pas span i{font-style:normal;font-weight:800;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;background:rgba(255,255,255,.08);font-size:11px}'+
+    '.avf-pas span.on{color:#fff;border-color:#f5a524}.avf-pas span.on i{background:#f5a524;color:#111}'+
+    '.avf-pas span.ok{color:#7ee2a8;border-color:#1f9d55}.avf-pas span.ok i{background:#1f9d55;color:#fff}.avf-pas em{font-style:normal;opacity:.5}'+
+    '.avf-ps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.avf-p{font-size:12px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--line)}.avf-p b{margin-left:4px}.avf-p.w{border-color:#ff6b62;background:rgba(255,107,98,.1)}'+
+    '.avf-l{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mut)}.avf-l textarea{width:100%;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;line-height:1.45;resize:vertical;min-height:180px;color:var(--txt,#eee)}'+
+    '.avf-bts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}'+
+    '.avf-ft{align-items:center;flex-wrap:wrap}.avf-ft small{margin-right:auto;color:var(--mut);font-size:12px;max-width:300px}'+
+    '.avf-pulse{animation:avfPulse 1.4s infinite}@keyframes avfPulse{0%{box-shadow:0 0 0 0 rgba(31,157,85,.6)}70%{box-shadow:0 0 0 10px rgba(31,157,85,0)}100%{box-shadow:0 0 0 0 rgba(31,157,85,0)}}'+
+    '.avf-ban{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:12px 0 14px;padding:14px 18px;border-radius:14px;border:1px solid #ff6b62;background:linear-gradient(90deg,rgba(225,6,0,.16),rgba(225,6,0,.05))}'+
+    '.avf-ban>div{flex:1;min-width:260px;display:flex;flex-direction:column;gap:4px}.avf-ban b{font-size:14.5px;color:#ffb4ae}.avf-ban small{color:var(--mut);font-size:12px}'+
+    '.avf-ban span{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.avf-ban span i{font-style:normal;font-size:12px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.07)}'+
+    '.avf-tag{font-style:normal;color:#ff8a84;font-weight:700}'+
+    /* A fazer */
+    '.af-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}.af-bar .nm-busca{flex:1;min-width:180px}'+
+    '.af-bl{border:1px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden;border-top:3px solid var(--line)}'+
+    '.af-bl.b-pr{border-top-color:#1f9d55}.af-bl.b-nf{border-top-color:#f5a524}.af-bl.b-rc{border-top-color:#a78bfa}'+
+    '.af-bh{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(255,255,255,.03)}.af-bh>div{flex:1}.af-bi{font-size:20px}'+
+    '.af-bh b{font-size:15px}.af-bh b em{font-style:normal;font-size:12px;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.1);margin-left:4px}.af-bh b span{font-weight:600;color:var(--mut);font-size:13px;margin-left:6px}.af-bh small{display:block;color:var(--mut);font-size:12px}'+
+    '.af-row{display:grid;grid-template-columns:52px minmax(220px,1fr) 130px auto;gap:14px;align-items:center;padding:11px 18px;border-top:1px solid var(--line)}.af-row:hover{background:rgba(255,255,255,.025)}.af-row.aberto{background:rgba(225,6,0,.06)}'+
+    '.af-dt{display:flex;flex-direction:column;align-items:center;line-height:1.1;font-size:11px;color:var(--mut);padding:5px 0;border-radius:10px;background:rgba(255,255,255,.05)}.af-dt b{font-size:17px;color:var(--txt,#eee)}.af-dt.hj{background:rgba(245,165,36,.18)}.af-dt.late{background:rgba(255,107,98,.2)}.af-dt.late b{color:#ff8a84}'+
+    '.af-nm b{display:block;font-size:13.5px}.af-nm small{color:var(--mut);font-size:12px}.af-v{font-weight:800;text-align:right}.af-ac{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;align-items:center}'+
+    '.af-form{padding:12px 18px 16px 84px;border-top:1px dashed var(--line)}'+
+    '.af-prox{margin:4px 2px 14px;color:var(--mut)}.af-prox summary{cursor:pointer;padding:8px 0;font-size:13.5px}.af-prox summary em{font-style:normal;padding:1px 8px;border-radius:999px;background:rgba(255,255,255,.08)}.af-prox[open]{border:1px solid var(--line);border-radius:14px;padding:0 0 4px}.af-prox[open] summary{padding:12px 18px}'+
+    '.af-vazio{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:22px;border:1px solid #1f9d55;border-radius:16px;background:linear-gradient(90deg,rgba(31,157,85,.14),rgba(31,157,85,.03));margin-bottom:14px}.af-vazio b{font-size:16px}.af-vazio span{color:var(--mut);font-size:13px}'+
+    '.pg-bt{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}'+
+    '@media (max-width:900px){.af-row{grid-template-columns:46px 1fr auto}.af-ac{grid-column:1/-1}.af-form{padding-left:18px}}'+
+    /* Pagamentos */
+    '.pg-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:14px 0}.pg-bar .nm-busca{flex:1;min-width:180px}'+
+    '.pg-dia{display:inline-flex;gap:6px;align-items:center}.pg-dia input{width:150px}'+
+    '.pg-res{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:16px 20px;border-radius:16px;border:1px solid var(--line);margin-bottom:12px;background:rgba(255,255,255,.03)}'+
+    '.pg-res>div{display:flex;flex-direction:column;min-width:200px}.pg-res small{color:var(--mut);font-size:12px;text-transform:capitalize}.pg-res b{font-size:28px;line-height:1.15}.pg-res span{color:var(--mut);font-size:12px}'+
+    '.pg-res p{margin:0;font-size:14.5px;flex:1}.pg-res.ok{border-color:#1f9d55;background:linear-gradient(90deg,rgba(31,157,85,.16),rgba(31,157,85,.03))}.pg-res.w{border-color:#f5a524;background:linear-gradient(90deg,rgba(245,165,36,.14),rgba(245,165,36,.03))}'+
+    '.pg-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}'+
+    '.pg-chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:150px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);border-top:3px solid var(--line);background:rgba(255,255,255,.03);color:inherit;cursor:pointer;text-align:left}'+
+    '.pg-chip span{font-size:12px;color:var(--mut)}.pg-chip b{font-size:20px}.pg-chip small{font-size:11.5px;color:var(--mut)}.pg-chip.on{outline:2px solid #fff;outline-offset:1px}'+
+    '.pg-chip.c-ok{border-top-color:#1f9d55}.pg-chip.c-sem{border-top-color:#ff6b62}.pg-chip.c-pr{border-top-color:#f5a524}.pg-chip.c-fa{border-top-color:#8a8f98}.pg-chip.c-pg{border-top-color:#4ea1ff}'+
+    '.pg-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}.pg-acoes small{color:var(--mut);font-size:12px;margin-left:auto}'+
+    '.pg-row{display:grid;grid-template-columns:34px minmax(220px,1fr) 110px 120px 170px 190px 120px;gap:12px;align-items:center;padding:11px 18px;border-top:1px solid var(--line)}'+
+    '.pg-row:hover{background:rgba(255,255,255,.025)}.pg-row.sel{background:rgba(37,211,102,.07)}.pg-row.a-sem{box-shadow:inset 3px 0 0 #ff6b62}'+
+    '.pg-nm b{display:block;font-size:13.5px}.pg-nm small{color:var(--mut);font-size:12px}.pg-v{font-weight:800;text-align:right}.pg-doc{font-size:12.5px}.pg-ac{text-align:right}'+
+    '.pg-st,.pg-av{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;justify-self:start;white-space:nowrap}'+
+    '.pg-st.k-falta{background:rgba(138,143,152,.18);color:#c3c7cf}.pg-st.k-pronto{background:rgba(245,165,36,.16);color:#ffc565}.pg-st.k-lib{background:rgba(78,161,255,.15);color:#8cc2ff}.pg-st.k-paga{background:rgba(31,157,85,.16);color:#7ee2a8}'+
+    '.pg-av.k-ok{background:rgba(31,157,85,.16);color:#7ee2a8}.pg-av.k-ger{background:rgba(245,165,36,.14);color:#ffc565}.pg-av.k-sem{background:rgba(255,107,98,.16);color:#ff8a84}.pg-av.k-pag{color:#7ee2a8}.pg-av.k-nao{color:var(--mut)}'+
+    '.pg-link{margin-left:10px;font-size:12px}'+
+    '@media (max-width:1100px){.pg-row{grid-template-columns:30px 1fr auto}.pg-doc,.pg-st,.pg-av{grid-column:2}.pg-v{grid-column:3;grid-row:1}.pg-ac{grid-column:1/-1;text-align:left}}';
+  document.head.appendChild(css);
+})();
+
+/* ================= v114 · PAGAMENTOS: PREVISÃO DA SEMANA · FECHAMENTO DO DIA · QUEM VÊ VALORES =================
+   • 📤 Previsão da semana: mensagem para o Financeiro com os pagamentos de NF e cachê previstos,
+     dia a dia e por empresa (sem emoji: o WhatsApp do Windows troca por "?").
+   • ✅ Fechar o dia: registra quem fechou e a que horas. O que ficou pendente (sem NF, pronto para
+     liberar ou liberado sem aviso) aparece no dia seguinte em "⏮ Ficou de dias anteriores", sem mudar
+     a data de pagamento da nota.
+   • 🔐 Valores: permissão nova "💰 Notas fiscais · ver os valores e liberar ao Financeiro".
+     Sem ela, a pessoa cobra e registra as notas, mas não vê R$ e não libera pagamento.
+     kv 'nf-dias-fechados' {AAAA-MM-DD:{em,por,n,pend}} · kv 'nf-previsoes' {AAAA-MM-DD(segunda):{em,por}} */
+var PGF={fech:null,prev:null,lendo:false};
+function pgFLer(){
+  if(PGF.lendo) return; PGF.lendo=true;
+  Promise.all([avfLerKv('nf-dias-fechados'),avfLerKv('nf-previsoes')]).then(function(r){ PGF.fech=r[0]; PGF.prev=r[1]; PGF.lendo=false; if(NM.tela==='pag') desenharNotasMes(); },function(){ PGF.lendo=false; });
+}
+function pgPendente(n){ var s=pgSit(n).k; if(s==='pronto'||s==='falta') return true; return s==='lib'&&!!AVF.pend[n.id]; }
+function pgGrupo(n,um){ var d=pgData(n); if(d<PG.de) return '⏮ Ficou de dias anteriores'; return um?pgEmp(n):nm2Br(d)+' · '+new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long'}); }
+function pgFechadoTxt(){
+  if(PG.de!==PG.ate) return '';
+  if(!PGF.fech){ pgFLer(); return ''; }
+  var f=PGF.fech[PG.de]; if(!f) return '';
+  return '<em class="pg-fech">🔒 Dia fechado às '+new Date(f.em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+(f.por?' por '+esc(f.por):'')+(f.pend?' · ficaram '+f.pend+' pendente(s)':'')+'</em>';
+}
+function pgBtFechar(pend,n){
+  if(PG.de!==PG.ate||PG.de!==hoje()||!n||!PGF.fech||PGF.fech[PG.de]) return '';
+  return '<button type="button" class="nm2-b ok" onclick="pgFecharDia('+pend+','+n+')" title="Registra o fechamento do dia. O que ficar pendente aparece amanhã em Ficou de dias anteriores.">✅ Fechar o dia</button>';
+}
+function pgFecharDia(pend,n){
+  var go=function(){
+    var dia=PG.de, reg={em:new Date().toISOString(),por:avfQuem(),n:n,pend:pend};
+    avfLerKv('nf-dias-fechados').then(function(v){ v[dia]=reg; var ks=Object.keys(v).sort(); while(ks.length>120) delete v[ks.shift()]; PGF.fech=v; return kvSalvar('nf-dias-fechados',v); })
+      .then(function(){ aviso(pend?'🔒 Dia fechado. '+pend+' pendente(s) passam para amanhã em "Ficou de dias anteriores".':'🔒 Dia fechado: tudo certo! ✅'); desenharNotasMes(); },function(){ aviso('Não consegui registrar o fechamento agora.',true); });
+  };
+  if(pend) dialogo('Ainda falta resolver '+pend+' pagamento(s) de hoje.\n\nEles continuam pendentes e aparecem amanhã em "⏮ Ficou de dias anteriores".\n\nFechar o dia mesmo assim?',{sim:go}); else go();
+}
+
+/* ---------- janela de texto para o Financeiro (sem mudar nenhuma nota) ---------- */
+function nfTexto(tit,sub,txt,aoMandar){
+  var ov=el('nfTxOv'); if(!ov){ ov=document.createElement('div'); ov.id='nfTxOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(ev){ if(ev.target===ov) ov.classList.remove('on'); }); }
+  NFTX_CB=aoMandar||null;
+  ov.innerHTML='<div class="rec-box avf-box" role="dialog"><div class="rec-hd"><div><b>'+tit+'</b><small>'+sub+'</small></div><button type="button" class="rec-x" onclick="el(\'nfTxOv\').classList.remove(\'on\')">✕</button></div>'+
+    '<div class="rec-bd"><label class="avf-l">Mensagem (pode ajustar antes de mandar)<textarea id="nfTxT" class="nm-in" rows="16" spellcheck="false">'+esc(txt)+'</textarea></label></div>'+
+    '<div class="rec-ft avf-ft"><small>Escolha o grupo do Financeiro no WhatsApp.</small><button type="button" class="nm2-b" onclick="nfTextoCopiar()">📋 Só copiar</button><button type="button" class="nm2-b wa" onclick="nfTextoWa()">📲 Abrir o WhatsApp (e copiar)</button></div></div>';
+  ov.classList.add('on');
+}
+var NFTX_CB=null;
+function nfTextoWa(){ var t=(el('nfTxT')||{}).value||''; nm2AbrirWa(null,t); if(NFTX_CB) try{ NFTX_CB(); }catch(e){} el('nfTxOv').classList.remove('on'); aviso('📲 WhatsApp aberto e texto copiado.'); }
+function nfTextoCopiar(){ var t=(el('nfTxT')||{}).value||''; try{ navigator.clipboard.writeText(t); }catch(e){} if(NFTX_CB) try{ NFTX_CB(); }catch(e){} aviso('📋 Copiado.'); }
+
+/* ---------- 📤 previsão da semana ---------- */
+function pgPrevisao(){
+  if(!nfVeValor()){ aviso('A previsão tem valores: só quem tem a permissão de valores das Notas fiscais.',true); return; }
+  if(!HI.dados){ aviso('Ainda lendo as notas, tente em um instante.'); return; }
+  var ini, fim;
+  if((PG.atalho==='semana'||PG.atalho==='prox')&&PG.de!==PG.ate){ ini=PG.de; fim=PG.ate; } else { var w=pgSemana(PG.de||hoje()); ini=w[0]; fim=w[1]; }
+  var U=function(t){ return String(t||'').toUpperCase().trim(); }, R=moedaBR, br=nm2Br;
+  var ns=HI.dados.map(function(n){ var m=null; try{ m=nmNota(n.id); }catch(x){} return m||n; })
+    .filter(function(n){ var d=pgData(n); return d&&d>=ini&&d<=fim&&!(nmZerada&&nmZerada(n))&&nmLiquido(n)>0; })
+    .sort(function(a,b){ return pgData(a).localeCompare(pgData(b))||pgEmp(a).localeCompare(pgEmp(b))||pgNome(a).localeCompare(pgNome(b)); });
+  if(!ns.length){ aviso('Nenhum pagamento de NF ou cachê previsto de '+br(ini).slice(0,5)+' a '+br(fim).slice(0,5)+'.'); return; }
+  var sit=function(n){ var k=pgSit(n).k; return k==='paga'?'pago':(k==='lib'?'liberado':(k==='pronto'?'NF recebida':'aguardando NF')); };
+  var dias={}, ordem=[], tot=0, lib=0;
+  ns.forEach(function(n){ var d=pgData(n); if(!dias[d]){ dias[d]=[]; ordem.push(d); } dias[d].push(n); var v=nmLiquido(n); tot+=v; var k=pgSit(n).k; if(k==='lib'||k==='paga') lib+=v; });
+  var sem=['DOM','SEG','TER','QUA','QUI','SEX','SAB'];
+  var l=['PREVISAO DE PAGAMENTOS - NF E CACHE','Semana de '+br(ini).slice(0,5)+' a '+br(fim),''];
+  ordem.forEach(function(d){
+    var lst=dias[d], vd=lst.reduce(function(a,n){ return a+nmLiquido(n); },0);
+    l.push(sem[new Date(d+'T12:00:00').getDay()]+' '+br(d).slice(0,5)+' - '+R(vd)+' ('+lst.length+')');
+    var emp=null; lst.forEach(function(n){ var e=U(pgEmp(n)); if(e!==emp){ emp=e; l.push('  '+e); } l.push('  - '+U(pgNome(n))+' - '+R(nmLiquido(n))+' ('+(n.tipo==='cache'?'cache':'servico')+', '+sit(n)+')'); });
+    l.push('');
+  });
+  l.push('TOTAL DA SEMANA: '+R(Math.round(tot*100)/100)+' ('+ns.length+' pagamentos)');
+  l.push('Ja liberado: '+R(Math.round(lib*100)/100)+' | A liberar: '+R(Math.round((tot-lib)*100)/100));
+  l.push(''); l.push('Valores sujeitos a alteracao ate a liberacao de cada NF.');
+  var ja=(PGF.prev||{})[ini];
+  nfTexto('📤 Previsão da semana para o Financeiro','Semana de '+br(ini).slice(0,5)+' a '+br(fim).slice(0,5)+' · '+ns.length+' pagamento(s) · '+R(tot)+(ja?' · já mandada em '+br(ja.em).slice(0,5):''),l.join('\n'),function(){
+    avfLerKv('nf-previsoes').then(function(v){ v[ini]={em:new Date().toISOString(),por:avfQuem()}; var ks=Object.keys(v).sort(); while(ks.length>60) delete v[ks.shift()]; PGF.prev=v; return kvSalvar('nf-previsoes',v); }).catch(function(){});
+  });
+}
+
+/* ---------- 🔐 quem vê valores ---------- */
+(function(){ try{
+  var g=PERM_GRUPOS.find(function(x){ return x[1].some(function(y){ return y.id==='notas_fiscais'; }); });
+  if(g&&!g[1].some(function(y){ return y.id==='notas_valores'; })){ var i=g[1].findIndex(function(y){ return y.id==='notas_fiscais'; }); g[1].splice(i+1,0,{id:'notas_valores',label:'💰 Notas fiscais · ver os valores e liberar ao Financeiro',acts:['ver']}); }
+}catch(e){} })();
+function nfVeValor(){ return podeVer('notas_valores'); }
+(function(){
+  var _a=avfAbrir; avfAbrir=function(){ if(!nfVeValor()){ aviso('Liberar e avisar o Financeiro é só de quem tem a permissão de valores das Notas fiscais.',true); return; } return _a.apply(this,arguments); };
+  nm2Avisar=function(ids){ avfAbrir(ids); }; nmWhatsFinanceiro=function(ids){ avfAbrir(ids); };
+})();
+var NFSV_RX=/R\$\s?-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
+function nfMascarar(root){
+  if(!root) return;
+  var tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null,false), n, l=[];
+  while((n=tw.nextNode())){ if(/R\$\s?-?\d/.test(n.nodeValue)) l.push(n); }
+  l.forEach(function(t){ t.nodeValue=t.nodeValue.replace(NFSV_RX,'R$ •••'); });
+}
+function nfAplicarAcesso(){
+  try{
+    if(!EU) return; var sv=!nfVeValor();
+    document.body.classList.toggle('nf-sv',sv);
+    if(!sv) return;
+    ['nmApp','avfOv','recOv','cobOv','vezOv','nfTxOv'].forEach(function(id){ nfMascarar(el(id)); });
+  }catch(e){}
+}
+(function(){
+  var t=0, ob=null;
+  function ligar(){ if(ob||!window.MutationObserver||!document.body) return; ob=new MutationObserver(function(){ if(!EU||nfVeValor()||t) return; t=setTimeout(function(){ t=0; nfAplicarAcesso(); },30); }); ob.observe(document.body,{childList:true,subtree:true,characterData:true}); }
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    var r=_d.apply(this,arguments);
+    try{
+      ligar(); nfAplicarAcesso();
+      var m=document.querySelector('#nmApp .nm2-mais-m');
+      if(m&&EU&&EU.master&&!m.querySelector('.nf-quem')) m.insertAdjacentHTML('beforeend','<button class="nm2-mi nf-quem" onclick="nfQuemVe()">🔐 Quem vê as notas e os valores</button>');
+    }catch(e){}
+    return r;
+  };
+  /* tira as linhas que ficaram "de dias anteriores" do total do dia */
+})();
+function nfQuemVe(){
+  var ov=el('nfTxOv'); if(!ov){ ov=document.createElement('div'); ov.id='nfTxOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(ev){ if(ev.target===ov) ov.classList.remove('on'); }); }
+  var cab='<div class="rec-box avf-box" role="dialog"><div class="rec-hd"><div><b>🔐 Quem vê as Notas fiscais</b><small>e quem vê os valores e libera pagamento ao Financeiro</small></div><button type="button" class="rec-x" onclick="el(\'nfTxOv\').classList.remove(\'on\')">✕</button></div><div class="rec-bd">';
+  ov.innerHTML=cab+'<p class="op-lendo">Lendo os usuários…</p></div></div>'; ov.classList.add('on');
+  sb.from('dp_usuarios').select('nome,email,ativo,master,permissoes').then(function(r){
+    if(r&&r.error) throw r.error;
+    var us=(r.data||[]).sort(function(a,b){ return (b.master?1:0)-(a.master?1:0)||String(a.nome||'').localeCompare(String(b.nome||'')); });
+    var ok=function(u,k){ if(u.master) return true; var p=(u.permissoes||{})[k]; return !!(p&&p.ver); };
+    var ck=function(b,txt){ return '<span class="nfq-c '+(b?'s':'n')+'">'+(b?'✅ '+txt:'— não')+'</span>'; };
+    var alerta=us.filter(function(u){ return u.ativo!==false&&!u.master&&ok(u,'notas_valores'); });
+    ov.innerHTML=cab+'<div class="nfq"><div class="nfq-h"><span>Usuário</span><span>📑 Notas fiscais</span><span>💰 Valores e liberação</span></div>'+
+      us.map(function(u){ return '<div class="nfq-r'+(u.ativo===false?' off':'')+'"><span><b>'+esc(u.nome||u.email||'—')+'</b><small>'+(u.master?'gestora (master)':(u.ativo===false?'inativo':esc(u.email||'')))+'</small></span>'+ck(ok(u,'notas_fiscais'),'vê')+ck(ok(u,'notas_valores'),'vê R$ e libera')+'</div>'; }).join('')+'</div>'+
+      (alerta.length?'<p class="nfq-av">⚠️ '+alerta.length+' pessoa(s) além da gestora veem valores: '+esc(alerta.map(function(u){ return u.nome||u.email; }).join(', '))+'. Confira se é isso mesmo.</p>':'<p class="nfq-okm">✅ Só a gestora vê valores e libera pagamentos.</p>')+
+      '<p class="nfq-dica">Para mudar: <b>Painel DP → Usuários</b> → abra a pessoa → <b>📑 Notas fiscais dos PJs</b> (ver as notas) e <b>💰 Notas fiscais · ver os valores e liberar ao Financeiro</b>.<br>Quem vê as notas sem a permissão de valores consegue cobrar e registrar a NF que chegou, mas vê <b>R$ •••</b> e não libera pagamento. A cobrança enviada ao prestador continua levando o valor da NF.</p></div></div>';
+  }).catch(function(){ ov.innerHTML=cab+'<p class="op-lendo">Não consegui ler a lista de usuários agora. Confira direto no Painel DP → Usuários.</p></div></div>'; });
+}
+(function(){
+  var css=document.createElement('style');
+  css.textContent=
+    '.pg-fech{display:block;margin-top:6px;font-style:normal;font-size:12px;font-weight:700;color:#7ee2a8}'+
+    '.nm2-b.ok{background:#1f9d55;border-color:#1f9d55;color:#fff}'+
+    '.pg-atras{border-color:#ff6b62!important}.pg-atras .hi-gh{background:rgba(255,107,98,.1)}.pg-atras .hi-gh b{color:#ff8a84}'+
+    '.nfq{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:12px 0}.nfq-h,.nfq-r{display:grid;grid-template-columns:1fr 150px 190px;gap:10px;align-items:center;padding:10px 14px}'+
+    '.nfq-h{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);background:rgba(255,255,255,.04)}.nfq-r{border-top:1px solid var(--line)}.nfq-r.off{opacity:.45}'+
+    '.nfq-r b{display:block;font-size:13.5px}.nfq-r small{color:var(--mut);font-size:11.5px}.nfq-c{font-size:12.5px;font-weight:700}.nfq-c.s{color:#7ee2a8}.nfq-c.n{color:var(--mut)}'+
+    '.nfq-av{padding:10px 14px;border-radius:10px;background:rgba(245,165,36,.12);border:1px solid #f5a524;font-size:13px}.nfq-okm{padding:10px 14px;border-radius:10px;background:rgba(31,157,85,.12);border:1px solid #1f9d55;font-size:13px}'+
+    '.nfq-dica{font-size:12.5px;color:var(--mut);line-height:1.6}'+
+    'body.nf-sv #nmApp [onclick*="avfAbrir"],body.nf-sv #nmApp [onclick*="nm2Avisar"],body.nf-sv #nmApp [onclick*="nmWhatsFinanceiro"],body.nf-sv #nmApp [onclick*="pgPrevisao"],body.nf-sv #nmApp .nm2-extra,body.nf-sv #nmApp .nm2-link[onclick*="NM.extra"],body.nf-sv #nmApp .pg-bt .fin{display:none!important}';
+  document.head.appendChild(css);
+})();
 
 </script>
 </body>
