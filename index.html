@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="13/11/2026 · v114">
+<meta name="central-versao" content="13/11/2026 · v115">
 <meta name="central-novidades" content="📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
 
 <meta charset="utf-8">
@@ -19288,7 +19288,7 @@ function pgDesenhar(){
     else { var mm=null; try{ mm=nmNota(n.id); }catch(x){} if(mm) ac='<button type="button" class="nm2-b wa sm" onclick="nmWhats(\''+n.id+'\')">📲 Cobrar NF</button>'; }
     var info=[n.tipo==='cache'?'🎤 Cachê de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase():'🧾 Serviço',um?'':pgEmp(n),n.data_envio&&(s.k==='lib'||s.k==='paga')?'liberado '+br(n.data_envio).slice(0,5):''].filter(Boolean).join(' · ');
     var podeSel=s.k!=='falta';
-    h+='<div class="pg-row s-'+s.k+' a-'+a.k+(PG.sel[n.id]?' sel':'')+'">'+
+    h+='<div class="pg-row s-'+s.k+' a-'+a.k+(PG.sel[n.id]?' sel':'')+'" data-id="'+n.id+'">'+
       '<span class="pg-ck">'+(podeSel?'<input type="checkbox"'+(PG.sel[n.id]?' checked':'')+' onchange="if(this.checked)PG.sel[\''+n.id+'\']=1;else delete PG.sel[\''+n.id+'\'];desenharNotasMes()">':'')+'</span>'+
       '<span class="pg-nm"><b>'+e(pgNome(n))+'</b><small>'+e(info)+'</small></span>'+
       '<span class="pg-doc">'+doc+'</span><span class="pg-v">'+R(nmLiquido(n))+'</span>'+
@@ -19340,7 +19340,7 @@ function afLinha(n,fila){
   else if(fila==='recibo') ac=tg("cx2Assinado('"+id+"')",'✍️ Assinado','pri','O recibo voltou assinado')+tg("nmReciboDaNota('"+id+"')",'🧾 Gerar','ghost','Gerar o recibo para assinar');
   else if(fila==='prox') ac=tg(abre,'✅ Já chegou','ghost');
   var v=afValor(n);
-  var h='<div class="af-row f-'+fila+(NM.abrindo===id?' aberto':'')+'">'+dt+'<span class="af-nm"><b>'+e(nmPrest(n.colaborador_id).nome||'—')+'</b><small>'+e(info.join(' · '))+'</small></span>'+
+  var h='<div class="af-row f-'+fila+(NM.abrindo===id?' aberto':'')+'" data-id="'+id+'">'+dt+'<span class="af-nm"><b>'+e(nmPrest(n.colaborador_id).nome||'—')+'</b><small>'+e(info.join(' · '))+'</small></span>'+
     '<span class="af-v">'+(v?R(v):'<i>sem valor</i>')+'</span><span class="af-ac">'+ac+'<button type="button" class="nm-mais" title="Mais opções" onclick="nmMais(\''+id+'\')">⋯</button></span></div>';
   if(NM.abrindo===id&&(fila==='cobrar'||fila==='prox')){
     if(n.tipo==='servico'){ NM.extra=NM.extra||{}; h+=nm2Form(n); }
@@ -19644,6 +19644,73 @@ function nfQuemVe(){
     '.nfq-av{padding:10px 14px;border-radius:10px;background:rgba(245,165,36,.12);border:1px solid #f5a524;font-size:13px}.nfq-okm{padding:10px 14px;border-radius:10px;background:rgba(31,157,85,.12);border:1px solid #1f9d55;font-size:13px}'+
     '.nfq-dica{font-size:12.5px;color:var(--mut);line-height:1.6}'+
     'body.nf-sv #nmApp [onclick*="avfAbrir"],body.nf-sv #nmApp [onclick*="nm2Avisar"],body.nf-sv #nmApp [onclick*="nmWhatsFinanceiro"],body.nf-sv #nmApp [onclick*="pgPrevisao"],body.nf-sv #nmApp .nm2-extra,body.nf-sv #nmApp .nm2-link[onclick*="NM.extra"],body.nf-sv #nmApp .pg-bt .fin{display:none!important}';
+  document.head.appendChild(css);
+})();
+
+
+/* ================= v115 · TIRAR UMA NOTA: NÃO PAGA ESTE MÊS (ZERAR) OU EXCLUIR =================
+   Botão 🗑 nas linhas de "A fazer" e "Pagamentos" (só para quem tem a permissão de valores).
+   • 🚫 Não paga este mês: zera a NF com motivo (fica no histórico e no relatório; some de A fazer e Pagamentos).
+   • 🗑 Excluir: apaga a nota lançada por engano. Se for a NF de serviço do mês atual de um PJ ativo,
+     a Central cria de novo sozinha, então o certo é zerar. */
+function nfAchar(id){ return avfNota(id); }
+function nfTirar(id){
+  if(!nfVeValor()){ aviso('Só quem tem a permissão de valores das Notas fiscais pode tirar notas.',true); return; }
+  var n=nfAchar(id); if(!n) return;
+  if(n.travado){ aviso('Esta nota está travada 🔒.',true); return; }
+  var nome=pgNome(n), recria=nfVaiRecriar(n), lib=n.status==='enviada'||n.status==='paga';
+  var ov=el('nfTxOv'); if(!ov){ ov=document.createElement('div'); ov.id='nfTxOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(ev){ if(ev.target===ov) ov.classList.remove('on'); }); }
+  var tp=n.tipo==='cache'?'cachê de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase():'serviço de '+nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase();
+  ov.innerHTML='<div class="rec-box avf-box" role="dialog" style="width:min(520px,100%)"><div class="rec-hd"><div><b>🗑 Tirar a nota de '+esc(nome)+'</b><small>'+esc(tp)+' · '+moedaBR(nmLiquido(n))+(n.data_vencimento?' · pagamento '+nm2Br(n.data_vencimento).slice(0,5):'')+'</small></div><button type="button" class="rec-x" onclick="el(\'nfTxOv\').classList.remove(\'on\')">✕</button></div>'+
+    '<div class="rec-bd nft">'+
+    (lib?'<p class="nfq-av">⚠️ Esta nota já foi <b>'+(n.status==='paga'?'paga':'liberada ao Financeiro')+'</b>. Se tirar, avise o Financeiro para não pagar.</p>':'')+
+    '<button type="button" class="nft-op'+(recria?' rec':'')+'" onclick="nfTirarZerar(\''+id+'\')"><b>🚫 Não paga este mês</b><span>A nota fica zerada (R$ 0,00) com o motivo, aparece no histórico e sai de A fazer e Pagamentos. <i>Use quando o prestador não vai receber neste mês.</i></span>'+(recria?'<em>✔ recomendado para este caso</em>':'')+'</button>'+
+    '<button type="button" class="nft-op del" onclick="nfExcluirNota(\''+id+'\')"><b>🗑 Excluir a nota</b><span>Apaga de vez. <i>Use quando a nota foi lançada por engano (valor de teste, pessoa errada, duplicada).</i></span>'+(recria?'<em class="w">⚠ É a NF de serviço deste mês de um PJ ativo: a Central cria de novo sozinha quando você abrir as Notas.</em>':'')+'</button>'+
+    '</div></div>';
+  ov.classList.add('on');
+}
+function nfVaiRecriar(n){
+  try{ return n.tipo==='servico'&&(''+n.mes_referencia).slice(0,7)===nmMesAtual()&&!!(NM.dados.fixos||{})[n.colaborador_id]; }catch(e){ return false; }
+}
+function nfTirarZerar(id){
+  el('nfTxOv').classList.remove('on');
+  var m=null; try{ m=nmNota(id); }catch(e){}
+  if(m) return nmZerar(id);
+  aviso('Abra a nota pela aba A fazer para zerar.',true);
+}
+function nfExcluirNota(id){
+  var n=nfAchar(id); if(!n) return;
+  el('nfTxOv').classList.remove('on');
+  dialogo('Excluir de vez a nota de '+pgNome(n)+' ('+moedaBR(nmLiquido(n))+')?\n\nNão dá para desfazer.'+(nfVaiRecriar(n)?'\n\nAtenção: é a NF de serviço deste mês de um PJ ativo, a Central vai criar de novo. Para ele não receber neste mês, use "Não paga este mês".':''),{sim:function(){
+    sb.from('nf_notas').delete().eq('id',id).then(function(r){
+      if(r&&r.error) throw r.error;
+      var fora=function(l){ return (l||[]).filter(function(x){ return x.id!==id; }); };
+      try{ NM.dados.abertas=fora(NM.dados.abertas); NM.dados.pagas=fora(NM.dados.pagas); }catch(e){}
+      try{ if(HI.dados) HI.dados=fora(HI.dados); if(LP.dados) LP.dados=fora(LP.dados); }catch(e){}
+      if(AVF.pend[id]) avfMudar(function(p){ delete p[id]; });
+      try{ sb.from('dp_logs').insert([{id:cxUUID(),tabela:'nf_notas',registro_id:id,colaborador:pgNome(n),campo:'nota excluída',valor_antigo:(n.tipo==='cache'?'cachê ':'serviço ')+(''+n.mes_referencia).slice(0,7)+' · '+moedaBR(nmLiquido(n)),valor_novo:'(excluída)',usuario:avfQuem(),quando:new Date().toISOString()}]).then(function(){},function(){}); }catch(e){}
+      aviso('🗑 Nota excluída.'); desenharNotasMes();
+    }).catch(function(){ aviso('Não consegui excluir agora. Tente de novo.',true); });
+  }});
+}
+(function(){
+  var _d=desenharNotasMes; desenharNotasMes=function(){
+    var r=_d.apply(this,arguments);
+    try{
+      if(nfVeValor()) document.querySelectorAll('#nmApp .pg-row[data-id], #nmApp .af-row[data-id]').forEach(function(row){
+        if(row.querySelector('.nft-bt')) return; var id=row.getAttribute('data-id'), n=nfAchar(id); if(!n||n.travado) return;
+        var ac=row.querySelector('.pg-ac, .af-ac'); if(!ac) return;
+        ac.insertAdjacentHTML('beforeend','<button type="button" class="nm2-b ghost sm nft-bt" title="Tirar esta nota (não paga este mês ou excluir)" onclick="nfTirar(\''+id+'\')">🗑</button>');
+      });
+    }catch(e){}
+    return r;
+  };
+  var css=document.createElement('style');
+  css.textContent='.nft{display:flex;flex-direction:column;gap:10px;padding-top:14px!important}'+
+    '.nft-op{display:flex;flex-direction:column;gap:4px;text-align:left;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:inherit;cursor:pointer}.nft-op:hover{background:rgba(255,255,255,.07)}'+
+    '.nft-op b{font-size:14.5px}.nft-op span{font-size:12.5px;color:var(--mut);line-height:1.5}.nft-op em{font-style:normal;font-size:12px;font-weight:700;color:#7ee2a8}.nft-op em.w{color:#ffc565}'+
+    '.nft-op.rec{border-color:#1f9d55}.nft-op.del:hover{border-color:#ff6b62}'+
+    '.pg-ac{display:flex;gap:6px;justify-content:flex-end;align-items:center}';
   document.head.appendChild(css);
 })();
 
