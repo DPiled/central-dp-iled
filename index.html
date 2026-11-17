@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="17/11/2026 · v121">
+<meta name="central-versao" content="17/11/2026 · v122">
 <meta name="central-novidades" content="🧾 eConsignado na Folha de pagamento: lançado junto com FGTS, INSS e IRRF e somado no Custo total. 📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
 
 <meta charset="utf-8">
@@ -17880,7 +17880,7 @@ function flAbrir(ano){
   modal2('flOv','<div class="imp-box fl-box"><p class="vazio">Carregando a folha…</p></div>');
   sb.from('dp_folha').select('*').then(function(r){
     if(r&&r.error) throw r.error; FL.dados=r.data||[]; FL.fmtData=FL.dados.some(function(x){ return (''+(x.competencia||'')).length>7; })||!FL.dados.length;
-    flDesenhar();
+    return kvLer('folha-13:'+FL.ano,{}).then(function(d){ FL.d13=(d&&typeof d==='object')?d:{}; flDesenhar(); });
   }).catch(function(){ modal2('flOv','<div class="imp-box fl-box"><p class="vazio">Não consegui ler a folha agora. Verifique a internet.</p><button type="button" class="nm2-b" onclick="el(\'flOv\').classList.remove(\'on\')">Fechar</button></div>'); });
 }
 function flFechar(){ var o=el('flOv'); if(o) o.classList.remove('on'); }
@@ -17892,28 +17892,38 @@ function flDesenhar(){
   MS.forEach(function(M){ totM[M]=0; qtdM[M]=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r){ totM[M]+=flTot(r); qtdM[M]+=(+r.qtd||0); totE[em]=(totE[em]||0)+flTot(r); tAno+=flTot(r); lanc++; } }); });
   var mesesCom=MS.filter(function(M){ return totM[M]>0; }), ult=mesesCom[mesesCom.length-1], pen=mesesCom[mesesCom.length-2];
   var faltam=[]; MS.forEach(function(M){ if(M>hojeM) return; emps.forEach(function(em){ var temAlgum=FL.dados.some(function(r){ return chaveNome(r.empresa||'').replace(/ /g,'')===chaveNome(em).replace(/ /g,''); }); if(temAlgum&&!flAcha(em,M)&&M>=(FL.dados.filter(function(r){ return chaveNome(r.empresa||'').replace(/ /g,'')===chaveNome(em).replace(/ /g,''); }).map(flC).sort()[0]||'9')) faltam.push([em,M]); }); });
+  /* v122 · 13º salário: duas colunas próprias (1ª e 2ª parcela), fora das setas de variação; entram no Total do ano */
+  var P13=fl13Parcelas(A), hj=hoje(), tot13={p1:0,p2:0}, qtd13={p1:0,p2:0}, t13=0;
+  emps.forEach(function(em){ P13.forEach(function(P){ var x=fl13(em,P.p); if(x){ var v=fl13Tot(x); tot13[P.p]+=v; qtd13[P.p]+=(+x.qtd||0); totE[em]=(totE[em]||0)+v; t13+=v; lanc++; } }); });
+  var falta13=[]; emps.forEach(function(em){ if(!MS.some(function(M){ return flAcha(em,M); })) return; P13.forEach(function(P){ if(hj>=P.iso&&!fl13(em,P.p)) falta13.push(em+'|'+P.p); }); });
   var h='<div class="imp-box fl-box"><div class="lp-top"><div><h2>Folha de pagamento · '+A+'</h2><p>Quadro por empresa e competência de apuração. Toque numa casa para lançar ou corrigir.</p></div>'+
     '<div class="vf-topbt"><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A-1)+')">‹ '+(A-1)+'</button><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A+1)+')">'+(A+1)+' ›</button><button type="button" class="nm2-b ghost" onclick="flFechar()">Fechar</button></div></div>';
   var gAno=0, gMes={}; MS.forEach(function(M){ gMes[M]=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r){ gMes[M]+=flGuias(r); gAno+=flGuias(r); } }); });
-  h+='<div class="vf-resumo"><div><span>Total do ano</span><b>'+R(tAno)+'</b><small>'+lanc+' lançamento(s)</small></div>'+
+  h+='<div class="vf-resumo"><div><span>Total do ano</span><b>'+R(tAno+t13)+'</b><small>'+lanc+' lançamento(s)'+(t13?' · 13º '+R(t13):'')+'</small></div>'+
     '<div><span>FGTS + impostos no ano</span><b>'+R(gAno)+'</b><small>guias FGTS, INSS, IRRF e eConsignado</small></div>'+
     '<div><span>Média por mês</span><b>'+R(mesesCom.length?tAno/mesesCom.length:0)+'</b><small>'+mesesCom.length+' mês(es) com folha</small></div>'+
     '<div><span>Última competência</span><b>'+(ult?e(nomeMes(ult).split(' ')[0])+' · '+R(totM[ult]):'—')+'</b><small>'+(ult&&pen?flVar(totM[ult],totM[pen])+' contra '+e(nomeMes(pen).split(' ')[0].toLowerCase()):'')+'</small></div>'+
-    '<div class="'+(faltam.length?'w':'ok')+'"><span>Falta lançar</span><b>'+(faltam.length?faltam.length+' casa(s)':'nada ✓')+'</b><small>'+(ult?qtdM[ult]+' pessoas na última':'')+'</small></div></div>';
-  h+='<div class="vf-acts">'+(ed?'<button type="button" class="nm2-b pri" onclick="flLancar()">+ Lançar mês</button>':'')+'<button type="button" class="nm2-b" onclick="flImprimir()">Imprimir '+A+'</button><button type="button" class="nm2-link" onclick="flFechar();FL.antiga=true;abrir(\'painel\',\'folha\');FL.antiga=false">abrir a tela antiga</button></div>';
-  h+='<div class="vf-tw"><table class="fl-t"><thead><tr><th>Empresa</th>'+MS.map(function(M){ return '<th class="'+(M===hojeM?'at':'')+'">'+e(nomeMes(M).slice(0,3).toLowerCase())+'</th>'; }).join('')+'<th>Total '+A+'</th></tr></thead><tbody>';
+    '<div class="'+(faltam.length+falta13.length?'w':'ok')+'"><span>Falta lançar</span><b>'+(faltam.length+falta13.length?(faltam.length+falta13.length)+' casa(s)':'nada ✓')+'</b><small>'+(ult?qtdM[ult]+' pessoas na última':'')+'</small></div></div>';
+  h+='<div class="vf-acts">'+(ed?'<button type="button" class="nm2-b pri" onclick="flLancar()">+ Lançar mês</button><button type="button" class="nm2-b fl-b13" onclick="fl13Lancar()">+ Lançar 13º</button>':'')+'<button type="button" class="nm2-b" onclick="flImprimir()">Imprimir '+A+'</button><button type="button" class="nm2-link" onclick="flFechar();FL.antiga=true;abrir(\'painel\',\'folha\');FL.antiga=false">abrir a tela antiga</button></div>';
+  h+='<div class="vf-tw"><table class="fl-t"><thead><tr><th>Empresa</th>'+MS.map(function(M){ return '<th class="'+(M===hojeM?'at':'')+'">'+e(nomeMes(M).slice(0,3).toLowerCase())+'</th>'; }).join('')+P13.map(function(P){ return '<th class="d13h">'+P.curto+'<small>até '+e(P.iso.slice(8,10)+'/'+P.iso.slice(5,7))+'</small></th>'; }).join('')+'<th>Total '+A+'</th></tr></thead><tbody>';
   emps.forEach(function(em){
     h+='<tr><td class="fl-e">'+e(em)+'</td>';
     MS.forEach(function(M,i){ var r=flAcha(em,M), ant=flAcha(em,i?MS[i-1]:(A-1)+'-12'), falta=faltam.some(function(f){ return f[0]===em&&f[1]===M; });
       if(r) h+='<td class="fl-c ok" onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')" title="'+e(em+' · '+nomeMes(M)+'\nPessoas: '+(r.qtd||0)+'\nLíquido: '+R(r.liquido||0)+'\nGratificação: '+R(r.gratif||0)+'\nPensão: '+R(r.pensao||0)+(flTemGuias(r)?'\nFGTS: '+R(r.fgts||0)+'\nINSS: '+R(r.inss||0)+'\nIRRF: '+R(r.irrf||0)+'\neConsignado: '+R(r.econsig||0)+'\nCusto total: '+R(flCusto(r)):'\nFGTS e impostos: falta lançar'))+'"><b>'+flK(flTot(r))+'</b><small>'+(r.qtd||0)+' pess.'+(ant?' '+flVar(flTot(r),flTot(ant)):'')+'</small></td>';
       else h+='<td class="fl-c '+(falta?'falta':(M>hojeM?'fut':''))+'"'+(ed&&M<=hojeM?' onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')"':'')+'>'+(falta?'<small>falta</small>':'')+'</td>';
     });
+    P13.forEach(function(P){ var x=fl13(em,P.p), js='fl13Lancar(\''+P.p+'\',\''+e(em).replace(/'/g,"\\'")+'\')', f=falta13.indexOf(em+'|'+P.p)>=0;
+      if(x) h+='<td class="fl-c ok d13" onclick="'+js+'" title="'+e(em+' · '+P.nome+'\nPessoas: '+(x.qtd||0)+'\nValor pago: '+R(x.liquido||0)+'\nPensão: '+R(x.pensao||0)+(P.p==='p2'?'\nINSS do 13º: '+R(x.inss||0)+'\nIRRF do 13º: '+R(x.irrf||0):'')+(x.por?'\nLançado por '+x.por+(x.em?' em '+nm2Br(x.em):''):''))+'"><b>'+flK(fl13Tot(x))+'</b><small>'+(x.qtd||0)+' pess.</small></td>';
+      else h+='<td class="fl-c d13 '+(f?'falta':'vz')+'"'+(ed?' onclick="'+js+'"':'')+'>'+(f?'<small>falta</small>':'')+'</td>'; });
     h+='<td class="fl-te">'+(totE[em]?flK(totE[em]):'—')+'</td></tr>';
   });
-  h+='</tbody><tfoot><tr><td>Total do mês</td>'+MS.map(function(M,i){ var pr=i?totM[MS[i-1]]:0; return '<td'+(totM[M]?' onclick="FL.mes=\''+M+'\';flDesenhar();setTimeout(function(){var d=document.querySelector(\'#flOv .fl-det\');if(d)d.scrollIntoView({behavior:\'smooth\'})},50)" style="cursor:pointer"':'')+'>'+(totM[M]?'<b>'+flK(totM[M])+'</b><small>'+qtdM[M]+' pess. '+(pr?flVar(totM[M],pr):'')+'</small>':'')+'</td>'; }).join('')+'<td class="fl-te">'+flK(tAno)+'</td></tr></tfoot></table></div>';
-  h+='<p class="lp-seg">Casas em amarelo: mês já passou e a empresa ainda não tem folha lançada. Setas: variação do total contra o mês anterior. Toque no total de um mês para ver o detalhe.</p>';
+  h+='</tbody><tfoot><tr><td>Total do mês</td>'+MS.map(function(M,i){ var pr=i?totM[MS[i-1]]:0; return '<td'+(totM[M]?' onclick="FL.mes=\''+M+'\';flDesenhar();setTimeout(function(){var d=document.querySelector(\'#flOv .fl-det\');if(d)d.scrollIntoView({behavior:\'smooth\'})},50)" style="cursor:pointer"':'')+'>'+(totM[M]?'<b>'+flK(totM[M])+'</b><small>'+qtdM[M]+' pess. '+(pr?flVar(totM[M],pr):'')+'</small>':'')+'</td>'; }).join('')+
+    P13.map(function(P){ return '<td class="d13"'+(tot13[P.p]?' onclick="FL.mes=\'13\';flDesenhar();setTimeout(function(){var d=document.querySelector(\'#flOv .fl-det\');if(d)d.scrollIntoView({behavior:\'smooth\'})},50)" style="cursor:pointer"':'')+'>'+(tot13[P.p]?'<b>'+flK(tot13[P.p])+'</b><small>'+qtd13[P.p]+' pess.</small>':'')+'</td>'; }).join('')+
+    '<td class="fl-te">'+flK(tAno+t13)+'</td></tr></tfoot></table></div>';
+  h+='<p class="lp-seg">Casas em amarelo: mês já passou (ou chegou o dia de pagar o 13º) e a empresa ainda não tem o valor lançado. Setas: variação da folha contra o mês anterior (o 13º fica fora das setas). As colunas lilás são o 13º salário: entram no Total '+A+'. Toque no total de um mês, ou do 13º, para ver o detalhe.</p>';
   var Md=FL.mes&&FL.mes.slice(0,4)==A?FL.mes:ult;
-  if(Md){ var tl={q:0,l:0,g:0,p:0,t:0,fgts:0,inss:0,irrf:0,econsig:0,c:0}, gv=function(r,k){ return r[k]==null||r[k]===''?'<span class="fl-sem">falta</span>':R(r[k]); };
+  if(FL.mes==='13'&&t13) h+=fl13Detalhe(emps,A,ed);
+  else if(Md){ var tl={q:0,l:0,g:0,p:0,t:0,fgts:0,inss:0,irrf:0,econsig:0,c:0}, gv=function(r,k){ return r[k]==null||r[k]===''?'<span class="fl-sem">falta</span>':R(r[k]); };
     h+='<div class="fl-det"><h3>Detalhe de '+e(nomeMes(Md).toLowerCase())+'</h3><table class="fl-dt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão alimentícia</th><th>Total</th><th class="fl-gh">FGTS</th><th class="fl-gh">INSS</th><th class="fl-gh">IRRF</th><th class="fl-gh">eConsignado</th><th class="fl-gh">Custo total</th><th>vs. mês anterior</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>';
     emps.forEach(function(em){ var r=flAcha(em,Md), ant=flAcha(em,nmSomaMes(Md,-1)); if(!r) return; tl.q+=+r.qtd||0; tl.l+=parseFloat(r.liquido)||0; tl.g+=parseFloat(r.gratif)||0; tl.p+=parseFloat(r.pensao)||0; tl.t+=flTot(r); FL_GUIAS.forEach(function(g){ tl[g[0]]+=parseFloat(r[g[0]])||0; }); tl.c+=flCusto(r);
       h+='<tr><td>'+e(em)+'</td><td class="n">'+(r.qtd||0)+'</td><td class="n">'+R(r.liquido||0)+'</td><td class="n">'+(parseFloat(r.gratif)?R(r.gratif):'—')+'</td><td class="n">'+(parseFloat(r.pensao)?R(r.pensao):'—')+'</td><td class="n"><b>'+R(flTot(r))+'</b></td>'+
@@ -17975,18 +17985,112 @@ function flSalvar(M){
 function flImprimir(){
   var A=FL.ano, e=esc, R=moedaBR, emps=flEmpresas(), MS=[]; for(var i=1;i<=12;i++) MS.push(A+'-'+String(i).padStart(2,'0'));
   var com=MS.filter(function(M){ return emps.some(function(em){ return flAcha(em,M); }); }), tA=0;
+  /* v122 · 13º: colunas próprias depois dos meses (só as parcelas que têm valor lançado) */
+  var P13=fl13Parcelas(A).filter(function(P){ return emps.some(function(em){ return fl13(em,P.p); }); }), sP=function(fn){ return P13.map(function(P){ var t=0; emps.forEach(function(em){ var x=fl13(em,P.p); if(x) t+=fn(x,P.p); }); return t; }); };
   var h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de pagamento '+A+'</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5px;color:#151515;margin:0}'+
     '.fx{height:5px;background:linear-gradient(90deg,#e10600 33%,#ffb020 33% 66%,#2f6fed 66%);margin-bottom:8px}h1{font-size:17px;margin:0 0 2px}p{margin:0 0 10px;color:#666}table{width:100%;border-collapse:collapse;table-layout:fixed}th{background:#151515;color:#fff;padding:5px;text-align:right;font-size:9px}th:first-child{text-align:left;width:15%}'+
     'td{padding:5px;border-bottom:1px solid #e3e3e3;text-align:right;white-space:nowrap}td:first-child{text-align:left;font-weight:700}td small{display:block;color:#888;font-size:8px}tfoot td{font-weight:900;border-top:2px solid #151515}tfoot tr.g td{font-weight:400;border-top:1px solid #e3e3e3;color:#444}.rod{margin-top:10px;display:flex;justify-content:space-between;color:#888;font-size:8.5px}</style></head><body><div class="fx"></div>'+
-    '<h1>Folha de pagamento · '+A+'</h1><p>Total por empresa e competência (líquido + gratificação) · pessoas abaixo do valor</p><table><thead><tr><th>Empresa</th>'+com.map(function(M){ return '<th>'+e(nomeMes(M).slice(0,3))+'</th>'; }).join('')+'<th>Total</th></tr></thead><tbody>';
-  emps.forEach(function(em){ var t=0, c=com.map(function(M){ var r=flAcha(em,M); if(!r) return '<td>—</td>'; t+=flTot(r); return '<td>'+R(flTot(r)).replace('R$ ','')+'<small>'+(r.qtd||0)+' pess.'+(parseFloat(r.pensao)?' · pensão '+R(r.pensao).replace('R$ ',''):'')+'</small></td>'; }).join(''); if(!t) return; tA+=t; h+='<tr><td>'+e(em)+'</td>'+c+'<td><b>'+R(t)+'</b></td></tr>'; });
-  var sM=function(fn){ var tt=0; return com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=fn(r); }); tt+=t; return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tt)+'</td>'; };
-  h+='</tbody><tfoot><tr><td>Total</td>'+com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=flTot(r); }); return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tA)+'</td></tr>'+
-    '<tr class="g"><td>FGTS</td>'+sM(function(r){ return parseFloat(r.fgts)||0; })+'</tr><tr class="g"><td>INSS</td>'+sM(function(r){ return parseFloat(r.inss)||0; })+'</tr><tr class="g"><td>IRRF</td>'+sM(function(r){ return parseFloat(r.irrf)||0; })+'</tr><tr class="g"><td>eConsignado</td>'+sM(function(r){ return parseFloat(r.econsig)||0; })+'</tr>'+
-    '<tr><td>Custo total</td>'+sM(flCusto)+'</tr></tfoot></table><p style="margin-top:6px">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF + eConsignado (Crédito do Trabalhador, repassado na guia do FGTS Digital).</p>'+
+    '<h1>Folha de pagamento · '+A+'</h1><p>Total por empresa e competência (líquido + gratificação) · pessoas abaixo do valor</p><table><thead><tr><th>Empresa</th>'+com.map(function(M){ return '<th>'+e(nomeMes(M).slice(0,3))+'</th>'; }).join('')+P13.map(function(P){ return '<th style="background:#5b3fa8">'+P.curto+'</th>'; }).join('')+'<th>Total</th></tr></thead><tbody>';
+  emps.forEach(function(em){ var t=0, c=com.map(function(M){ var r=flAcha(em,M); if(!r) return '<td>—</td>'; t+=flTot(r); return '<td>'+R(flTot(r)).replace('R$ ','')+'<small>'+(r.qtd||0)+' pess.'+(parseFloat(r.pensao)?' · pensão '+R(r.pensao).replace('R$ ',''):'')+'</small></td>'; }).join('')+
+      P13.map(function(P){ var x=fl13(em,P.p); if(!x) return '<td>—</td>'; t+=fl13Tot(x); return '<td style="background:#f4f0fc">'+R(fl13Tot(x)).replace('R$ ','')+'<small>'+(x.qtd||0)+' pess.'+(parseFloat(x.pensao)?' · pensão '+R(x.pensao).replace('R$ ',''):'')+'</small></td>'; }).join('');
+    if(!t) return; tA+=t; h+='<tr><td>'+e(em)+'</td>'+c+'<td><b>'+R(t)+'</b></td></tr>'; });
+  var sM=function(fn,fn13){ var tt=0; return com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=fn(r); }); tt+=t; return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+
+    sP(fn13||function(){ return 0; }).map(function(t){ tt+=t; return '<td style="background:#f4f0fc">'+(fn13?R(t).replace('R$ ',''):'—')+'</td>'; }).join('')+'<td>'+R(tt)+'</td>'; };
+  h+='</tbody><tfoot><tr><td>Total</td>'+com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=flTot(r); }); return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+sP(fl13Tot).map(function(t){ return '<td style="background:#f4f0fc">'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tA)+'</td></tr>'+
+    '<tr class="g"><td>FGTS</td>'+sM(function(r){ return parseFloat(r.fgts)||0; })+'</tr><tr class="g"><td>INSS</td>'+sM(function(r){ return parseFloat(r.inss)||0; },function(x){ return parseFloat(x.inss)||0; })+'</tr><tr class="g"><td>IRRF</td>'+sM(function(r){ return parseFloat(r.irrf)||0; },function(x){ return parseFloat(x.irrf)||0; })+'</tr><tr class="g"><td>eConsignado</td>'+sM(function(r){ return parseFloat(r.econsig)||0; })+'</tr>'+
+    '<tr><td>Custo total</td>'+sM(flCusto,fl13Custo)+'</tr></tfoot></table><p style="margin-top:6px">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF + eConsignado (Crédito do Trabalhador, repassado na guia do FGTS Digital).'+(P13.length?' Colunas 13º: valor pago a cada parcela; na 2ª, INSS e IRRF do 13º. O FGTS do 13º vem dentro da guia do FGTS Digital de novembro e de dezembro.':'')+'</p>'+
     '<div class="rod"><span>Central DP · Grupo ILED · documento interno</span><span>'+e(new Date().toLocaleString('pt-BR'))+'</span></div><script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
   cxImprimirHtml(h);
 }
+/* ================= v122 · 13º SALÁRIO NA FOLHA DE PAGAMENTO =================
+   Duas parcelas por ano, por empresa: 1ª até 30/11 (adiantamento, sem INSS/IRRF) e 2ª até 20/12
+   (com INSS e IRRF). Prazo que cai em sábado, domingo ou feriado antecipa para o dia útil anterior
+   (em 2026: 2ª parcela até sexta, 18/12).
+   Guardado no kv_store 'folha-13:AAAA' ({chave da empresa: {emp, p1:{…}, p2:{…}}}), fora da dp_folha,
+   para não somar no mês de novembro/dezembro dos indicadores, relatórios e Agenda legal. */
+function fl13Parcelas(A){ return [
+  {p:'p1',curto:'13º · 1ª',nome:'13º salário · 1ª parcela',iso:antecipaUtil(A+'-11-30')},
+  {p:'p2',curto:'13º · 2ª',nome:'13º salário · 2ª parcela',iso:antecipaUtil(A+'-12-20')}]; }
+function fl13Chave(em){ return chaveNome(em||'').replace(/ /g,''); }
+function fl13(em,p){ var x=FL.d13&&FL.d13[fl13Chave(em)]; x=x&&x[p]; return (x&&(x.liquido!=null&&x.liquido!==''))?x:null; }
+function fl13Tot(x){ return Math.round((parseFloat(x&&x.liquido)||0)*100)/100; }
+function fl13Custo(x){ return Math.round(((parseFloat(x.liquido)||0)+(parseFloat(x.pensao)||0)+(parseFloat(x.inss)||0)+(parseFloat(x.irrf)||0))*100)/100; }
+function fl13Detalhe(emps,A,ed){
+  var e=esc, R=moedaBR, P=fl13Parcelas(A), d=function(i){ return P[i].iso.slice(8,10)+'/'+P[i].iso.slice(5,7); }, t={q1:0,l1:0,q2:0,l2:0,pen:0,inss:0,irrf:0,c:0};
+  var h='<div class="fl-det fl-det13"><h3>13º salário · '+A+'</h3><table class="fl-dt"><thead><tr><th>Empresa</th><th class="d13h">1ª · pessoas</th><th class="d13h">1ª · valor pago</th><th class="d13h">2ª · pessoas</th><th class="d13h">2ª · valor pago</th><th>Pensão (1ª + 2ª)</th><th class="fl-gh">INSS do 13º</th><th class="fl-gh">IRRF do 13º</th><th class="fl-gh">Custo do 13º</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>';
+  emps.forEach(function(em){ var a=fl13(em,'p1'), b=fl13(em,'p2'); if(!a&&!b) return;
+    var pen=(a?parseFloat(a.pensao)||0:0)+(b?parseFloat(b.pensao)||0:0), c=(a?fl13Custo(a):0)+(b?fl13Custo(b):0), dif=a&&b&&(+a.qtd||0)!==(+b.qtd||0);
+    t.q1+=a?+a.qtd||0:0; t.l1+=a?fl13Tot(a):0; t.q2+=b?+b.qtd||0:0; t.l2+=b?fl13Tot(b):0; t.pen+=pen; t.inss+=b?parseFloat(b.inss)||0:0; t.irrf+=b?parseFloat(b.irrf)||0:0; t.c+=c;
+    h+='<tr><td>'+e(em)+'</td><td class="n">'+(a?(a.qtd||0):'—')+'</td><td class="n">'+(a?R(fl13Tot(a)):'<span class="fl-sem">falta</span>')+'</td>'+
+      '<td class="n">'+(b?(b.qtd||0)+(dif?' <span class="fl-sem" title="Número de pessoas diferente da 1ª parcela: confira admissões, desligamentos e quem adiantou nas férias">⚠</span>':''):'—')+'</td><td class="n">'+(b?R(fl13Tot(b)):'<span class="fl-sem">falta</span>')+'</td>'+
+      '<td class="n">'+(pen?R(pen):'—')+'</td><td class="n fl-g">'+(b?R(b.inss||0):'—')+'</td><td class="n fl-g">'+(b?R(b.irrf||0):'—')+'</td><td class="n fl-g"><b>'+R(c)+'</b></td>'+
+      (ed?'<td><button type="button" class="nm2-b sm" onclick="fl13Lancar(\''+(b||!a?'p2':'p1')+'\',\''+e(em).replace(/'/g,"\\'")+'\')">Editar</button></td>':'')+'</tr>'; });
+  h+='</tbody><tfoot><tr><td>Total</td><td class="n">'+t.q1+'</td><td class="n">'+R(t.l1)+'</td><td class="n">'+t.q2+'</td><td class="n">'+R(t.l2)+'</td><td class="n">'+R(t.pen)+'</td><td class="n">'+R(t.inss)+'</td><td class="n">'+R(t.irrf)+'</td><td class="n"><b>'+R(t.c)+'</b></td>'+(ed?'<td></td>':'')+'</tr></tfoot></table>'+
+    '<p class="fl-nota">1ª parcela até '+d(0)+': adiantamento de 50%, sem desconto de INSS e IRRF. 2ª parcela até '+d(1)+': o saldo, já com INSS e IRRF descontados. O FGTS do 13º (8%) vem dentro da guia do FGTS Digital da folha de novembro (1ª parcela) e de dezembro (2ª parcela): lance no FGTS do mês, na folha normal. INSS e IRRF do 13º: lance aqui o que a contabilidade informar para o 13º; se vier somado na guia da folha do mês, lance só lá, para não contar duas vezes.</p></div>';
+  return h;
+}
+function fl13Lancar(p,foco){
+  var A=FL.ano, e=esc, R=moedaBR, emps=flEmpresas(), P=fl13Parcelas(A);
+  if(p!=='p1'&&p!=='p2') p=hoje()>P[0].iso&&+hoje().slice(0,4)===A?'p2':'p1';
+  var Pp=P[p==='p1'?0:1], dt=function(iso){ return iso.slice(8,10)+'/'+iso.slice(5,7); };
+  var ov=el('flOv'), x=ov.querySelector('.vf-dov'); if(!x){ x=document.createElement('div'); x.className='vf-dov'; ov.appendChild(x); }
+  var cols=p==='p1'?['qtd','liquido','pensao']:['qtd','liquido','pensao','inss','irrf'];
+  var h='<div class="vf-dbox fl-lbox fl-l13"><h3>🎁 Lançar 13º salário · '+A+'</h3><p>Parcela: <select class="nm-in" style="width:auto" onchange="fl13Lancar(this.value)">'+
+      '<option value="p1"'+(p==='p1'?' selected':'')+'>1ª parcela · paga até '+dt(P[0].iso)+'</option><option value="p2"'+(p==='p2'?' selected':'')+'>2ª parcela · paga até '+dt(P[1].iso)+'</option></select> · '+
+      (p==='p1'?'adiantamento de 50% do salário, <b>sem</b> desconto de INSS e IRRF.':'saldo do 13º, já com INSS e IRRF descontados. Em cinza, o que foi lançado na 1ª parcela.')+
+      (Pp.iso.slice(5)!==(p==='p1'?'11-30':'12-20')?' <b class="fl-av">O prazo legal ('+(p==='p1'?'30/11':'20/12')+') cai em fim de semana ou feriado: pague até '+dt(Pp.iso)+'.</b>':'')+'</p>'+
+    '<table class="fl-lt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Valor pago (líquido)</th><th>Pensão</th>'+(p==='p2'?'<th class="fl-gh">INSS do 13º</th><th class="fl-gh">IRRF do 13º</th>':'')+'<th class="fl-gh">Custo da parcela</th></tr></thead><tbody>';
+  emps.forEach(function(em){ var z=(FL.d13&&FL.d13[fl13Chave(em)])||{}, r=z[p]||{}, a=p==='p2'?(z.p1||{}):{}, v=function(k){ return r[k]==null||r[k]===''?'':(k==='qtd'?r[k]:vfFmt(r[k])); }, ph=function(k){ return a[k]==null||a[k]===''?'':(k==='qtd'?a[k]:vfFmt(a[k])); };
+    h+='<tr data-e="'+e(em)+'"'+(foco&&fl13Chave(foco)===fl13Chave(em)?' class="foco"':'')+'><td><b>'+e(em)+'</b>'+(fl13(em,p)?'<small class="ok">já lançado</small>':'')+'<small class="fl-av"></small></td>'+
+      cols.map(function(k){ return '<td'+(k==='inss'||k==='irrf'?' class="fl-g"':'')+'><input class="nm-in" data-k="'+k+'" inputmode="'+(k==='qtd'?'numeric':'decimal')+'" value="'+e(v(k))+'" placeholder="'+e(ph(k))+'" oninput="fl13Linha(this)"></td>'; }).join('')+
+      '<td class="n fl-g fl-lt-c">—</td></tr>'; });
+  h+='</tbody><tfoot><tr><td>Total</td>'+cols.map(function(k){ return '<td class="n" data-t="'+k+'"></td>'; }).join('')+'<td class="n" data-t="custo"></td></tr></tfoot></table>'+
+    '<p class="fl-nota">'+(p==='p1'?'Lance o valor pago a cada empresa na 1ª parcela (conferido com a prévia do 13º que a contabilidade devolve no Onvio). Quem já recebeu o adiantamento do 13º junto com as férias não entra nesta parcela.':'Valor pago = líquido da 2ª parcela. INSS e IRRF do 13º = o que a contabilidade informar para o 13º; se vier somado na guia da folha de dezembro, deixe em branco aqui e lance só na folha, para não contar duas vezes.')+
+    ' O FGTS do 13º vem na guia do FGTS Digital do mês (novembro e dezembro): lance no FGTS da folha normal. Para apagar uma empresa, limpe todos os campos dela e salve.</p>'+
+    '<div class="vf-dbt"><button type="button" class="nm2-b ghost" onclick="this.closest(\'.vf-dov\').remove()">Cancelar</button><button type="button" class="nm2-b pri" onclick="fl13Salvar(\''+p+'\')">Salvar '+(p==='p1'?'1ª':'2ª')+' parcela</button></div></div>';
+  x.innerHTML=h; FL.lanc13=p; x.querySelectorAll('.fl-lt tbody tr').forEach(function(tr){ fl13Linha(tr.querySelector('input'),true); }); fl13Somar();
+  setTimeout(function(){ var t=x.querySelector('tr.foco input')||x.querySelector('.fl-lt input'); if(t) t.focus(); },40);
+}
+function fl13Linha(inp,sem){ if(!inp) return; var tr=inp.closest('tr'), g=function(k){ var i=tr.querySelector('[data-k="'+k+'"]'); return i?vfNum(i.value):null; };
+  var l=g('liquido'), c=(l||0)+(g('pensao')||0)+(g('inss')||0)+(g('irrf')||0), cc=tr.querySelector('.fl-lt-c'), av=tr.querySelector('.fl-av');
+  cc.textContent=(l!=null||c)?moedaBR(c):'—'; av.textContent='';
+  if(FL.lanc13==='p2'){ var a=(FL.d13&&FL.d13[fl13Chave(tr.getAttribute('data-e'))]||{}).p1, q=tr.querySelector('[data-k="qtd"]').value.trim();
+    if(a&&q&&a.qtd!=null&&+q!==+a.qtd) av.textContent='⚠ 1ª parcela teve '+a.qtd+' pessoa(s)'; }
+  if(!sem) fl13Somar(); }
+function fl13Somar(){ var b=document.querySelector('#flOv .fl-l13'); if(!b) return; var s={};
+  b.querySelectorAll('.fl-lt tbody tr').forEach(function(tr){ tr.querySelectorAll('input[data-k]').forEach(function(i){ var k=i.getAttribute('data-k'), n=vfNum(i.value)||0; s[k]=(s[k]||0)+n; if(k!=='qtd') s.custo=(s.custo||0)+n; }); });
+  b.querySelectorAll('tfoot [data-t]').forEach(function(td){ var k=td.getAttribute('data-t'); td.textContent=k==='qtd'?(s.qtd||''):moedaBR(s[k]||0); }); }
+function fl13Salvar(p){
+  var A=FL.ano, novos={}, erro='', n=0, por=((EU&&EU.nome)||'').split(' ')[0];
+  document.querySelectorAll('#flOv .fl-l13 .fl-lt tbody tr').forEach(function(tr){
+    var em=tr.getAttribute('data-e'), q=tr.querySelector('[data-k="qtd"]').value.trim(), o={}, algum=!!q;
+    tr.querySelectorAll('input[data-k]').forEach(function(i){ var k=i.getAttribute('data-k'); if(k==='qtd') return; o[k]=vfNum(i.value); if(o[k]!=null) algum=true; });
+    if(q&&!/^\d+$/.test(q)&&!erro) erro='Pessoas de '+em+' precisa ser um número inteiro.';
+    if(algum&&o.liquido==null&&!erro) erro='Falta o valor pago de '+em+'.';
+    o.qtd=q?parseInt(q,10):null; novos[em]=algum?o:null; });
+  if(erro){ aviso(erro,true); return; }
+  /* lê de novo antes de gravar (outra pessoa pode ter lançado outra empresa); se a leitura falhar, não grava nada */
+  sb.from('kv_store').select('value').eq('storage_key','folha-13:'+A).eq('shared',false).maybeSingle().then(function(r){
+    if(r&&r.error) throw r.error; var d={}; if(r&&r.data&&r.data.value){ d=JSON.parse(r.data.value); } d=(d&&typeof d==='object')?d:{};
+    Object.keys(novos).forEach(function(em){ var k=fl13Chave(em), o=novos[em], z=d[k];
+      if(!o){ if(z&&z[p]){ delete z[p]; n++; if(!z.p1&&!z.p2) delete d[k]; } return; }
+      z=d[k]=d[k]||{emp:em}; var ant=z[p]||{}, mudou=['qtd','liquido','pensao','inss','irrf'].some(function(c){ return (ant[c]==null?null:+ant[c])!==(o[c]==null?null:+o[c]); });
+      if(mudou||!z[p]){ o.por=por; o.em=hoje(); z[p]=o; n++; } });
+    if(!n){ aviso('Nada mudou.'); return; }
+    return kvSalvar('folha-13:'+A,d).then(function(){
+      FL.d13=d; try{ AGL.d13=AGL.d13||{}; AGL.d13[A]=d; aglRedesenhar(); }catch(e){}
+      try{ sb.from('dp_logs').insert({id:cxUUID(),tabela:'folha',registro_id:cxUUID(),colaborador:'(folha de pagamento)',campo:'13º salário',valor_antigo:'',valor_novo:('13º '+A+' · '+(p==='p1'?'1ª':'2ª')+' parcela lançada/alterada · '+n+' empresa(s)').slice(0,300),usuario:(EU&&EU.nome)||'',quando:new Date().toISOString()}).then(function(){},function(){}); }catch(e){}
+      var x=document.querySelector('#flOv .vf-dov'); if(x) x.remove(); FL.mes='13'; flDesenhar(); aviso('13º · '+(p==='p1'?'1ª':'2ª')+' parcela salva ('+n+' empresa(s)).');
+    });
+  }).catch(function(){ aviso('Não consegui salvar o 13º agora. Verifique a internet. Nada foi gravado.',true); });
+}
+(function(){
+  var st=document.createElement('style');
+  st.textContent='.fl-t th.d13h,.fl-dt th.d13h{color:#c4a5ff}.fl-t th.d13h small{display:block;font-size:9.5px;letter-spacing:0;text-transform:none;color:var(--mut);font-weight:600}'+
+    '.fl-t td.d13{background:rgba(167,139,250,.07)}.fl-t td.fl-c.d13.ok:hover{background:rgba(167,139,250,.16)}.fl-t td.fl-c.d13.falta{background:rgba(255,176,32,.12)}'+
+    '.nm2-b.fl-b13{border-color:rgba(167,139,250,.6);color:#d9c9ff}.fl-det13{border-color:rgba(167,139,250,.45)}';
+  document.head.appendChild(st);
+})();
 (function(){
   var _abr=abrir; abrir=function(v,s){ if(v==='painel'&&s==='folha'&&!FL.antiga){ try{ document.body.classList.remove('menu'); }catch(e){} flAbrir(); return; } return _abr.apply(this,arguments); };
 })();
@@ -19843,14 +19947,18 @@ function agLegalMes(y,m){
     var v=l.reduce(function(a,r){ return a+ks.reduce(function(b,k){ return b+(parseFloat(r[k])||0); },0); },0); return ' · Valor lançado na folha: '+moedaBR(v)+' ('+l.length+' empresa'+(l.length>1?'s':'')+').'; };
   add('darf',20,'INSS/IRRF','INSS e IRRF da folha de '+ant+' · DARF da DCTFWeb','Guia gerada pela contabilidade. Vence dia 20; se não for dia útil, paga no dia útil anterior.'+fv(['inss','irrf']));
   add('fgts',20,'FGTS + eConsig.','FGTS Digital da folha de '+ant+' (FGTS + eConsignado)','Guia do FGTS Digital (Pix), já com as parcelas do Crédito do Trabalhador (eConsignado) descontadas na folha. Vence dia 20; se não for dia útil, paga no dia útil anterior. Parcela de consignado paga em atraso tem multa e juros.'+fv(['fgts','econsig']));
-  if(m===11) add('13a',30,'13º · 1ª','13º salário · 1ª parcela (adiantamento)','Prazo legal: 30/11. Quem já recebeu o adiantamento junto com as férias não entra.');
-  if(m===12) add('13b',20,'13º · 2ª','13º salário · 2ª parcela + INSS/IRRF do 13º','Prazo legal: 20/12, já com os descontos de INSS e IRRF.');
+  /* v122 · valor do 13º lançado na Folha de pagamento (kv 'folha-13:AAAA') */
+  var v13=function(p){ var d=AGL.d13&&AGL.d13[y]; if(!d) return ''; var n=0, v=0; Object.keys(d).forEach(function(k){ var x=d[k]&&d[k][p]; if(x&&x.liquido!=null&&x.liquido!==''){ n++; v+=parseFloat(x.liquido)||0; } });
+    return n?' · Valor lançado na folha: '+moedaBR(v)+' ('+n+' empresa'+(n>1?'s':'')+').':' · Falta lançar em Folha de pagamento → + Lançar 13º.'; };
+  if(m===11) add('13a',30,'13º · 1ª','13º salário · 1ª parcela (adiantamento)','Prazo legal: 30/11 (sem desconto de INSS e IRRF). Quem já recebeu o adiantamento junto com as férias não entra.'+v13('p1'));
+  if(m===12) add('13b',20,'13º · 2ª','13º salário · 2ª parcela + INSS/IRRF do 13º','Prazo legal: 20/12, já com os descontos de INSS e IRRF. Se cair em fim de semana, paga no dia útil anterior.'+v13('p2'));
   if(m===2){ var u=new Date(y,2,0).getDate(); add('informe',u,'Informe IR','Informe de rendimentos aos empregados','Entregar a cada CLT o comprovante de rendimentos do ano anterior até o último dia útil de fevereiro.'); }
   return L.sort(function(a,b){ return a.iso<b.iso?-1:(a.iso>b.iso?1:0); });
 }
 function aglCarregar(){
   if(!sb) return Promise.resolve();
   try{ if(podeVer('folha')) sb.from('dp_folha').select('*').then(function(r){ if(r&&!r.error){ AGL.folha=r.data||[]; aglRedesenhar(); } }); }catch(e){}
+  try{ if(podeVer('folha')){ var y13=+hoje().slice(0,4); kvLer('folha-13:'+y13,null).then(function(d){ if(d){ AGL.d13=AGL.d13||{}; AGL.d13[y13]=d; aglRedesenhar(); } }); } }catch(e){}
   return sb.from('kv_store').select('value').eq('storage_key','central-agenda-legal').eq('shared',false).maybeSingle().then(function(r){
     try{ AGL.feitos=(r&&r.data&&r.data.value)?JSON.parse(r.data.value)||{}:{}; }catch(e){ AGL.feitos={}; }
     AGL.carregado=true; aglRedesenhar();
@@ -20003,6 +20111,8 @@ function redeInstalar(win,mod){
 })();
 
 /* ---------- novidades ---------- */
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v122'; })) NOVIDADES.unshift({v:'v122',data:'17/11/2026',itens:[
+  ['🎁','13º salário na Folha de pagamento','Duas colunas novas (lilás) depois de dezembro: 13º · 1ª (até 30/11) e 13º · 2ª (até 20/12; em 2026, sexta 18/12, porque o dia 20 cai num domingo). Botão "+ Lançar 13º": pessoas, valor pago e pensão por empresa; na 2ª parcela, também INSS e IRRF do 13º. Entra no Total do ano e na impressão, fica fora das setas de variação e aparece na Agenda legal com o valor lançado.']]}); }catch(e){}
 try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v121'; })) NOVIDADES.unshift({v:'v121',data:'17/11/2026',itens:[
   ['🏦','eConsignado na Folha de pagamento','Em Lançar mês, cada empresa ganhou a coluna eConsignado (Crédito do Trabalhador), ao lado de FGTS, INSS e IRRF. Entra no Custo total, no detalhe do mês, na impressão, no Relatório da Diretoria e no prazo do FGTS Digital (dia 20) na Agenda legal. Empresa sem consignado fica em branco, sem aviso de falta.']]}); }catch(e){}
 try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v120'&&n.gestora; })) NOVIDADES.unshift({v:'v120',gestora:true,data:'17/11/2026',itens:[
