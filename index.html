@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="13/11/2026 · v115">
-<meta name="central-novidades" content="📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
+<meta name="central-versao" content="17/11/2026 · v121">
+<meta name="central-novidades" content="🧾 eConsignado na Folha de pagamento: lançado junto com FGTS, INSS e IRRF e somado no Custo total. 📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -11571,7 +11571,7 @@ function relTexto(X){
   if(X.t==='mensal'&&X.valores&&M.custo) L.push('- Custo do mês nos sistemas: '+moedaBR(M.custo)+(A.custo&&A.folhaN?' (mês anterior: '+moedaBR(A.custo)+')':''));
   if(X.t==='mensal'&&X.valores&&M.fc&&M.fc.t.n){ var vv=A.fc&&A.fc.t.custo&&!M.fc.falta.length?flCustoVar(M.fc.t.custo,A.fc.t.custo):'';
     L.push('- Custo total da folha: '+moedaBR(M.fc.t.custo)+(vv?' ('+vv.replace('▲','subiu').replace('▼','caiu').replace('=','igual')+' vs mês anterior)':(M.fc.falta.length?' (parcial: faltam as guias de '+M.fc.falta.length+' empresa'+(M.fc.falta.length>1?'s':'')+')':'')));
-    L.push('  > salários '+moedaBR(M.fc.t.sal)+' + FGTS e impostos '+moedaBR(M.fc.t.guias)+(M.fc.t.pensao?' + pensão '+moedaBR(M.fc.t.pensao):''));
+    L.push('  > salários '+moedaBR(M.fc.t.sal)+' + FGTS, impostos e eConsignado '+moedaBR(M.fc.t.guias)+(M.fc.t.pensao?' + pensão '+moedaBR(M.fc.t.pensao):''));
     M.fc.emps.forEach(function(z){ L.push('  > '+z.emp+': '+moedaBR(z.custo)+(z.temGuias?'':' (sem as guias)')); }); }
   if(M.resc.length) L.push('- Rescisões: '+M.resc.length+' ('+X.tipos.map(function(k){ return Math.round(X.g[k]/M.resc.length*100)+'% '+k; }).join(', ')+')');
   L.push('- De férias hoje: '+X.ferHoje.length);
@@ -17842,17 +17842,19 @@ function flK(v){ return Number(v||0).toLocaleString('pt-BR',{maximumFractionDigi
 function flC(r){ return (''+(r.competencia||'')).slice(0,7); }
 function flTot(r){ return Math.round(((parseFloat(r.liquido)||0)+(parseFloat(r.gratif)||0))*100)/100; }
 /* v118 · FGTS e impostos da folha (guias do mês): FGTS Digital, INSS e IRRF (DARF da DCTFWeb) */
-var FL_GUIAS=[['fgts','FGTS'],['inss','INSS'],['irrf','IRRF']];
+var FL_GUIAS=[['fgts','FGTS'],['inss','INSS'],['irrf','IRRF'],['econsig','eConsignado']];
+/* v121 · eConsignado (Crédito do Trabalhador): parcelas descontadas na folha e recolhidas na guia do FGTS Digital. Não é obrigatório: empresa sem consignado fica em branco, sem "falta". */
+var FL_GUIAS_OBR=['fgts','inss','irrf'];
 function flGuias(r){ return Math.round(FL_GUIAS.reduce(function(a,g){ return a+(parseFloat(r[g[0]])||0); },0)*100)/100; }
 function flCusto(r){ return Math.round((flTot(r)+(parseFloat(r.pensao)||0)+flGuias(r))*100)/100; }
-function flTemGuias(r){ return FL_GUIAS.some(function(g){ return r[g[0]]!=null&&r[g[0]]!==''; }); }
+function flTemGuias(r){ return FL_GUIAS_OBR.some(function(k){ return r[k]!=null&&r[k]!==''; }); }
 /* v120 · custo total da folha de uma competência, por empresa (usado nos relatórios da Diretoria) */
 function flCustoMes(rows,M){
-  var g={}, t={qtd:0,sal:0,pensao:0,fgts:0,inss:0,irrf:0,guias:0,custo:0,n:0}, falta=[];
+  var g={}, t={qtd:0,sal:0,pensao:0,fgts:0,inss:0,irrf:0,econsig:0,guias:0,custo:0,n:0}, falta=[];
   (rows||[]).forEach(function(r){ if((''+(r.competencia||'')).slice(0,7)!==M) return;
-    var e=empresaCanon(r.empresa||'')||r.empresa||'Sem empresa', z=g[e]=g[e]||{emp:e,qtd:0,sal:0,pensao:0,fgts:0,inss:0,irrf:0,guias:0,custo:0,temGuias:false};
+    var e=empresaCanon(r.empresa||'')||r.empresa||'Sem empresa', z=g[e]=g[e]||{emp:e,qtd:0,sal:0,pensao:0,fgts:0,inss:0,irrf:0,econsig:0,guias:0,custo:0,temGuias:false};
     var sal=(r.liquido!=null||r.gratif!=null)?flTot(r):(parseFloat(r.total)||0), pen=parseFloat(r.pensao)||0, gs=flGuias(r);
-    [z,t].forEach(function(o){ o.qtd+=(+r.qtd||0); o.sal+=sal; o.pensao+=pen; o.fgts+=parseFloat(r.fgts)||0; o.inss+=parseFloat(r.inss)||0; o.irrf+=parseFloat(r.irrf)||0; o.guias+=gs; o.custo+=sal+pen+gs; });
+    [z,t].forEach(function(o){ o.qtd+=(+r.qtd||0); o.sal+=sal; o.pensao+=pen; o.fgts+=parseFloat(r.fgts)||0; o.inss+=parseFloat(r.inss)||0; o.irrf+=parseFloat(r.irrf)||0; o.econsig+=parseFloat(r.econsig)||0; o.guias+=gs; o.custo+=sal+pen+gs; });
     if(flTemGuias(r)) z.temGuias=true; t.n++; });
   var emps=Object.keys(g).sort().map(function(k){ if(!g[k].temGuias) falta.push(k); return g[k]; });
   return {emps:emps,t:t,falta:falta,M:M};
@@ -17861,11 +17863,11 @@ function flCustoVar(a,b){ if(!a||!b) return ''; var p=Math.round((a/b-1)*1000)/1
 /* tabela para os PDFs (estilos próprios, funciona nos dois relatórios) */
 function flCustoTabela(C,A){
   var R=moedaBR, e=esc, td='padding:5px 6px;border-bottom:1px solid #e6e6e6;', n=td+'text-align:right;white-space:nowrap;', th='padding:6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;background:#151515;color:#fff;text-align:right;', ant=function(emp){ var x=A&&A.emps.find(function(z){ return z.emp===emp; }); return x?x.custo:0; };
-  var h='<table style="width:100%;border-collapse:collapse;font-size:10.5px"><thead><tr><th style="'+th+'text-align:left">Empresa</th><th style="'+th+'">Salários*</th><th style="'+th+'">Pensão</th><th style="'+th+'">FGTS</th><th style="'+th+'">INSS</th><th style="'+th+'">IRRF</th><th style="'+th+'">Custo total</th><th style="'+th+'">vs mês ant.</th></tr></thead><tbody>'+
+  var h='<table style="width:100%;border-collapse:collapse;font-size:10.5px"><thead><tr><th style="'+th+'text-align:left">Empresa</th><th style="'+th+'">Salários*</th><th style="'+th+'">Pensão</th><th style="'+th+'">FGTS</th><th style="'+th+'">INSS</th><th style="'+th+'">IRRF</th><th style="'+th+'">eConsig.</th><th style="'+th+'">Custo total</th><th style="'+th+'">vs mês ant.</th></tr></thead><tbody>'+
     C.emps.map(function(z){ var v=z.temGuias?flCustoVar(z.custo,ant(z.emp)):'', cor=/▲/.test(v)?'#c62828':(/▼/.test(v)?'#1f9d61':'#888');
-      return '<tr><td style="'+td+'"><b>'+e(z.emp)+'</b>'+(z.temGuias?'':' <span style="color:#b26a00;font-size:9px">· guias não lançadas</span>')+'</td><td style="'+n+'">'+R(z.sal)+'</td><td style="'+n+'">'+(z.pensao?R(z.pensao):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.fgts):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.inss):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.irrf):'—')+'</td><td style="'+n+'"><b>'+R(z.custo)+'</b></td><td style="'+n+'color:'+cor+';font-weight:700">'+(v||'—')+'</td></tr>'; }).join('')+
-    '<tr><td style="'+td+'background:#f1f1f1"><b>Total</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.sal)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.pensao)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.fgts)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.inss)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.irrf)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.custo)+'</b></td><td style="'+n+'background:#f1f1f1;font-weight:700">'+(A&&A.t.custo&&!C.falta.length?flCustoVar(C.t.custo,A.t.custo):'—')+'</td></tr></tbody></table>'+
-    '<p style="margin:4px 0 0;font-size:9.5px;color:#777">* Salários = líquido + gratificação lançados na Folha de pagamento. Custo total = salários + pensão + FGTS + INSS + IRRF (o que sai do caixa pela folha da competência).'+(C.falta.length?' FGTS e impostos ainda não lançados: '+e(C.falta.join(', '))+'.':'')+'</p>';
+      return '<tr><td style="'+td+'"><b>'+e(z.emp)+'</b>'+(z.temGuias?'':' <span style="color:#b26a00;font-size:9px">· guias não lançadas</span>')+'</td><td style="'+n+'">'+R(z.sal)+'</td><td style="'+n+'">'+(z.pensao?R(z.pensao):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.fgts):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.inss):'—')+'</td><td style="'+n+'">'+(z.temGuias?R(z.irrf):'—')+'</td><td style="'+n+'">'+(z.econsig?R(z.econsig):'—')+'</td><td style="'+n+'"><b>'+R(z.custo)+'</b></td><td style="'+n+'color:'+cor+';font-weight:700">'+(v||'—')+'</td></tr>'; }).join('')+
+    '<tr><td style="'+td+'background:#f1f1f1"><b>Total</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.sal)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.pensao)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.fgts)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.inss)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.irrf)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.econsig)+'</b></td><td style="'+n+'background:#f1f1f1"><b>'+R(C.t.custo)+'</b></td><td style="'+n+'background:#f1f1f1;font-weight:700">'+(A&&A.t.custo&&!C.falta.length?flCustoVar(C.t.custo,A.t.custo):'—')+'</td></tr></tbody></table>'+
+    '<p style="margin:4px 0 0;font-size:9.5px;color:#777">* Salários = líquido + gratificação lançados na Folha de pagamento. Custo total = salários + pensão + FGTS + INSS + IRRF + eConsignado (o que sai do caixa pela folha da competência; o eConsignado já foi descontado do líquido e é repassado na guia do FGTS Digital).'+(C.falta.length?' FGTS e impostos ainda não lançados: '+e(C.falta.join(', '))+'.':'')+'</p>';
   return h;
 }
 function flEmpresas(){ var s={}; FL_EMP_PAD.forEach(function(e){ s[e]=1; }); FL.dados.forEach(function(r){ if(r.empresa) s[String(r.empresa).trim()]=1; });
@@ -17894,7 +17896,7 @@ function flDesenhar(){
     '<div class="vf-topbt"><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A-1)+')">‹ '+(A-1)+'</button><button type="button" class="nm2-b ghost" onclick="flAbrir('+(A+1)+')">'+(A+1)+' ›</button><button type="button" class="nm2-b ghost" onclick="flFechar()">Fechar</button></div></div>';
   var gAno=0, gMes={}; MS.forEach(function(M){ gMes[M]=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r){ gMes[M]+=flGuias(r); gAno+=flGuias(r); } }); });
   h+='<div class="vf-resumo"><div><span>Total do ano</span><b>'+R(tAno)+'</b><small>'+lanc+' lançamento(s)</small></div>'+
-    '<div><span>FGTS + impostos no ano</span><b>'+R(gAno)+'</b><small>guias FGTS, INSS e IRRF</small></div>'+
+    '<div><span>FGTS + impostos no ano</span><b>'+R(gAno)+'</b><small>guias FGTS, INSS, IRRF e eConsignado</small></div>'+
     '<div><span>Média por mês</span><b>'+R(mesesCom.length?tAno/mesesCom.length:0)+'</b><small>'+mesesCom.length+' mês(es) com folha</small></div>'+
     '<div><span>Última competência</span><b>'+(ult?e(nomeMes(ult).split(' ')[0])+' · '+R(totM[ult]):'—')+'</b><small>'+(ult&&pen?flVar(totM[ult],totM[pen])+' contra '+e(nomeMes(pen).split(' ')[0].toLowerCase()):'')+'</small></div>'+
     '<div class="'+(faltam.length?'w':'ok')+'"><span>Falta lançar</span><b>'+(faltam.length?faltam.length+' casa(s)':'nada ✓')+'</b><small>'+(ult?qtdM[ult]+' pessoas na última':'')+'</small></div></div>';
@@ -17903,7 +17905,7 @@ function flDesenhar(){
   emps.forEach(function(em){
     h+='<tr><td class="fl-e">'+e(em)+'</td>';
     MS.forEach(function(M,i){ var r=flAcha(em,M), ant=flAcha(em,i?MS[i-1]:(A-1)+'-12'), falta=faltam.some(function(f){ return f[0]===em&&f[1]===M; });
-      if(r) h+='<td class="fl-c ok" onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')" title="'+e(em+' · '+nomeMes(M)+'\nPessoas: '+(r.qtd||0)+'\nLíquido: '+R(r.liquido||0)+'\nGratificação: '+R(r.gratif||0)+'\nPensão: '+R(r.pensao||0)+(flTemGuias(r)?'\nFGTS: '+R(r.fgts||0)+'\nINSS: '+R(r.inss||0)+'\nIRRF: '+R(r.irrf||0)+'\nCusto total: '+R(flCusto(r)):'\nFGTS e impostos: falta lançar'))+'"><b>'+flK(flTot(r))+'</b><small>'+(r.qtd||0)+' pess.'+(ant?' '+flVar(flTot(r),flTot(ant)):'')+'</small></td>';
+      if(r) h+='<td class="fl-c ok" onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')" title="'+e(em+' · '+nomeMes(M)+'\nPessoas: '+(r.qtd||0)+'\nLíquido: '+R(r.liquido||0)+'\nGratificação: '+R(r.gratif||0)+'\nPensão: '+R(r.pensao||0)+(flTemGuias(r)?'\nFGTS: '+R(r.fgts||0)+'\nINSS: '+R(r.inss||0)+'\nIRRF: '+R(r.irrf||0)+'\neConsignado: '+R(r.econsig||0)+'\nCusto total: '+R(flCusto(r)):'\nFGTS e impostos: falta lançar'))+'"><b>'+flK(flTot(r))+'</b><small>'+(r.qtd||0)+' pess.'+(ant?' '+flVar(flTot(r),flTot(ant)):'')+'</small></td>';
       else h+='<td class="fl-c '+(falta?'falta':(M>hojeM?'fut':''))+'"'+(ed&&M<=hojeM?' onclick="flLancar(\''+M+'\',\''+e(em).replace(/'/g,"\\'")+'\')"':'')+'>'+(falta?'<small>falta</small>':'')+'</td>';
     });
     h+='<td class="fl-te">'+(totE[em]?flK(totE[em]):'—')+'</td></tr>';
@@ -17911,14 +17913,14 @@ function flDesenhar(){
   h+='</tbody><tfoot><tr><td>Total do mês</td>'+MS.map(function(M,i){ var pr=i?totM[MS[i-1]]:0; return '<td'+(totM[M]?' onclick="FL.mes=\''+M+'\';flDesenhar();setTimeout(function(){var d=document.querySelector(\'#flOv .fl-det\');if(d)d.scrollIntoView({behavior:\'smooth\'})},50)" style="cursor:pointer"':'')+'>'+(totM[M]?'<b>'+flK(totM[M])+'</b><small>'+qtdM[M]+' pess. '+(pr?flVar(totM[M],pr):'')+'</small>':'')+'</td>'; }).join('')+'<td class="fl-te">'+flK(tAno)+'</td></tr></tfoot></table></div>';
   h+='<p class="lp-seg">Casas em amarelo: mês já passou e a empresa ainda não tem folha lançada. Setas: variação do total contra o mês anterior. Toque no total de um mês para ver o detalhe.</p>';
   var Md=FL.mes&&FL.mes.slice(0,4)==A?FL.mes:ult;
-  if(Md){ var tl={q:0,l:0,g:0,p:0,t:0,fgts:0,inss:0,irrf:0,c:0}, gv=function(r,k){ return r[k]==null||r[k]===''?'<span class="fl-sem">falta</span>':R(r[k]); };
-    h+='<div class="fl-det"><h3>Detalhe de '+e(nomeMes(Md).toLowerCase())+'</h3><table class="fl-dt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão alimentícia</th><th>Total</th><th class="fl-gh">FGTS</th><th class="fl-gh">INSS</th><th class="fl-gh">IRRF</th><th class="fl-gh">Custo total</th><th>vs. mês anterior</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>';
+  if(Md){ var tl={q:0,l:0,g:0,p:0,t:0,fgts:0,inss:0,irrf:0,econsig:0,c:0}, gv=function(r,k){ return r[k]==null||r[k]===''?'<span class="fl-sem">falta</span>':R(r[k]); };
+    h+='<div class="fl-det"><h3>Detalhe de '+e(nomeMes(Md).toLowerCase())+'</h3><table class="fl-dt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão alimentícia</th><th>Total</th><th class="fl-gh">FGTS</th><th class="fl-gh">INSS</th><th class="fl-gh">IRRF</th><th class="fl-gh">eConsignado</th><th class="fl-gh">Custo total</th><th>vs. mês anterior</th>'+(ed?'<th></th>':'')+'</tr></thead><tbody>';
     emps.forEach(function(em){ var r=flAcha(em,Md), ant=flAcha(em,nmSomaMes(Md,-1)); if(!r) return; tl.q+=+r.qtd||0; tl.l+=parseFloat(r.liquido)||0; tl.g+=parseFloat(r.gratif)||0; tl.p+=parseFloat(r.pensao)||0; tl.t+=flTot(r); FL_GUIAS.forEach(function(g){ tl[g[0]]+=parseFloat(r[g[0]])||0; }); tl.c+=flCusto(r);
       h+='<tr><td>'+e(em)+'</td><td class="n">'+(r.qtd||0)+'</td><td class="n">'+R(r.liquido||0)+'</td><td class="n">'+(parseFloat(r.gratif)?R(r.gratif):'—')+'</td><td class="n">'+(parseFloat(r.pensao)?R(r.pensao):'—')+'</td><td class="n"><b>'+R(flTot(r))+'</b></td>'+
-        '<td class="n fl-g">'+gv(r,'fgts')+'</td><td class="n fl-g">'+gv(r,'inss')+'</td><td class="n fl-g">'+gv(r,'irrf')+'</td><td class="n fl-g"><b>'+R(flCusto(r))+'</b></td>'+
+        '<td class="n fl-g">'+gv(r,'fgts')+'</td><td class="n fl-g">'+gv(r,'inss')+'</td><td class="n fl-g">'+gv(r,'irrf')+'</td><td class="n fl-g">'+(parseFloat(r.econsig)?R(r.econsig):'—')+'</td><td class="n fl-g"><b>'+R(flCusto(r))+'</b></td>'+
         '<td class="n">'+(ant?flVar(flTot(r),flTot(ant)):'—')+'</td>'+(ed?'<td><button type="button" class="nm2-b sm" onclick="flLancar(\''+Md+'\')">Editar</button></td>':'')+'</tr>'; });
-    h+='</tbody><tfoot><tr><td>Total</td><td class="n">'+tl.q+'</td><td class="n">'+R(tl.l)+'</td><td class="n">'+R(tl.g)+'</td><td class="n">'+R(tl.p)+'</td><td class="n"><b>'+R(tl.t)+'</b></td><td class="n">'+R(tl.fgts)+'</td><td class="n">'+R(tl.inss)+'</td><td class="n">'+R(tl.irrf)+'</td><td class="n"><b>'+R(tl.c)+'</b></td><td></td>'+(ed?'<td></td>':'')+'</tr></tfoot></table>'+
-      '<p class="fl-nota">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF (tudo o que sai do caixa pela folha do mês). FGTS e impostos da competência de '+e(nomeMes(Md).toLowerCase())+' vencem no dia 20 de '+e(nomeMes(nmSomaMes(Md,1)).toLowerCase())+'.</p></div>';
+    h+='</tbody><tfoot><tr><td>Total</td><td class="n">'+tl.q+'</td><td class="n">'+R(tl.l)+'</td><td class="n">'+R(tl.g)+'</td><td class="n">'+R(tl.p)+'</td><td class="n"><b>'+R(tl.t)+'</b></td><td class="n">'+R(tl.fgts)+'</td><td class="n">'+R(tl.inss)+'</td><td class="n">'+R(tl.irrf)+'</td><td class="n">'+R(tl.econsig)+'</td><td class="n"><b>'+R(tl.c)+'</b></td><td></td>'+(ed?'<td></td>':'')+'</tr></tfoot></table>'+
+      '<p class="fl-nota">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF + eConsignado (tudo o que sai do caixa pela folha do mês). O eConsignado (Crédito do Trabalhador) já sai descontado do líquido e a empresa repassa na mesma guia do FGTS Digital. FGTS, impostos e eConsignado da competência de '+e(nomeMes(Md).toLowerCase())+' vencem no dia 20 de '+e(nomeMes(nmSomaMes(Md,1)).toLowerCase())+'.</p></div>';
   }
   h+='</div>'; modal2('flOv',h);
 }
@@ -17928,7 +17930,7 @@ function flLancar(M,foco){
   var ov=el('flOv'), x=ov.querySelector('.vf-dov'); if(!x){ x=document.createElement('div'); x.className='vf-dov'; ov.appendChild(x); }
   var opt=''; var m0=nmSomaMes(hoje().slice(0,7),1); for(var i=0;i<18;i++){ opt+='<option value="'+m0+'"'+(m0===M?' selected':'')+'>'+e(nomeMes(m0))+'</option>'; m0=nmSomaMes(m0,-1); }
   var h='<div class="vf-dbox fl-lbox"><h3>Lançar folha</h3><p>Competência de apuração: <select class="nm-in" style="width:auto" onchange="flLancar(this.value)">'+opt+'</select> · em cinza, o que foi lançado em '+e(nomeMes(A).toLowerCase())+'. Total = líquido + gratificação.</p>'+
-    '<table class="fl-lt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão</th><th>Total</th><th class="fl-gh">FGTS</th><th class="fl-gh">INSS (DARF)</th><th class="fl-gh">IRRF (DARF)</th><th class="fl-gh">Custo total</th></tr></thead><tbody>';
+    '<table class="fl-lt"><thead><tr><th>Empresa</th><th>Pessoas</th><th>Líquido</th><th>Gratificação</th><th>Pensão</th><th>Total</th><th class="fl-gh">FGTS</th><th class="fl-gh">INSS (DARF)</th><th class="fl-gh">IRRF (DARF)</th><th class="fl-gh">eConsignado</th><th class="fl-gh">Custo total</th></tr></thead><tbody>';
   emps.forEach(function(em,i){ var r=flAcha(em,M)||{}, a=flAcha(em,A)||{}, v=function(k){ return r[k]==null||r[k]===''?'':vfFmt(r[k]); };
     h+='<tr data-e="'+e(em)+'" data-id="'+e(r.id||'')+'"'+(foco&&foco===em?' class="foco"':'')+'><td><b>'+e(em)+'</b>'+(r.id?'<small class="ok">já lançado</small>':'')+'</td>'+
       '<td><input class="nm-in" data-k="qtd" inputmode="numeric" value="'+e(r.qtd==null?'':r.qtd)+'" placeholder="'+e(a.qtd==null?'':a.qtd)+'" oninput="flLinha(this)"></td>'+
@@ -17936,8 +17938,8 @@ function flLancar(M,foco){
       '<td class="n fl-lt-t">'+(r.id?R(flTot(r)):'—')+'<small class="fl-av"></small></td>'+
       FL_GUIAS.map(function(g){ return '<td class="fl-g"><input class="nm-in" data-k="'+g[0]+'" inputmode="decimal" value="'+e(v(g[0]))+'" placeholder="'+e(a[g[0]]?vfFmt(a[g[0]]):'')+'" oninput="flLinha(this)"></td>'; }).join('')+
       '<td class="n fl-g fl-lt-c">—</td></tr>'; });
-  h+='</tbody><tfoot><tr><td>Total</td><td class="n" id="flQ"></td><td class="n" id="flL"></td><td class="n" id="flG"></td><td class="n" id="flP"></td><td class="n" id="flT"></td><td class="n" id="flFg"></td><td class="n" id="flIn"></td><td class="n" id="flIr"></td><td class="n" id="flC"></td></tr></tfoot></table>'+
-    '<p class="fl-nota">FGTS = guia do FGTS Digital. INSS e IRRF = valores do DARF da DCTFWeb (a contabilidade manda junto com a prévia da folha). Pode deixar em branco e voltar depois: a casa fica marcada como "falta".</p>'+
+  h+='</tbody><tfoot><tr><td>Total</td><td class="n" id="flQ"></td><td class="n" id="flL"></td><td class="n" id="flG"></td><td class="n" id="flP"></td><td class="n" id="flT"></td><td class="n" id="flFg"></td><td class="n" id="flIn"></td><td class="n" id="flIr"></td><td class="n" id="flEc"></td><td class="n" id="flC"></td></tr></tfoot></table>'+
+    '<p class="fl-nota">FGTS = guia do FGTS Digital. INSS e IRRF = valores do DARF da DCTFWeb (a contabilidade manda junto com a prévia da folha). eConsignado = parcelas do Crédito do Trabalhador descontadas dos empregados, que vão na guia do FGTS Digital (código 155); se a empresa não tem ninguém com consignado, deixe em branco. Pode deixar em branco e voltar depois: a casa fica marcada como "falta".</p>'+
     '<div class="vf-dbt"><button type="button" class="nm2-b ghost" onclick="this.closest(\'.vf-dov\').remove()">Cancelar</button><button type="button" class="nm2-b pri" onclick="flSalvar(\''+M+'\')">Salvar '+e(nomeMes(M).toLowerCase())+'</button></div></div>';
   x.innerHTML=h; FL.lancM=M; flSomar(); x.querySelectorAll('.fl-lt tbody tr').forEach(function(tr){ flLinha(tr.querySelector('input')); });
   setTimeout(function(){ var t=x.querySelector('tr.foco input')||x.querySelector('.fl-lt input'); if(t) t.focus(); },40);
@@ -17949,16 +17951,16 @@ function flLinha(inp){ if(!inp) return; var tr=inp.closest('tr'), g=function(k){
   var a=flAcha(tr.getAttribute('data-e'),nmSomaMes(FL.lancM,-1)); av.innerHTML='';
   if(a&&t&&flTot(a)){ var p=Math.round((t/flTot(a)-1)*1000)/10; if(Math.abs(p)>=15) av.innerHTML='⚠ '+(p>0?'+':'')+String(p).replace('.',',')+'% vs mês anterior'; }
   flSomar(); }
-function flSomar(){ var s={q:0,l:0,g:0,p:0,fgts:0,inss:0,irrf:0}; document.querySelectorAll('#flOv .fl-lt tbody tr').forEach(function(tr){ var g=function(k){ var i=tr.querySelector('[data-k="'+k+'"]'); return i?(vfNum(i.value)||0):0; }; s.q+=g('qtd'); s.l+=g('liquido'); s.g+=g('gratif'); s.p+=g('pensao'); s.fgts+=g('fgts'); s.inss+=g('inss'); s.irrf+=g('irrf'); });
+function flSomar(){ var s={q:0,l:0,g:0,p:0,fgts:0,inss:0,irrf:0,econsig:0}; document.querySelectorAll('#flOv .fl-lt tbody tr').forEach(function(tr){ var g=function(k){ var i=tr.querySelector('[data-k="'+k+'"]'); return i?(vfNum(i.value)||0):0; }; s.q+=g('qtd'); s.l+=g('liquido'); s.g+=g('gratif'); s.p+=g('pensao'); s.fgts+=g('fgts'); s.inss+=g('inss'); s.irrf+=g('irrf'); s.econsig+=g('econsig'); });
   var R=moedaBR; if(el('flQ')){ el('flQ').textContent=s.q||''; el('flL').textContent=R(s.l); el('flG').textContent=R(s.g); el('flP').textContent=R(s.p); el('flT').textContent=R(s.l+s.g);
-    if(el('flFg')){ el('flFg').textContent=R(s.fgts); el('flIn').textContent=R(s.inss); el('flIr').textContent=R(s.irrf); el('flC').textContent=R(s.l+s.g+s.p+s.fgts+s.inss+s.irrf); } } }
+    if(el('flFg')){ el('flFg').textContent=R(s.fgts); el('flIn').textContent=R(s.inss); el('flIr').textContent=R(s.irrf); if(el('flEc')) el('flEc').textContent=R(s.econsig); el('flC').textContent=R(s.l+s.g+s.p+s.fgts+s.inss+s.irrf+s.econsig); } } }
 function flSalvar(M){
   var ups=[], erro='';
   document.querySelectorAll('#flOv .fl-lt tbody tr').forEach(function(tr){
     var g=function(k){ return vfNum(tr.querySelector('[data-k="'+k+'"]').value); }, q=tr.querySelector('[data-k="qtd"]').value.trim(), id=tr.getAttribute('data-id'), emp=tr.getAttribute('data-e');
-    var l=g('liquido'), gr=g('gratif'), p=g('pensao'), fg=g('fgts'), ns=g('inss'), ir=g('irrf'); if(!q&&l==null&&gr==null&&p==null&&fg==null&&ns==null&&ir==null&&!id) return;
+    var l=g('liquido'), gr=g('gratif'), p=g('pensao'), fg=g('fgts'), ns=g('inss'), ir=g('irrf'), ec=g('econsig'); if(!q&&l==null&&gr==null&&p==null&&fg==null&&ns==null&&ir==null&&ec==null&&!id) return;
     if(l==null&&!erro) erro='Falta o líquido de '+emp+'.'; if(q&&!/^\d+$/.test(q)&&!erro) erro='Pessoas de '+emp+' precisa ser um número inteiro.';
-    var o=flAcha(emp,M)||{}; ups.push({id:id||o.id||cxUUID(),empresa:o.empresa||emp,competencia:FL.fmtData?M+'-01':M,qtd:q?parseInt(q,10):null,liquido:l,gratif:gr,pensao:p,fgts:fg,inss:ns,irrf:ir,total:Math.round(((l||0)+(gr||0))*100)/100,atualizado_em:new Date().toISOString()});
+    var o=flAcha(emp,M)||{}; ups.push({id:id||o.id||cxUUID(),empresa:o.empresa||emp,competencia:FL.fmtData?M+'-01':M,qtd:q?parseInt(q,10):null,liquido:l,gratif:gr,pensao:p,fgts:fg,inss:ns,irrf:ir,econsig:ec,total:Math.round(((l||0)+(gr||0))*100)/100,atualizado_em:new Date().toISOString()});
   });
   if(erro){ aviso(erro,true); return; } if(!ups.length){ aviso('Nada preenchido.',true); return; }
   sb.from('dp_folha').upsert(ups).then(function(r){ if(r&&r.error) throw r.error;
@@ -17967,7 +17969,7 @@ function flSalvar(M){
     try{ aglCarregar(); }catch(e){}
   }).catch(function(err){
     var m=((err&&err.message)||'')+' '+((err&&err.code)||'');
-    if(/fgts|inss|irrf|PGRST204|schema cache|column/i.test(m)) dialogo('Falta 1 passo para guardar FGTS e impostos.\n\nNo Supabase → SQL Editor → New query, rode o arquivo 11_FOLHA_FGTS_IMPOSTOS.sql (uma vez só) e salve de novo.\n\nNada foi gravado agora.',{tipo:'aviso'});
+    if(/fgts|inss|irrf|econsig|PGRST204|schema cache|column/i.test(m)) dialogo('Falta 1 passo para guardar FGTS, impostos e eConsignado.\n\nNo Supabase → SQL Editor → New query, rode o arquivo 12_FOLHA_ECONSIGNADO.sql (uma vez só) e salve de novo.\n\nNada foi gravado agora.',{tipo:'aviso'});
     else aviso('Não consegui salvar agora. Verifique a internet.',true); });
 }
 function flImprimir(){
@@ -17980,8 +17982,8 @@ function flImprimir(){
   emps.forEach(function(em){ var t=0, c=com.map(function(M){ var r=flAcha(em,M); if(!r) return '<td>—</td>'; t+=flTot(r); return '<td>'+R(flTot(r)).replace('R$ ','')+'<small>'+(r.qtd||0)+' pess.'+(parseFloat(r.pensao)?' · pensão '+R(r.pensao).replace('R$ ',''):'')+'</small></td>'; }).join(''); if(!t) return; tA+=t; h+='<tr><td>'+e(em)+'</td>'+c+'<td><b>'+R(t)+'</b></td></tr>'; });
   var sM=function(fn){ var tt=0; return com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=fn(r); }); tt+=t; return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tt)+'</td>'; };
   h+='</tbody><tfoot><tr><td>Total</td>'+com.map(function(M){ var t=0; emps.forEach(function(em){ var r=flAcha(em,M); if(r) t+=flTot(r); }); return '<td>'+R(t).replace('R$ ','')+'</td>'; }).join('')+'<td>'+R(tA)+'</td></tr>'+
-    '<tr class="g"><td>FGTS</td>'+sM(function(r){ return parseFloat(r.fgts)||0; })+'</tr><tr class="g"><td>INSS</td>'+sM(function(r){ return parseFloat(r.inss)||0; })+'</tr><tr class="g"><td>IRRF</td>'+sM(function(r){ return parseFloat(r.irrf)||0; })+'</tr>'+
-    '<tr><td>Custo total</td>'+sM(flCusto)+'</tr></tfoot></table><p style="margin-top:6px">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF.</p>'+
+    '<tr class="g"><td>FGTS</td>'+sM(function(r){ return parseFloat(r.fgts)||0; })+'</tr><tr class="g"><td>INSS</td>'+sM(function(r){ return parseFloat(r.inss)||0; })+'</tr><tr class="g"><td>IRRF</td>'+sM(function(r){ return parseFloat(r.irrf)||0; })+'</tr><tr class="g"><td>eConsignado</td>'+sM(function(r){ return parseFloat(r.econsig)||0; })+'</tr>'+
+    '<tr><td>Custo total</td>'+sM(flCusto)+'</tr></tfoot></table><p style="margin-top:6px">Custo total = líquido + gratificação + pensão + FGTS + INSS + IRRF + eConsignado (Crédito do Trabalhador, repassado na guia do FGTS Digital).</p>'+
     '<div class="rod"><span>Central DP · Grupo ILED · documento interno</span><span>'+e(new Date().toLocaleString('pt-BR'))+'</span></div><script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
   cxImprimirHtml(h);
 }
@@ -19840,7 +19842,7 @@ function agLegalMes(y,m){
     var tem=l.some(function(r){ return ks.some(function(k){ return r[k]!=null&&r[k]!==''; }); }); if(!tem) return ' · Falta lançar o valor na Folha de pagamento.';
     var v=l.reduce(function(a,r){ return a+ks.reduce(function(b,k){ return b+(parseFloat(r[k])||0); },0); },0); return ' · Valor lançado na folha: '+moedaBR(v)+' ('+l.length+' empresa'+(l.length>1?'s':'')+').'; };
   add('darf',20,'INSS/IRRF','INSS e IRRF da folha de '+ant+' · DARF da DCTFWeb','Guia gerada pela contabilidade. Vence dia 20; se não for dia útil, paga no dia útil anterior.'+fv(['inss','irrf']));
-  add('fgts',20,'FGTS','FGTS Digital da folha de '+ant,'Guia do FGTS Digital (Pix). Vence dia 20; se não for dia útil, paga no dia útil anterior.'+fv(['fgts']));
+  add('fgts',20,'FGTS + eConsig.','FGTS Digital da folha de '+ant+' (FGTS + eConsignado)','Guia do FGTS Digital (Pix), já com as parcelas do Crédito do Trabalhador (eConsignado) descontadas na folha. Vence dia 20; se não for dia útil, paga no dia útil anterior. Parcela de consignado paga em atraso tem multa e juros.'+fv(['fgts','econsig']));
   if(m===11) add('13a',30,'13º · 1ª','13º salário · 1ª parcela (adiantamento)','Prazo legal: 30/11. Quem já recebeu o adiantamento junto com as férias não entra.');
   if(m===12) add('13b',20,'13º · 2ª','13º salário · 2ª parcela + INSS/IRRF do 13º','Prazo legal: 20/12, já com os descontos de INSS e IRRF.');
   if(m===2){ var u=new Date(y,2,0).getDate(); add('informe',u,'Informe IR','Informe de rendimentos aos empregados','Entregar a cada CLT o comprovante de rendimentos do ano anterior até o último dia útil de fevereiro.'); }
@@ -20001,6 +20003,8 @@ function redeInstalar(win,mod){
 })();
 
 /* ---------- novidades ---------- */
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v121'; })) NOVIDADES.unshift({v:'v121',data:'17/11/2026',itens:[
+  ['🏦','eConsignado na Folha de pagamento','Em Lançar mês, cada empresa ganhou a coluna eConsignado (Crédito do Trabalhador), ao lado de FGTS, INSS e IRRF. Entra no Custo total, no detalhe do mês, na impressão, no Relatório da Diretoria e no prazo do FGTS Digital (dia 20) na Agenda legal. Empresa sem consignado fica em branco, sem aviso de falta.']]}); }catch(e){}
 try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v120'&&n.gestora; })) NOVIDADES.unshift({v:'v120',gestora:true,data:'17/11/2026',itens:[
   ['📊','Custo total da folha no Relatório da Diretoria','No resumo mensal (WhatsApp e PDF) e no PDF de 1 página: salários + pensão + FGTS + INSS + IRRF por empresa, com a variação contra o mês anterior. Empresa sem as guias lançadas aparece marcada.']]}); }catch(e){}
 try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v119'; })) NOVIDADES.unshift({v:'v119',data:'17/11/2026',itens:[
