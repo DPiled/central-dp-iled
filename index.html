@@ -20341,5 +20341,459 @@ try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v=
 ]}); }catch(e){}
 
 </script>
+<script>
+/* ================= v124 · 🦺 EPI E UNIFORME — PEDIDOS DA EQUIPE =================
+   Aba nova dentro de Demandas, ao lado de Todas · Minhas · Anotações · Pauta · Reuniões.
+   Fluxo (sem aprovação):
+     🟡 Pedido      → Andreia ou Karina (ou a gestora) registram: quem, itens, tamanho, motivo, data do pedido
+     🔵 Solicitado  → só a gestora marca, com a data em que solicitou
+     🟢 Entregue    → só a gestora marca, com a data da entrega
+   A Central guarda só o PEDIDO. O registro oficial da entrega (ficha de EPI assinada) continua no sistema da empresa.
+   Um pedido pode ter vários itens (ex.: bota 40 + capacete + cinto para a mesma pessoa).
+   Pessoas: só CLT e PJ ativos do cadastro (dp_colaboradores). Freelancer não entra.
+   Produtos: cadastro próprio (📦 Produtos), só a gestora mexe.
+   Tabelas: dp_epi_pedidos e dp_epi_produtos — arquivo 13_EPI_UNIFORME.sql (rodar uma vez no Supabase). */
+
+var EPI={ped:null,prod:null,colabs:null,erro:'',semTabela:false,carregando:null,vis:'quadro',busca:'',emp:'',form:null,aberto:null,prodEd:null};
+var EPI_ST=[['pedido','Pedido','#ffb020','Aguardando a gestora solicitar'],['solicitado','Solicitado','#4d8dff','Pedido feito ao fornecedor/compras'],['entregue','Entregue','#2ecc71','Já está com a pessoa']];
+var EPI_MOTIVOS=['Primeira entrega (admissão)','Troca por desgaste','Perda','Dano / quebra','Mudança de tamanho','Outro'];
+var EPI_PADRAO=[
+  {nome:'Capacete',categoria:'EPI',tamanhos:['Único']},
+  {nome:'Talabarte',categoria:'EPI',tamanhos:['Único']},
+  {nome:'Cinto',categoria:'EPI',tamanhos:['P','M','G','GG']},
+  {nome:'Bota',categoria:'EPI',tamanhos:['34','35','36','37','38','39','40','41','42','43','44','45','46']},
+  {nome:'Camiseta (uniforme)',categoria:'Uniforme',tamanhos:['PP','P','M','G','GG','XG']},
+  {nome:'Calça (uniforme)',categoria:'Uniforme',tamanhos:['36','38','40','42','44','46','48','50','52']}
+];
+try{ if(typeof BK_TABELAS!=='undefined'){ ['dp_epi_pedidos','dp_epi_produtos'].forEach(function(t){ if(BK_TABELAS.indexOf(t)<0) BK_TABELAS.push(t); }); BK_NOMES.dp_epi_pedidos='EPI · pedidos'; BK_NOMES.dp_epi_produtos='EPI · produtos'; } }catch(e){}
+
+function epiMaster(){ return !!(EU&&EU.master); }
+function epiEu(){ return ((EU&&EU.email)||'').toLowerCase(); }
+function epiPrimeiro(n){ return (typeof dmPrimeiro==='function'?dmPrimeiro(n):(''+(n||'')).split(' ')[0])||''; }
+function epiStInfo(s){ for(var i=0;i<EPI_ST.length;i++) if(EPI_ST[i][0]===s) return EPI_ST[i]; return EPI_ST[0]; }
+function epiFalta(e){ return /dp_epi|does not exist|42P01|PGRST205|schema cache/i.test(((e&&e.message)||'')+((e&&e.code)||'')); }
+function epiData(iso){ return iso?fmtData(iso):''; }
+function epiTam(lista){ if(Array.isArray(lista)) return lista; return (''+(lista||'')).split(/[,;]/).map(function(x){ return x.trim(); }).filter(Boolean); }
+function epiProd(id){ return (EPI.prod||[]).find(function(p){ return String(p.id)===String(id); }); }
+function epiColab(id){ return (EPI.colabs||[]).find(function(c){ return String(c.id)===String(id); }); }
+function epiAtivo(c){ var d=(''+(c.data_desligamento||'')).slice(0,10); return !dataOk(d)||d>hoje(); }
+function epiTipo(c){ var t=(''+(c.tipo_contrato||'')).toUpperCase().trim(); return t==='CLT'||t==='PJ'?t:''; }
+function epiItensTxt(p){ return (p.itens||[]).map(function(i){ return (i.qtd>1?i.qtd+'× ':'')+i.nome+(i.tamanho?' '+i.tamanho:''); }).join(' · '); }
+function epiPodeEditar(p){ return epiMaster()||(p.status==='pedido'&&(p.pedido_por_email||'').toLowerCase()===epiEu()); }
+function epiAbertos(){ return (EPI.ped||[]).filter(function(p){ return p.status!=='entregue'; }); }
+
+/* ---------- carregar ---------- */
+function epiCarregar(forcar){
+  if(EPI.carregando&&!forcar) return EPI.carregando;
+  EPI.carregando=Promise.all([
+    sb.from('dp_epi_pedidos').select('*').order('criado_em',{ascending:false}),
+    sb.from('dp_epi_produtos').select('*').order('nome'),
+    sb.from('dp_colaboradores').select('id,nome,empresa,tipo_contrato,funcao,data_desligamento')
+  ]).then(function(rs){
+    var e=rs[0].error||rs[1].error;
+    if(e){ EPI.semTabela=epiFalta(e); EPI.erro=(e.message||e.code||'erro')+''; EPI.ped=EPI.ped||[]; EPI.prod=EPI.prod||[]; }
+    else { EPI.erro=''; EPI.semTabela=false; EPI.ped=rs[0].data||[]; EPI.prod=rs[1].data||[]; }
+    if(rs[2]&&!rs[2].error) EPI.colabs=(rs[2].data||[]).filter(function(c){ return epiAtivo(c)&&epiTipo(c); })
+      .sort(function(a,b){ return (a.nome||'').localeCompare(b.nome||'','pt-BR'); });
+    else EPI.colabs=EPI.colabs||[];
+  }).catch(function(e){ EPI.erro='sem conexão'; EPI.ped=EPI.ped||[]; EPI.prod=EPI.prod||[]; EPI.colabs=EPI.colabs||[]; })
+  .then(function(){ EPI.carregando=null; if(typeof ATUAL!=='undefined'&&ATUAL==='demandas') dmDesenhar(); });
+  return EPI.carregando;
+}
+
+/* ---------- aba dentro de Demandas ---------- */
+(function(){
+  var _dd=dmDesenhar;
+  dmDesenhar=function(){
+    try{ dmLembrar(); }catch(e){}
+    var naEpi=DM.aba==='epi', fm=DM.form, r;
+    if(naEpi){ DM.aba='reunioes'; DM.form=null; }
+    try{ r=_dd.apply(this,arguments); } finally{ if(naEpi){ DM.aba='epi'; DM.form=fm; } }
+    try{ epiPendurar(naEpi); }catch(e){ console.error('EPI',e); }
+    return r;
+  };
+  var _ca=carregarDemandas;
+  carregarDemandas=function(){ var r=_ca.apply(this,arguments); try{ if(DM.aba==='epi'||!EPI.ped) epiCarregar(true); }catch(e){} return r; };
+})();
+
+function epiPendurar(naEpi){
+  var app=el('dmApp'); if(!app) return;
+  var nav=app.querySelector('.dm-tabs'); if(!nav) return;
+  if(!EPI.ped&&!EPI.carregando) epiCarregar();
+  var ab=epiAbertos(), aguard=ab.filter(function(p){ return p.status==='pedido'; }).length;
+  var b=document.createElement('button'); b.type='button'; b.setAttribute('role','tab'); b.className='dm-tab epi-tab'+(naEpi?' on':'');
+  b.setAttribute('aria-selected',naEpi?'true':'false');
+  b.innerHTML='🦺 EPI e Uniforme<b>'+ab.length+'</b>';
+  b.onclick=function(){ dmAba('epi'); };
+  nav.appendChild(b);
+  if(!naEpi) return;
+  try{ if(nav.scrollWidth>nav.clientWidth) nav.scrollLeft=b.offsetLeft-20; }catch(e){}
+  [].forEach.call(nav.querySelectorAll('.dm-tab'),function(x){ if(x!==b){ x.classList.remove('on'); x.setAttribute('aria-selected','false'); } });
+  while(nav.nextSibling) nav.parentNode.removeChild(nav.nextSibling);
+  /* topo: título, resumo e botões próprios */
+  var h1=app.querySelector('.dm-topo h1'); if(h1) h1.textContent='EPI e Uniforme';
+  var topo=app.querySelector('.dm-topo > div'); if(topo){ var p=topo.querySelector('p'); if(!p){ p=document.createElement('p'); topo.appendChild(p); } p.innerHTML=epiResumoTopo(); }
+  var ac=app.querySelector('.dm-topo-ac');
+  if(ac){
+    [].forEach.call(ac.querySelectorAll('.dma-bt,button.nm-b.pri'),function(x){ x.style.display='none'; });
+    if(epiMaster()&&!EPI.semTabela){ var bp=document.createElement('button'); bp.type='button'; bp.className='nm-b'; bp.textContent='📦 Produtos'; bp.onclick=epiProdutos; ac.appendChild(bp); }
+    if(!EPI.semTabela){ var bn=document.createElement('button'); bn.type='button'; bn.className='nm-b pri'; bn.textContent='+ Novo pedido'; bn.onclick=function(){ epiNovo(); }; ac.appendChild(bn); }
+  }
+  var d=document.createElement('div'); d.id='epiApp'; d.innerHTML=epiHTML(); app.appendChild(d);
+  if(EPI._focoBusca){ EPI._focoBusca=false; var s=el('epiBusca'); if(s){ s.focus(); s.setSelectionRange(s.value.length,s.value.length); } }
+}
+function epiResumoTopo(){
+  if(!EPI.ped) return 'Carregando…';
+  var l=EPI.ped, mes=hoje().slice(0,7);
+  var a=l.filter(function(p){ return p.status==='pedido'; }).length, s=l.filter(function(p){ return p.status==='solicitado'; }).length;
+  var e=l.filter(function(p){ return p.status==='entregue'&&(''+(p.data_entregue||'')).slice(0,7)===mes; }).length;
+  return '<b>'+a+'</b> aguardando solicitar · <b>'+s+'</b> solicitado'+(s===1?'':'s')+' aguardando entrega · '+e+' entregue'+(e===1?'':'s')+' no mês';
+}
+
+/* ---------- tela ---------- */
+function epiHTML(){
+  if(EPI.semTabela) return '<div class="dm-err"><b>Falta criar as tabelas de EPI e Uniforme no banco.</b> No Supabase → SQL Editor → New query, cole o arquivo <b>13_EPI_UNIFORME.sql</b>, clique em Run e depois toque em ↻ Atualizar.<small>'+esc((EPI.erro||'').slice(0,160))+'</small></div>';
+  if(!EPI.ped) return '<p class="vazio">Carregando pedidos…</p>';
+  var h='';
+  if(EPI.erro) h+='<div class="dm-err"><b>Não consegui atualizar os pedidos agora.</b> Toque em ↻ Atualizar.<small>'+esc(EPI.erro.slice(0,160))+'</small></div>';
+  if(!(EPI.prod||[]).length) h+='<div class="epi-dica">📦 <span>'+(epiMaster()?'Antes do primeiro pedido, cadastre os produtos em <b>📦 Produtos</b> (dá para puxar a lista padrão: capacete, talabarte, cinto, bota e uniforme).':'A gestora ainda não cadastrou os produtos. Assim que ela cadastrar, você já consegue fazer os pedidos.')+'</span></div>';
+  else h+='<p class="dm-sub">'+(epiMaster()?'As meninas registram o pedido. Você marca <b style="color:#fff">Solicitado</b> quando pedir e <b style="color:#fff">Entregue</b> quando a pessoa receber. Arraste o cartão entre as colunas ou use os botões.':'Registre aqui o pedido de EPI ou uniforme. A gestora solicita e dá a entrega; você acompanha por aqui.')+' A ficha de entrega assinada continua no sistema da empresa.</p>';
+  var emps=[]; (EPI.ped||[]).forEach(function(p){ if(p.empresa&&emps.indexOf(p.empresa)<0) emps.push(p.empresa); }); emps.sort();
+  h+='<div class="dm95-top"><input id="epiBusca" class="dm95-busca" type="search" placeholder="🔍 Buscar pessoa, item ou motivo" value="'+esc(EPI.busca)+'" oninput="EPI.busca=this.value;epiCorpo()">'+
+    '<select class="epi-sel" aria-label="Empresa" onchange="EPI.emp=this.value;epiCorpo()"><option value="">Todas as empresas</option>'+emps.map(function(e){ return '<option'+(EPI.emp===e?' selected':'')+'>'+esc(e)+'</option>'; }).join('')+'</select>'+
+    '<div class="dm95-vis" role="group" aria-label="Visualização"><button type="button" class="'+(EPI.vis==='quadro'?'on':'')+'" onclick="EPI.vis=\'quadro\';dmDesenhar()">▦ Quadro</button><button type="button" class="'+(EPI.vis==='lista'?'on':'')+'" onclick="EPI.vis=\'lista\';dmDesenhar()">☰ Lista</button></div>'+
+    '<button type="button" class="nm-b" title="Baixar planilha (abre no Excel)" onclick="epiCsv()">⬇ Planilha</button></div>';
+  h+='<div id="epiCorpo">'+epiCorpoHTML()+'</div>';
+  return h;
+}
+function epiCorpo(){ var c=el('epiCorpo'); if(c) c.innerHTML=epiCorpoHTML(); }
+function epiFiltrados(){
+  var q=(EPI.busca||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  return (EPI.ped||[]).filter(function(p){
+    if(EPI.emp&&p.empresa!==EPI.emp) return false;
+    if(!q) return true;
+    var t=[p.colaborador_nome,p.empresa,p.tipo_contrato,p.funcao,p.motivo,p.observacao,epiItensTxt(p),p.pedido_por_nome].join(' ').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    return t.indexOf(q)>=0;
+  });
+}
+function epiCorpoHTML(){ var l=epiFiltrados(); return EPI.vis==='lista'?epiLista(l):epiQuadro(l); }
+function epiQuadro(l){
+  var lim=somaDias(hoje(),-30), M=epiMaster();
+  var h='<div class="dm95-q epi-q">';
+  EPI_ST.forEach(function(c){
+    var it=l.filter(function(p){ return (p.status||'pedido')===c[0]; });
+    if(c[0]==='entregue') it=it.filter(function(p){ return (''+(p.data_entregue||'')).slice(0,10)>=lim; }).sort(function(a,b){ return (''+(b.data_entregue||'')).localeCompare(''+(a.data_entregue||'')); });
+    else it.sort(function(a,b){ return (''+(a.data_pedido||'')).localeCompare(''+(b.data_pedido||''))||(''+(a.criado_em||'')).localeCompare(''+(b.criado_em||'')); });
+    h+='<section class="dm95-col" style="--k:'+c[2]+'"'+(M?' ondragover="event.preventDefault();this.classList.add(\'sobre\')" ondragleave="this.classList.remove(\'sobre\')" ondrop="event.preventDefault();this.classList.remove(\'sobre\');epiMover(event.dataTransfer.getData(\'text/plain\'),\''+c[0]+'\')"':'')+'>'+
+      '<header><i></i><b>'+c[1]+'</b><span>'+it.length+'</span>'+(c[0]==='entregue'?'<small>30 dias</small>':'')+'</header><p class="epi-colsub">'+c[3]+'</p>';
+    h+='<div class="dm95-cs">'+(it.length?it.map(epiCartao).join(''):'<p class="dm95-vz">'+(c[0]==='entregue'?'Nada entregue nos últimos 30 dias.':'Nada aqui.')+'</p>')+'</div>';
+    if(c[0]==='entregue') h+='<button type="button" class="dm95-vt" onclick="EPI.vis=\'lista\';dmDesenhar()">Ver todos na lista →</button>';
+    h+='</section>';
+  });
+  return h+'</div>';
+}
+function epiCartao(p){
+  var st=p.status||'pedido', M=epiMaster(), id=esc(p.id);
+  var dias=st==='pedido'&&dataOk(p.data_pedido)?Math.round((new Date(hoje()+'T12:00:00')-new Date((''+p.data_pedido).slice(0,10)+'T12:00:00'))/864e5):0;
+  var datas='<span class="epi-dt">📝 '+epiData(p.data_pedido)+(p.pedido_por_nome?' · '+esc(epiPrimeiro(p.pedido_por_nome)):'')+'</span>'+
+    (p.data_solicitado?'<span class="epi-dt s">🛒 '+epiData(p.data_solicitado)+'</span>':'')+
+    (p.data_entregue?'<span class="epi-dt e">✅ '+epiData(p.data_entregue)+'</span>':'');
+  var bt='';
+  if(M&&st==='pedido') bt='<button type="button" class="epi-ac s" onclick="event.stopPropagation();epiMover(\''+id+'\',\'solicitado\')">🛒 Solicitei hoje</button>';
+  if(M&&st==='solicitado') bt='<button type="button" class="epi-ac e" onclick="event.stopPropagation();epiMover(\''+id+'\',\'entregue\')">📦 Entregue hoje</button>';
+  return '<div class="dm95-c epi-c" style="--s:'+epiStInfo(st)[2]+'" tabindex="0"'+(M?' draggable="true" ondragstart="event.dataTransfer.setData(\'text/plain\',\''+id+'\')"':'')+' onclick="epiAbrir(\''+id+'\')" onkeydown="if(event.key===\'Enter\')epiAbrir(\''+id+'\')">'+
+    '<div class="dm95-t">'+esc(p.colaborador_nome||'—')+'</div>'+
+    '<div class="epi-quem">'+esc(p.empresa||'')+(p.tipo_contrato?' · '+esc(p.tipo_contrato):'')+(p.funcao?' · '+esc(p.funcao):'')+'</div>'+
+    '<div class="epi-itens">'+(p.itens||[]).map(function(i){ return '<span>'+(i.qtd>1?'<em>'+i.qtd+'×</em> ':'')+esc(i.nome)+(i.tamanho?' <b>'+esc(i.tamanho)+'</b>':'')+'</span>'; }).join('')+'</div>'+
+    (p.motivo?'<div class="epi-mot'+(/Perda|Dano/.test(p.motivo)?' al':'')+'">'+esc(p.motivo)+'</div>':'')+
+    '<div class="epi-dts">'+datas+(dias>=5?'<span class="epi-dt at" title="Dias esperando solicitar">⏳ '+dias+' dias</span>':'')+'</div>'+bt+'</div>';
+}
+function epiLista(l){
+  if(!l.length) return '<div class="dm-vazio">'+((EPI.ped||[]).length?'Nada neste filtro.':'Nenhum pedido ainda. Toque em <b>+ Novo pedido</b>.')+'</div>';
+  var ord={pedido:0,solicitado:1,entregue:2};
+  l=l.slice().sort(function(a,b){ var x=ord[a.status]||0, y=ord[b.status]||0; if(x!==y) return x-y; return (''+(b.data_pedido||'')).localeCompare(''+(a.data_pedido||'')); });
+  return '<div class="dm95-tw"><table class="dm95-tb"><thead><tr><th>Situação</th><th>Colaborador</th><th>Itens e tamanhos</th><th>Motivo</th><th>Pedido</th><th>Solicitado</th><th>Entregue</th></tr></thead><tbody>'+
+    l.map(function(p){ var si=epiStInfo(p.status);
+      return '<tr tabindex="0" onclick="epiAbrir(\''+esc(p.id)+'\')" onkeydown="if(event.key===\'Enter\')epiAbrir(\''+esc(p.id)+'\')">'+
+        '<td><span class="epi-st" style="--k:'+si[2]+'">'+si[1]+'</span></td>'+
+        '<td><b>'+esc(p.colaborador_nome)+'</b><small class="epi-sm">'+esc(p.empresa||'')+(p.tipo_contrato?' · '+esc(p.tipo_contrato):'')+'</small></td>'+
+        '<td>'+esc(epiItensTxt(p))+'</td><td>'+esc(p.motivo||'—')+'</td>'+
+        '<td>'+epiData(p.data_pedido)+'<small class="epi-sm">'+esc(epiPrimeiro(p.pedido_por_nome))+'</small></td>'+
+        '<td>'+(epiData(p.data_solicitado)||'<span class="dm95-mut">—</span>')+'</td><td>'+(epiData(p.data_entregue)||'<span class="dm95-mut">—</span>')+'</td></tr>'; }).join('')+
+    '</tbody></table></div>';
+}
+
+/* ---------- mudar de etapa ---------- */
+function epiMover(id,st,data){
+  if(!epiMaster()){ aviso('Só a gestora marca Solicitado e Entregue.',true); return; }
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p||p.status===st) return;
+  var eu=epiPrimeiro(EU&&EU.nome)||epiEu(), d=data||hoje();
+  var patch={status:st,atualizado_em:new Date().toISOString(),atualizado_por:epiEu()};
+  if(st==='pedido'){ patch.data_solicitado=null; patch.solicitado_por=null; patch.data_entregue=null; patch.entregue_por=null; }
+  if(st==='solicitado'){ patch.data_solicitado=p.data_solicitado||d; patch.solicitado_por=p.solicitado_por||eu; patch.data_entregue=null; patch.entregue_por=null; }
+  if(st==='entregue'){ patch.data_entregue=d; patch.entregue_por=eu; if(!p.data_solicitado){ patch.data_solicitado=d; patch.solicitado_por=eu; } }
+  sb.from('dp_epi_pedidos').update(patch).eq('id',p.id).select().then(function(r){
+    if(r.error||!r.data||!r.data.length){ aviso('Não consegui mudar a etapa: '+((r.error&&r.error.message)||'sem permissão'),true); return; }
+    Object.assign(p,r.data[0]); dmDesenhar(); if(EPI.aberto===p.id) epiAbrir(p.id);
+    aviso(st==='entregue'?'✓ Entregue. Lembre de registrar a entrega (ficha assinada) no sistema da empresa.':(st==='solicitado'?'✓ Marcado como solicitado em '+fmtData(patch.data_solicitado):'↩ Voltou para Pedido'));
+  },function(){ aviso('Sem conexão. Tente de novo.',true); });
+}
+function epiMudarData(id,campo,v){
+  if(!epiMaster()) return;
+  if(campo==='data_pedido'&&!dataOk(v)){ aviso('A data do pedido não pode ficar vazia.',true); return; }
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  var patch={atualizado_em:new Date().toISOString(),atualizado_por:epiEu()}; patch[campo]=v||null;
+  sb.from('dp_epi_pedidos').update(patch).eq('id',p.id).select().then(function(r){
+    if(r.error||!r.data||!r.data.length){ aviso('Não salvou a data: '+((r.error&&r.error.message)||'sem permissão'),true); return; }
+    Object.assign(p,r.data[0]); dmDesenhar(); aviso('✓ Data salva');
+  });
+}
+
+/* ---------- janela do pedido ---------- */
+function epiAbrir(id){
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  EPI.aberto=p.id; var M=epiMaster(), st=p.status||'pedido', si=epiStInfo(st), pid=esc(p.id);
+  function passo(k,ic,tit,data,por,campo){
+    var feito=!!data;
+    return '<li class="'+(feito?'ok':'')+'"><span class="epi-pi">'+ic+'</span><div><b>'+tit+'</b>'+
+      (M&&(feito||k==='pedido')?'<input type="date" value="'+esc((''+(data||'')).slice(0,10))+'" onchange="epiMudarData(\''+pid+'\',\''+campo+'\',this.value)" aria-label="Data: '+tit+'">':'<span>'+(feito?epiData(data):'ainda não')+'</span>')+
+      (por?'<small>por '+esc(por)+'</small>':'')+'</div></li>';
+  }
+  var h='<div class="imp-box epi-box" role="dialog" aria-label="Pedido de EPI e uniforme">'+
+    '<div class="epi-bx"><div><span class="epi-st" style="--k:'+si[2]+'">'+si[1]+'</span><h2>'+esc(p.colaborador_nome)+'</h2><p>'+esc(p.empresa||'')+(p.tipo_contrato?' · '+esc(p.tipo_contrato):'')+(p.funcao?' · '+esc(p.funcao):'')+'</p></div>'+
+    '<button type="button" class="nm-b" onclick="epiFechar(\'epiOv\')">✕ Fechar</button></div>'+
+    '<table class="epi-tb"><thead><tr><th>Item</th><th>Tipo</th><th>Tamanho</th><th class="n">Qtd</th></tr></thead><tbody>'+
+      (p.itens||[]).map(function(i){ return '<tr><td><b>'+esc(i.nome)+'</b></td><td>'+esc(i.categoria||'')+'</td><td>'+esc(i.tamanho||'—')+'</td><td class="n">'+(i.qtd||1)+'</td></tr>'; }).join('')+'</tbody></table>'+
+    '<div class="epi-mt"><div><span>Motivo</span><b>'+esc(p.motivo||'—')+'</b></div>'+(p.observacao?'<div><span>Observação</span><p>'+esc(p.observacao).replace(/\n/g,'<br>')+'</p></div>':'')+'</div>'+
+    '<ol class="epi-tl">'+passo('pedido','📝','Pedido',p.data_pedido,epiPrimeiro(p.pedido_por_nome),'data_pedido')+passo('solicitado','🛒','Solicitado',p.data_solicitado,p.solicitado_por,'data_solicitado')+passo('entregue','✅','Entregue',p.data_entregue,p.entregue_por,'data_entregue')+'</ol>'+
+    (st==='entregue'?'<p class="epi-nota">📌 A ficha de entrega de EPI assinada fica no sistema da empresa (NR-06). Aqui fica só o histórico do pedido.</p>':'')+
+    '<div class="epi-rod">'+
+      (epiPodeEditar(p)?'<button type="button" class="nm-b" onclick="epiExcluir(\''+pid+'\')">🗑 Excluir</button><button type="button" class="nm-b" onclick="epiEditar(\''+pid+'\')">✏️ Editar</button>':'')+
+      (M&&st!=='pedido'?'<button type="button" class="nm-b" onclick="epiMover(\''+pid+'\',\''+(st==='entregue'?'solicitado':'pedido')+'\')">↩ Voltar etapa</button>':'')+
+      (M&&st==='pedido'?'<button type="button" class="nm-b pri" onclick="epiMover(\''+pid+'\',\'solicitado\')">🛒 Marcar solicitado hoje</button>':'')+
+      (M&&st==='solicitado'?'<button type="button" class="nm-b pri epi-okb" onclick="epiMover(\''+pid+'\',\'entregue\')">📦 Marcar entregue hoje</button>':'')+
+    '</div></div>';
+  var ov=modal2('epiOv',h); ov.onclick=function(e){ if(e.target===ov) epiFechar('epiOv'); };
+}
+function epiFechar(id){ var o=el(id); if(o) o.classList.remove('on'); if(id==='epiOv') EPI.aberto=null; if(id==='epiFOv') EPI.form=null; if(id==='epiPOv') EPI.prodEd=null; }
+function epiExcluir(id){
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  dialogo('Excluir o pedido de '+p.colaborador_nome+'?\n'+epiItensTxt(p),{sim:function(){
+    sb.from('dp_epi_pedidos').delete().eq('id',p.id).select().then(function(r){
+      if(r.error||!r.data||!r.data.length){ aviso('Não excluiu: '+((r.error&&r.error.message)||'sem permissão'),true); return; }
+      EPI.ped=EPI.ped.filter(function(x){ return x.id!==p.id; }); epiFechar('epiOv'); dmDesenhar(); aviso('✓ Pedido excluído');
+    });
+  }});
+}
+
+/* ---------- novo / editar pedido ---------- */
+function epiUltimoTam(colabId,prodId){
+  var l=(EPI.ped||[]).filter(function(p){ return String(p.colaborador_id)===String(colabId); }).sort(function(a,b){ return (''+(b.data_pedido||'')).localeCompare(''+(a.data_pedido||'')); });
+  for(var i=0;i<l.length;i++){ var it=(l[i].itens||[]).find(function(x){ return String(x.produto_id)===String(prodId)&&x.tamanho; }); if(it) return it.tamanho; }
+  return '';
+}
+function epiNovo(){
+  if(!(EPI.prod||[]).some(function(p){ return p.ativo!==false; })){ if(epiMaster()) epiProdutos(); else aviso('A gestora ainda não cadastrou os produtos.',true); return; }
+  EPI.form={id:null,colab:'',filtro:'',data_pedido:hoje(),motivo:'',obs:'',itens:[{produto_id:'',tamanho:'',qtd:1}]};
+  epiFormPintar();
+}
+function epiEditar(id){
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p) return;
+  if(!epiPodeEditar(p)){ aviso('Depois de solicitado, só a gestora altera o pedido.',true); return; }
+  epiFechar('epiOv');
+  EPI.form={id:p.id,colab:String(p.colaborador_id||''),colabNome:p.colaborador_nome,filtro:'',data_pedido:(''+(p.data_pedido||hoje())).slice(0,10),motivo:p.motivo||'',obs:p.observacao||'',
+    itens:(p.itens||[]).map(function(i){ return {produto_id:String(i.produto_id||''),nome:i.nome,tamanho:i.tamanho||'',qtd:i.qtd||1}; })};
+  if(!EPI.form.itens.length) EPI.form.itens.push({produto_id:'',tamanho:'',qtd:1});
+  epiFormPintar();
+}
+function epiFormLer(){
+  var f=EPI.form; if(!f) return;
+  var g=function(i){ var x=el(i); return x?x.value:null; };
+  if(g('epiFCol')!=null) f.colab=g('epiFCol');
+  if(g('epiFData')!=null) f.data_pedido=g('epiFData');
+  if(g('epiFMot')!=null) f.motivo=g('epiFMot');
+  if(g('epiFObs')!=null) f.obs=g('epiFObs');
+  f.itens.forEach(function(it,i){ var p=g('epiFP'+i), t=g('epiFT'+i), q=g('epiFQ'+i); if(p!=null) it.produto_id=p; if(t!=null) it.tamanho=t; if(q!=null) it.qtd=Math.max(1,parseInt(q,10)||1); });
+}
+function epiColabOpcoes(){
+  var f=EPI.form, q=(f.filtro||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  var l=(EPI.colabs||[]).filter(function(c){ return !q||String(c.id)===f.colab||(c.nome||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').indexOf(q)>=0; });
+  var grupos={}; l.forEach(function(c){ var e=c.empresa||'Sem empresa'; (grupos[e]=grupos[e]||[]).push(c); });
+  var h='<option value="">'+(l.length?'Escolha a pessoa…':'Ninguém com esse nome')+'</option>';
+  if(f.colab&&!epiColab(f.colab)) h+='<option value="'+esc(f.colab)+'" selected>'+esc(f.colabNome||'(fora do cadastro ativo)')+'</option>';
+  Object.keys(grupos).sort().forEach(function(e){ h+='<optgroup label="'+esc(e)+'">'+grupos[e].map(function(c){ return '<option value="'+esc(c.id)+'"'+(String(c.id)===f.colab?' selected':'')+'>'+esc(c.nome)+' · '+epiTipo(c)+'</option>'; }).join('')+'</optgroup>'; });
+  return h;
+}
+function epiFiltrarColab(v){
+  epiFormLer(); EPI.form.filtro=v; var s=el('epiFCol'); if(!s) return; s.innerHTML=epiColabOpcoes();
+  var vis=[].filter.call(s.options,function(o){ return o.value; });
+  if(vis.length===1&&!EPI.form.colab){ s.value=vis[0].value; epiFormMudou(); }
+}
+function epiFormMudou(){
+  epiFormLer(); var f=EPI.form;
+  if(f.colab) f.itens.forEach(function(it){ if(it.produto_id&&!it.tamanho) it.tamanho=epiUltimoTam(f.colab,it.produto_id); });
+  epiFormPintar();
+}
+function epiTrocarProd(i){
+  epiFormLer(); var f=EPI.form, it=f.itens[i]; if(!it) return;
+  var pr=epiProd(it.produto_id), tams=pr?epiTam(pr.tamanhos):[];
+  it.tamanho=f.colab&&it.produto_id?epiUltimoTam(f.colab,it.produto_id):'';
+  if(!it.tamanho&&tams.length===1) it.tamanho=tams[0];
+  epiFormPintar();
+}
+function epiFormPintar(){
+  var f=EPI.form; if(!f) return;
+  var c=epiColab(f.colab);
+  var prods=(EPI.prod||[]).filter(function(p){ return p.ativo!==false||f.itens.some(function(i){ return String(i.produto_id)===String(p.id); }); });
+  var cats={}; prods.forEach(function(p){ (cats[p.categoria||'EPI']=cats[p.categoria||'EPI']||[]).push(p); });
+  var linhas=f.itens.map(function(it,i){
+    var pr=epiProd(it.produto_id), tams=pr?epiTam(pr.tamanhos):[], ult=f.colab&&it.produto_id?epiUltimoTam(f.colab,it.produto_id):'';
+    var optP='<option value="">Item…</option>'+Object.keys(cats).sort().map(function(k){ return '<optgroup label="'+esc(k)+'">'+cats[k].map(function(p){ return '<option value="'+esc(p.id)+'"'+(String(p.id)===String(it.produto_id)?' selected':'')+'>'+esc(p.nome)+'</option>'; }).join('')+'</optgroup>'; }).join('');
+    if(it.produto_id&&!pr) optP+='<option value="'+esc(it.produto_id)+'" selected>'+esc(it.nome||'(produto removido)')+'</option>';
+    var optT=tams.length?'<option value="">Tamanho…</option>'+tams.map(function(t){ return '<option'+(t===it.tamanho?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+(it.tamanho&&tams.indexOf(it.tamanho)<0?'<option selected>'+esc(it.tamanho)+'</option>':''):'';
+    return '<div class="epi-li"><select id="epiFP'+i+'" aria-label="Item '+(i+1)+'" onchange="epiTrocarProd('+i+')">'+optP+'</select>'+
+      (tams.length?'<select id="epiFT'+i+'" aria-label="Tamanho do item '+(i+1)+'">'+optT+'</select>':'<input id="epiFT'+i+'" placeholder="Tamanho" value="'+esc(it.tamanho)+'" aria-label="Tamanho do item '+(i+1)+'">')+
+      '<input id="epiFQ'+i+'" type="number" min="1" value="'+(it.qtd||1)+'" aria-label="Quantidade do item '+(i+1)+'">'+
+      '<button type="button" class="nm-b" title="Tirar item" aria-label="Tirar item" '+(f.itens.length>1?'':'disabled ')+'onclick="epiFormLer();EPI.form.itens.splice('+i+',1);epiFormPintar()">×</button>'+
+      (ult?'<small>Último tamanho pedido: <b>'+esc(ult)+'</b></small>':'')+'</div>';
+  }).join('');
+  var h='<div class="imp-box epi-box" role="dialog" aria-label="'+(f.id?'Editar pedido':'Novo pedido')+'">'+
+    '<div class="epi-bx"><div><h2>'+(f.id?'✏️ Editar pedido':'🦺 Novo pedido de EPI / uniforme')+'</h2><p>Só aparecem CLT e PJ ativos do cadastro.</p></div><button type="button" class="nm-b" onclick="epiFechar(\'epiFOv\')">✕</button></div>'+
+    '<div class="epi-fg"><label class="lg"><span>Quem vai receber</span><div class="epi-cb"><input id="epiFBus" type="search" placeholder="🔍 Digite o nome" value="'+esc(f.filtro)+'" oninput="epiFiltrarColab(this.value)"><select id="epiFCol" onchange="epiFormMudou()">'+epiColabOpcoes()+'</select></div>'+
+      (c?'<small class="epi-ci">🏢 '+esc(c.empresa||'—')+' · '+epiTipo(c)+(c.funcao?' · '+esc(c.funcao):'')+'</small>':'')+'</label>'+
+    '<label><span>Data do pedido</span><input id="epiFData" type="date" value="'+esc(f.data_pedido)+'"></label>'+
+    '<label><span>Motivo</span><select id="epiFMot"><option value="">Escolha…</option>'+EPI_MOTIVOS.map(function(m){ return '<option'+(m===f.motivo?' selected':'')+'>'+esc(m)+'</option>'; }).join('')+'</select></label></div>'+
+    '<div class="epi-its"><div class="epi-ith"><b>Itens</b><span>Item · tamanho · quantidade</span></div>'+linhas+
+      '<button type="button" class="nm-b" onclick="epiFormLer();EPI.form.itens.push({produto_id:\'\',tamanho:\'\',qtd:1});epiFormPintar()">+ Adicionar item</button></div>'+
+    '<label class="epi-obs"><span>Observação (opcional)</span><textarea id="epiFObs" rows="2" maxlength="600" placeholder="Ex.: a bota atual rasgou no evento de sábado">'+esc(f.obs)+'</textarea></label>'+
+    '<div class="epi-rod"><button type="button" class="nm-b" onclick="epiFechar(\'epiFOv\')">Cancelar</button><button type="button" class="nm-b pri" id="epiFSalvar" onclick="epiSalvar()">'+(f.id?'Salvar alterações':'Registrar pedido')+'</button></div></div>';
+  var ov=modal2('epiFOv',h); ov.onclick=function(e){ if(e.target===ov) epiFechar('epiFOv'); };
+}
+function epiSalvar(){
+  epiFormLer(); var f=EPI.form; if(!f) return;
+  var c=epiColab(f.colab);
+  if(!f.colab){ aviso('Escolha quem vai receber.',true); return; }
+  if(!dataOk(f.data_pedido)){ aviso('Informe a data do pedido.',true); return; }
+  if(!f.motivo){ aviso('Escolha o motivo.',true); return; }
+  var itens=[], falta='';
+  f.itens.forEach(function(it){
+    if(!it.produto_id) return;
+    var pr=epiProd(it.produto_id), tams=pr?epiTam(pr.tamanhos):[];
+    if(!it.tamanho&&(tams.length!==1)) falta=(pr&&pr.nome)||it.nome||'item';
+    itens.push({produto_id:it.produto_id,nome:(pr&&pr.nome)||it.nome||'',categoria:(pr&&pr.categoria)||'',tamanho:it.tamanho||(tams.length===1?tams[0]:''),qtd:Math.max(1,it.qtd||1)});
+  });
+  if(!itens.length){ aviso('Coloque pelo menos um item.',true); return; }
+  if(falta){ aviso('Escolha o tamanho de: '+falta,true); return; }
+  var agora=new Date().toISOString(), eu=epiEu();
+  var row={itens:itens,motivo:f.motivo,observacao:(f.obs||'').trim()||null,data_pedido:f.data_pedido,atualizado_em:agora,atualizado_por:eu};
+  if(c){ row.colaborador_id=String(c.id); row.colaborador_nome=c.nome; row.empresa=c.empresa||null; row.tipo_contrato=epiTipo(c); row.funcao=c.funcao||null; }
+  var bt=el('epiFSalvar'); if(bt){ bt.disabled=true; bt.textContent='Salvando…'; }
+  var op;
+  if(f.id) op=sb.from('dp_epi_pedidos').update(row).eq('id',f.id).select();
+  else { row.status='pedido'; row.pedido_por_email=eu; row.pedido_por_nome=(EU&&EU.nome)||''; row.criado_em=agora; op=sb.from('dp_epi_pedidos').insert(row).select(); }
+  op.then(function(r){
+    if(r.error||!r.data||!r.data.length){ if(bt){ bt.disabled=false; bt.textContent='Tentar de novo'; } aviso('Não salvou: '+((r.error&&r.error.message)||'sem permissão'),true); return; }
+    var n=r.data[0]; if(f.id){ var p=EPI.ped.find(function(x){ return x.id===n.id; }); if(p) Object.assign(p,n); } else EPI.ped.unshift(n);
+    epiFechar('epiFOv'); dmDesenhar();
+    aviso(f.id?'✓ Pedido alterado':'✓ Pedido registrado'+(epiMaster()?'':'. A gestora vê na coluna Pedido.'));
+  },function(){ if(bt){ bt.disabled=false; bt.textContent='Tentar de novo'; } aviso('Sem conexão. Nada foi perdido: tente de novo.',true); });
+}
+
+/* ---------- 📦 produtos (só a gestora) ---------- */
+function epiProdutos(){
+  if(!epiMaster()){ aviso('Só a gestora cadastra produtos.',true); return; }
+  EPI.prodEd=(EPI.prod||[]).map(function(p){ return {id:p.id,nome:p.nome||'',categoria:p.categoria||'EPI',tamanhos:epiTam(p.tamanhos).join(', '),valor:p.valor==null?'':p.valor,ativo:p.ativo!==false}; });
+  epiProdPintar();
+}
+function epiProdLer(){
+  (EPI.prodEd||[]).forEach(function(p,i){ var g=function(k){ return el('epiP'+k+i); };
+    if(g('N')) p.nome=g('N').value; if(g('C')) p.categoria=g('C').value; if(g('T')) p.tamanhos=g('T').value; if(g('V')) p.valor=g('V').value; if(g('A')) p.ativo=g('A').checked; });
+}
+function epiProdPintar(){
+  var L=EPI.prodEd||[];
+  var h='<div class="imp-box epi-box epi-pbox" role="dialog" aria-label="Produtos de EPI e uniforme">'+
+    '<div class="epi-bx"><div><h2>📦 Produtos de EPI e uniforme</h2><p>O que aparece para escolher no pedido. Tamanhos separados por vírgula (deixe <b>Único</b> quando não tiver tamanho). Para tirar da lista sem perder o histórico, desmarque <b>Ativo</b>.</p></div><button type="button" class="nm-b" onclick="epiFechar(\'epiPOv\')">✕</button></div>'+
+    (L.length?'':'<div class="epi-dica">✨ <span>Nenhum produto ainda. <button type="button" class="nm-b pri" onclick="epiProdPadrao()">Puxar lista padrão</button> (capacete, talabarte, cinto, bota, camiseta e calça) e ajuste depois.</span></div>')+
+    '<div class="epi-pl">'+(L.length?'<div class="epi-pr epi-prh"><span>Produto</span><span>Tipo</span><span>Tamanhos</span><span>Valor (opcional)</span><span>Ativo</span><span></span></div>':'')+
+    L.map(function(p,i){ return '<div class="epi-pr'+(p.ativo?'':' off')+'">'+
+      '<input id="epiPN'+i+'" value="'+esc(p.nome)+'" placeholder="Ex.: Bota" aria-label="Nome do produto">'+
+      '<select id="epiPC'+i+'" aria-label="Tipo"><option'+(p.categoria==='EPI'?' selected':'')+'>EPI</option><option'+(p.categoria==='Uniforme'?' selected':'')+'>Uniforme</option></select>'+
+      '<input id="epiPT'+i+'" value="'+esc(p.tamanhos)+'" placeholder="P, M, G ou 38, 39, 40" aria-label="Tamanhos">'+
+      '<input id="epiPV'+i+'" type="number" step="0.01" min="0" value="'+esc(p.valor)+'" placeholder="R$" aria-label="Valor" title="Serve depois para o Ponto de Reposição (perda/dano)">'+
+      '<label class="epi-ck"><input id="epiPA'+i+'" type="checkbox"'+(p.ativo?' checked':'')+'></label>'+
+      (p.id?'<span></span>':'<button type="button" class="nm-b" aria-label="Tirar" onclick="epiProdLer();EPI.prodEd.splice('+i+',1);epiProdPintar()">×</button>')+'</div>'; }).join('')+'</div>'+
+    '<div class="epi-rod"><button type="button" class="nm-b" onclick="epiProdLer();EPI.prodEd.push({nome:\'\',categoria:\'EPI\',tamanhos:\'\',valor:\'\',ativo:true});epiProdPintar()">+ Novo produto</button><span style="flex:1"></span>'+
+      '<button type="button" class="nm-b" onclick="epiFechar(\'epiPOv\')">Cancelar</button><button type="button" class="nm-b pri" id="epiPSalvar" onclick="epiProdSalvar()">Salvar produtos</button></div></div>';
+  var ov=modal2('epiPOv',h); ov.onclick=function(e){ if(e.target===ov) epiFechar('epiPOv'); };
+}
+function epiProdPadrao(){ EPI.prodEd=EPI_PADRAO.map(function(p){ return {nome:p.nome,categoria:p.categoria,tamanhos:p.tamanhos.join(', '),valor:'',ativo:true}; }); epiProdPintar(); }
+function epiProdSalvar(){
+  epiProdLer();
+  var L=(EPI.prodEd||[]).filter(function(p){ return (p.nome||'').trim(); });
+  var nomes={}, dup='';
+  L.forEach(function(p){ var k=p.nome.trim().toLowerCase(); if(nomes[k]) dup=p.nome; nomes[k]=1; });
+  if(dup){ aviso('Produto repetido: '+dup,true); return; }
+  var agora=new Date().toISOString();
+  var ops=L.map(function(p){
+    var row={nome:p.nome.trim(),categoria:p.categoria||'EPI',tamanhos:epiTam(p.tamanhos),valor:(p.valor===''||p.valor==null)?null:Math.round(parseFloat(String(p.valor).replace(',','.'))*100)/100,ativo:!!p.ativo,atualizado_em:agora};
+    if(row.valor!=null&&isNaN(row.valor)) row.valor=null;
+    var orig=p.id?epiProd(p.id):null;
+    if(orig&&orig.nome===row.nome&&orig.categoria===row.categoria&&epiTam(orig.tamanhos).join('|')===row.tamanhos.join('|')&&(orig.valor==null?null:+orig.valor)===row.valor&&(orig.ativo!==false)===row.ativo) return Promise.resolve({ok:1});
+    return (p.id?sb.from('dp_epi_produtos').update(row).eq('id',p.id).select():sb.from('dp_epi_produtos').insert(row).select());
+  });
+  var bt=el('epiPSalvar'); if(bt){ bt.disabled=true; bt.textContent='Salvando…'; }
+  Promise.all(ops).then(function(rs){
+    var e=rs.find(function(r){ return r&&r.error; });
+    if(e){ if(bt){ bt.disabled=false; bt.textContent='Tentar de novo'; } aviso('Não salvou: '+(e.error.message||''),true); return; }
+    return sb.from('dp_epi_produtos').select('*').order('nome').then(function(r){ if(!r.error) EPI.prod=r.data||[]; epiFechar('epiPOv'); dmDesenhar(); aviso('✓ Produtos salvos'); });
+  },function(){ if(bt){ bt.disabled=false; bt.textContent='Tentar de novo'; } aviso('Sem conexão. Tente de novo.',true); });
+}
+
+/* ---------- ⬇ planilha (CSV que abre no Excel) ---------- */
+function epiCsv(){
+  var l=epiFiltrados(); if(!l.length){ aviso('Nada para baixar neste filtro.',true); return; }
+  var q=function(v){ v=String(v==null?'':v); return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  var linhas=[['Situação','Colaborador','Empresa','Tipo','Função','Item','Categoria','Tamanho','Qtd','Motivo','Observação','Data do pedido','Pedido por','Data solicitado','Data entregue']];
+  l.forEach(function(p){ (p.itens&&p.itens.length?p.itens:[{}]).forEach(function(i){
+    linhas.push([epiStInfo(p.status)[1],p.colaborador_nome,p.empresa,p.tipo_contrato,p.funcao,i.nome,i.categoria,i.tamanho,i.qtd,p.motivo,p.observacao,epiData(p.data_pedido),epiPrimeiro(p.pedido_por_nome),epiData(p.data_solicitado),epiData(p.data_entregue)]); }); });
+  var blob=new Blob(['﻿'+linhas.map(function(r){ return r.map(q).join(';'); }).join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='EPI_Uniforme_pedidos_'+hoje()+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
+
+/* ---------- estilo ---------- */
+(function(){
+  var st=document.createElement('style');
+  st.textContent=
+  '.epi-q{grid-template-columns:repeat(3,minmax(240px,1fr))}.epi-colsub{margin:-6px 4px 10px;font-size:11.5px;color:var(--mut2)}'+
+  '.epi-sel{padding:9px 12px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:inherit;font-size:13px}'+
+  '.epi-dica{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,176,32,.45);background:rgba(255,176,32,.08);font-size:13.5px}.epi-dica span{flex:1}'+
+  '.epi-quem{font-size:11.5px;color:var(--mut);margin-top:2px}'+
+  '.epi-itens{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.epi-itens span{font-size:12px;padding:3px 8px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid var(--line)}.epi-itens b{color:#fff;background:#e10600;border-radius:5px;padding:0 5px;margin-left:2px;font-size:11px}.epi-itens em{font-style:normal;color:var(--mut)}'+
+  '.epi-mot{display:inline-block;margin-top:7px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(77,141,255,.13);color:#9cc0ff}.epi-mot.al{background:rgba(255,90,95,.14);color:#ff8a8d}'+
+  '.epi-dts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.epi-dt{font-size:11px;color:var(--mut);padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.05)}.epi-dt.s{color:#9cc0ff}.epi-dt.e{color:#7ff0b0}.epi-dt.at{color:#ffc35a;background:rgba(255,176,32,.13);font-weight:700}'+
+  '.epi-ac{display:block;width:100%;margin-top:9px;padding:7px 10px;border-radius:9px;border:1px solid #4d8dff;background:rgba(77,141,255,.12);color:#cfe0ff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}.epi-ac.e{border-color:#2ecc71;background:rgba(46,204,113,.12);color:#b6f5d0}.epi-ac:hover{filter:brightness(1.2)}'+
+  '.epi-st{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:999px;color:var(--k);background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 45%,transparent)}'+
+  '.epi-sm{display:block;color:var(--mut2);font-size:11.5px}'+
+  '.epi-box{width:min(720px,100%)}.epi-pbox{width:min(900px,100%)}.epi-bx{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}.epi-bx h2{margin:6px 0 2px;font-size:19px}.epi-bx p{margin:0;color:var(--mut);font-size:13px}'+
+  '.epi-tb{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0 12px}.epi-tb th{background:#000;color:#fff;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px}.epi-tb th:first-child{border-radius:8px 0 0 0}.epi-tb th:last-child{border-radius:0 8px 0 0}.epi-tb td{padding:8px 10px;border-bottom:1px solid var(--line)}.epi-tb .n{text-align:right}'+
+  '.epi-mt{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px}.epi-mt div{flex:1 1 200px}.epi-mt span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}.epi-mt p{margin:2px 0 0;font-size:13.5px}'+
+  '.epi-tl{list-style:none;margin:0 0 12px;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.02)}.epi-tl li{display:flex;gap:8px;align-items:flex-start;opacity:.55}.epi-tl li.ok{opacity:1}.epi-pi{font-size:18px}.epi-tl b{display:block;font-size:13px}.epi-tl span,.epi-tl small{display:block;font-size:12px;color:var(--mut)}'+
+  '.epi-tl input{margin-top:3px;padding:4px 6px;border-radius:7px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:inherit;font-size:12.5px;color-scheme:dark}'+
+  '.epi-nota{font-size:12.5px;color:var(--mut);margin:0 0 12px}.epi-rod{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;margin-top:14px}.epi-okb{background:#1f9d55!important;border-color:#1f9d55!important}'+
+  '.epi-fg{display:grid;grid-template-columns:2fr 1fr 1.3fr;gap:12px}.epi-fg label,.epi-obs{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mut)}.epi-fg .lg{grid-column:1/-1}'+
+  '.epi-box input,.epi-box select,.epi-box textarea{padding:8px 10px;border-radius:9px;border:1px solid var(--line2);background:var(--panel2);color:var(--txt);font:inherit;font-size:13.5px;color-scheme:dark;min-width:0}'+
+  '.epi-cb{display:grid;grid-template-columns:1fr 1.6fr;gap:8px}.epi-ci{color:#9cc0ff;font-size:12.5px}'+
+  '.epi-its{margin:14px 0;padding:12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.02)}.epi-ith{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px}.epi-ith span{color:var(--mut2);font-size:12px}'+
+  '.epi-li{display:grid;grid-template-columns:2fr 1.2fr 70px auto;gap:8px;margin-bottom:8px;align-items:center}.epi-li small{grid-column:1/-1;margin-top:-4px;font-size:11.5px;color:#ffc35a}'+
+  '.epi-pl{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto}.epi-pr{display:grid;grid-template-columns:1.6fr 110px 2fr 110px 50px 40px;gap:8px;align-items:center}.epi-pr.off input:not([type=checkbox]){opacity:.45}.epi-prh span{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}.epi-ck{display:flex;justify-content:center}'+
+  '@media (max-width:900px){.epi-q{grid-template-columns:repeat(3,minmax(240px,82vw))}.epi-fg{grid-template-columns:1fr 1fr}.epi-cb{grid-template-columns:1fr}.epi-tl{grid-template-columns:1fr}.epi-li{grid-template-columns:1fr 1fr 60px auto}.epi-pr{grid-template-columns:1fr 1fr;padding:8px;border:1px solid var(--line);border-radius:10px}.epi-prh{display:none}}';
+  document.head.appendChild(st);
+})();
+
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v124'; })) NOVIDADES.unshift({v:'v124',data:'24/11/2026',itens:[
+  ['🦺','EPI e Uniforme dentro de Demandas','Nova aba em Demandas. Andreia e Karina registram o pedido (pessoa CLT/PJ do cadastro, itens, tamanho, motivo e data). A gestora marca Solicitado e Entregue, com as datas. Produtos em 📦 Produtos.']
+]}); }catch(e){}
+</script>
+
 </body>
 </html>
