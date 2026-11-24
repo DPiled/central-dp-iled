@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta name="central-versao" content="17/11/2026 · v122">
+<meta name="central-versao" content="24/11/2026 · v123b">
 <meta name="central-novidades" content="🧾 eConsignado na Folha de pagamento: lançado junto com FGTS, INSS e IRRF e somado no Custo total. 📤 Previsão da semana para o Financeiro e ✅ Fechar o dia na aba Pagamentos (o que ficar pendente aparece no dia seguinte). 🔐 Permissão nova de valores nas Notas fiscais. 🧹 Faxina: 59 funções antigas que não eram mais usadas saíram do sistema.">
 
 <meta charset="utf-8">
@@ -20203,6 +20203,141 @@ try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v=
 ]}); if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v116'&&n.gestora; })) NOVIDADES.splice(1,0,{v:'v116',gestora:true,data:'17/11/2026',itens:[
   ['💾','Cópia semanal sem perguntar','Passou de 7 dias sem baixar, a Central baixa sozinha a cópia no seu computador (Excel + .json). A cópia diária às 03:00 continua em 💾 Backup e restauração.'],
   ['🔒','Verificar segurança','Testa se alguma tabela abre sem login e mostra o SQL de proteção. Configurações → 🔒 Verificar segurança.']
+]}); }catch(e){}
+
+
+/* ================= v123 · CÓPIA SEMANAL DIRETO NA PASTA DO PC (v123b: quadro legível no tema escuro) =================
+   Configurações → 💾 Backup e restauração → "📁 Escolher a pasta" (ex.: CENTRAL DP ILED\03_BACKUPS).
+   A pasta fica lembrada NESTE computador e NESTE Chrome (IndexedDB). Toda vez que a Central abre com o
+   login da master e já passaram 7 dias desde a última cópia na pasta, ela grava sozinha:
+       <pasta>\AAAA\MM_MÊS\backup_central_dp_AAAA-MM-DD.json  (restaura o sistema)
+       <pasta>\AAAA\MM_MÊS\backup_central_dp_AAAA-MM-DD.xlsx  (uma aba por tabela, para consultar)
+   Se o Chrome pedir licença de novo, aparece um aviso com "Confirmar" (escolha "Permitir em todas as visitas").
+   Sem pasta ligada, continua igual à v116 (baixa em Downloads). */
+var BKP={h:null,nome:'',lido:false,usar:false,salvouEm:''};
+var BKP_MESES=['01_JANEIRO','02_FEVEREIRO','03_MARCO','04_ABRIL','05_MAIO','06_JUNHO','07_JULHO','08_AGOSTO','09_SETEMBRO','10_OUTUBRO','11_NOVEMBRO','12_DEZEMBRO'];
+function bkpSuportado(){ try{ return typeof window.showDirectoryPicker==='function'&&typeof indexedDB!=='undefined'; }catch(e){ return false; } }
+function bkpDB(){ return new Promise(function(res,rej){ var r=indexedDB.open('central-dp-pasta-backup',1); r.onupgradeneeded=function(){ r.result.createObjectStore('h'); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+function bkpIdb(modo,fn){ return bkpDB().then(function(db){ return new Promise(function(res,rej){ var t=db.transaction('h',modo), st=t.objectStore('h'), q=fn(st); t.oncomplete=function(){ res(q&&q.result); }; t.onerror=function(){ rej(t.error); }; }); }); }
+function bkpIniciar(){
+  if(BKP.lido||!bkpSuportado()){ BKP.lido=true; return Promise.resolve(); }
+  return bkpIdb('readonly',function(st){ return st.get('pasta'); }).then(function(h){ BKP.h=h||null; BKP.nome=h?h.name:''; BKP.lido=true; },function(){ BKP.lido=true; });
+}
+function bkpUlt(){ try{ return localStorage.getItem('bk-pasta-ult')||''; }catch(e){ return ''; } }
+function bkpPermissao(pedir){
+  if(!BKP.h||typeof BKP.h.queryPermission!=='function') return Promise.resolve(false);
+  var o={mode:'readwrite'};
+  return BKP.h.queryPermission(o).then(function(p){ if(p==='granted') return true; if(!pedir) return false; return BKP.h.requestPermission(o).then(function(p2){ return p2==='granted'; }); }).catch(function(){ return false; });
+}
+function bkpEscolher(){
+  if(!(EU&&EU.master)) return aviso('Só a administradora liga a pasta do backup.',true);
+  if(!bkpSuportado()) return aviso('Este navegador não deixa escolher pasta. Use o Chrome no computador.',true);
+  window.showDirectoryPicker({id:'central-dp-backup',mode:'readwrite',startIn:'documents'}).then(function(h){
+    BKP.h=h; BKP.nome=h.name; BKP.lido=true;
+    return bkpIdb('readwrite',function(st){ return st.put(h,'pasta'); });
+  }).then(function(){
+    try{ localStorage.removeItem('bk-pasta-ult'); }catch(e){}
+    bkpPainel();
+    dialogo('📁 Pasta ligada: '+BKP.nome+'\n\nA cópia semanal vai direto para ela (ano → mês).\n\nFazer a primeira cópia agora?',{sim:function(){ bkpSalvarAgora(false); }});
+  }).catch(function(e){ if(e&&e.name==='AbortError') return; aviso('Não consegui ligar a pasta: '+((e&&e.message)||e),true); });
+}
+function bkpDesligar(){
+  dialogo('Desligar a pasta do PC?\n\nA cópia semanal volta a cair em Downloads. Nada do que já está na pasta é apagado.',{sim:function(){
+    bkpIdb('readwrite',function(st){ return st.delete('pasta'); }).catch(function(){}).then(function(){ BKP.h=null; BKP.nome=''; try{ localStorage.removeItem('bk-pasta-ult'); }catch(e){} aviso('Pasta desligada.'); bkpPainel(); });
+  }});
+}
+function bkpSub(dir,nome){ return dir.getDirectoryHandle(nome,{create:true}); }
+function bkpEscrever(dir,nome,blob){ return dir.getFileHandle(nome,{create:true}).then(function(fh){ return fh.createWritable(); }).then(function(w){ return w.write(blob).then(function(){ return w.close(); }); }); }
+function bkpMontarWb(X,saida){
+  var wb=X.utils.book_new(), T=saida.tabelas||{};
+  var resumo=[['Central DP ILED · cópia de segurança semanal'],['Gerada em',new Date(saida.gerado_em||Date.now()).toLocaleString('pt-BR')],['Por',saida.por||((EU&&EU.nome)||'')],[],['Tabela','Registros']].concat(Object.keys(T).sort().map(function(t){ return [bkNome(t),(T[t]||[]).length]; }));
+  X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(resumo),'Resumo');
+  var usados={};
+  Object.keys(T).sort().forEach(function(t){
+    if(t==='kv_store'||!(T[t]||[]).length) return;
+    var l=T[t].map(function(r){ var o={}; Object.keys(r).forEach(function(k){ var v=r[k]; if(v!==null&&typeof v==='object') v=JSON.stringify(v); if(typeof v==='string'&&v.length>32000) v=v.slice(0,32000)+'…'; o[k]=v; }); return o; });
+    var nm=bkNome(t).replace(/[\\\/\?\*\[\]:]/g,' ').slice(0,31), i=2; while(usados[nm]) nm=nm.slice(0,28)+' '+(i++); usados[nm]=1;
+    X.utils.book_append_sheet(wb,X.utils.json_to_sheet(l),nm);
+  });
+  return wb;
+}
+var _bkArquivosV122=bkArquivos;
+bkArquivos=function(saida,stamp){
+  if(!BKP.usar||!BKP.h) return _bkArquivosV122(saida,stamp);
+  var d=new Date(), ano=''+d.getFullYear(), mes=BKP_MESES[d.getMonth()], alvo=null;
+  return bkpSub(BKP.h,ano).then(function(a){ return bkpSub(a,mes); }).then(function(m){ alvo=m;
+    return bkpEscrever(m,'backup_central_dp_'+stamp+'.json',new Blob([JSON.stringify(saida)],{type:'application/json'}));
+  }).then(function(){ return impCarregarXLSX(); }).then(function(X){
+    var arr=X.write(bkpMontarWb(X,saida),{bookType:'xlsx',type:'array'});
+    return bkpEscrever(alvo,'backup_central_dp_'+stamp+'.xlsx',new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  }).then(function(){ BKP.salvouEm=BKP.nome+'\\'+ano+'\\'+mes; try{ localStorage.setItem('bk-pasta-ult',hoje()); }catch(e){} });
+};
+function bkpSalvarAgora(auto){
+  if(!(EU&&EU.master)) return aviso('Só a administradora faz a cópia completa.',true);
+  if(!BKP.h) return bkpEscolher();
+  return bkpPermissao(!auto).then(function(ok){
+    if(!ok){ aviso('O Chrome não liberou a pasta '+BKP.nome+'. Toque em "Gravar na pasta agora" e escolha Permitir.',true); return; }
+    aviso('💾 Gravando a cópia na pasta '+BKP.nome+'… pode levar alguns segundos.');
+    BKP.usar=true;
+    return bkRpc('central_backup_fazer',{p_origem:'download'}).then(function(id){ return bkRpc('central_backup_baixar',{p_id:id}); }).then(function(saida){
+      var n=0; Object.keys(saida.tabelas||{}).forEach(function(k){ n+=(saida.tabelas[k]||[]).length; });
+      return bkArquivos(saida,hoje()).then(function(){
+        try{ registrarBackup(); }catch(e){} BKS.ultDown=hoje();
+        dialogo('✅ Cópia semanal gravada\n\n'+BKP.salvouEm+'\n'+n.toLocaleString('pt-BR')+' registros · Excel + .json\n\nPróxima cópia: '+fmtData(somaDias(hoje(),7))+' (ao abrir a Central).',{tipo:'aviso'});
+        bkpPainel();
+      });
+    }).catch(function(e){
+      if(typeof bkSemFuncao==='function'&&bkSemFuncao(e)){ BKP.usar=false; aviso('Falta o 6_BACKUP_AUTOMATICO.sql no Supabase. Baixei a cópia em Downloads.',true); try{ bkBaixar(); }catch(x){} return; }
+      aviso('Não consegui gravar na pasta: '+((e&&e.message)||'verifique a internet').slice(0,120),true);
+    }).then(function(){ BKP.usar=false; });
+  });
+}
+var _bkSemanalV116=bkSemanalAuto;
+bkSemanalAuto=function(){
+  if(!(EU&&EU.master)||!sb) return;
+  bkpIniciar().then(function(){
+    if(!BKP.h) return _bkSemanalV116();
+    var ult=bkpUlt(), dias=ult?-diasAte(ult):999;
+    if(dias<7) return;
+    try{ if(sessionStorage.getItem('bk-pasta-sem')) return; sessionStorage.setItem('bk-pasta-sem','1'); }catch(e){}
+    bkpPermissao(false).then(function(ok){
+      if(ok) return bkpSalvarAgora(true);
+      setTimeout(function(){
+        dialogo('💾 Cópia semanal da Central\n\n'+(ult?'A última cópia na pasta foi há '+dias+' dias.':'Ainda não tem cópia na pasta.')+' Toque em Confirmar para gravar na pasta "'+BKP.nome+'" (Excel + .json).\n\nNo aviso do Chrome, escolha "Permitir em todas as visitas" para ele não perguntar mais.',
+          {sim:function(){ bkpSalvarAgora(false); },nao:function(){ aviso('Cópia semanal adiada: ela pede de novo na próxima vez que você abrir a Central.'); }});
+      },2500);
+    });
+  });
+};
+bkLembrete=function(){ bkSemanalAuto(); };
+function bkpPainel(){
+  var ov=el('bkOv'); if(!ov) return; var cam=ov.querySelector('.bk-cam'); if(!cam) return;
+  var b=el('bkpBox'); if(!b){ b=document.createElement('div'); b.id='bkpBox'; b.className='bkp-box'; cam.parentNode.insertBefore(b,cam.nextSibling); }
+  if(!bkpSuportado()){ b.className='bkp-box off'; b.innerHTML='<div><b>📁 Pasta do PC</b><span>Para a cópia semanal ir direto para uma pasta, abra a Central no <b>Chrome do computador</b>.</span></div>'; return; }
+  bkpIniciar().then(function(){
+    var ult=bkpUlt();
+    if(BKP.h){
+      var atras=ult&&(-diasAte(ult))>7;
+      b.className='bkp-box '+(ult?(atras?'warn':'ok'):'warn');
+      b.innerHTML='<div><b>📁 Cópia semanal na pasta do PC: ligada</b><span>Pasta <b>'+esc(BKP.nome)+'</b> → ano → mês · última: <b>'+(ult?fmtData(ult):'ainda nenhuma')+'</b> · próxima: <b>'+(ult?fmtData(somaDias(ult,7)):'agora')+'</b></span><small>Funciona neste computador, neste Chrome, quando você abre a Central com o seu login.</small></div>'+
+        '<div class="bkp-bts"><button type="button" class="cg-bt pri" onclick="bkpSalvarAgora(false)">💾 Gravar na pasta agora</button><button type="button" class="cg-bt" onclick="bkpEscolher()">Trocar pasta</button><button type="button" class="cg-bt" onclick="bkpDesligar()">Desligar</button></div>';
+    } else {
+      b.className='bkp-box warn';
+      b.innerHTML='<div><b>📁 Ligar a pasta do PC</b><span>Escolha a pasta <b>03_BACKUPS</b> dentro de <b>CENTRAL DP ILED</b>. Toda semana a Central grava sozinha lá dentro (ano → mês), sem passar por Downloads.</span></div>'+
+        '<div class="bkp-bts"><button type="button" class="cg-bt pri" onclick="bkpEscolher()">📁 Escolher a pasta</button></div>';
+    }
+  });
+}
+var _modal2V122=modal2;
+modal2=function(id,html){ var r=_modal2V122.apply(this,arguments); if(id==='bkOv'){ try{ bkpPainel(); }catch(e){} } return r; };
+try{ var _st=document.createElement('style'); _st.textContent=
+  '.bkp-box{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:12px 0;padding:12px 14px;border-radius:12px;border:1.5px solid rgba(215,25,32,.7);background:rgba(215,25,32,.10);color:inherit}'+
+  '.bkp-box.ok{border-color:rgba(46,160,67,.75);background:rgba(46,160,67,.12)}.bkp-box.warn{border-color:rgba(239,140,0,.85);background:rgba(239,140,0,.12)}.bkp-box.off{border-color:rgba(150,150,150,.6);background:rgba(150,150,150,.10)}'+
+  '.bkp-box b{display:block;font-size:14px}.bkp-box span{display:block;font-size:13px;margin-top:3px}.bkp-box span b{display:inline}.bkp-box small{display:block;color:#777;font-size:11.5px;margin-top:3px}'+
+  '.bkp-bts{display:flex;gap:6px;flex-wrap:wrap}';
+  document.head.appendChild(_st); }catch(e){}
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v123'; })) NOVIDADES.unshift({v:'v123',gestora:true,data:'24/11/2026',itens:[
+  ['📁','Cópia semanal direto na pasta do PC','Configurações → 💾 Backup e restauração → 📁 Escolher a pasta (a 03_BACKUPS da pasta CENTRAL DP ILED). Toda semana a Central grava sozinha o Excel + o .json, já separados por ano e mês. Sem pasta ligada, continua baixando em Downloads.']
 ]}); }catch(e){}
 
 </script>
