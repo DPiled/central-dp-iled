@@ -21558,7 +21558,7 @@ function cxcDesenhar(){
     h+='<div class="cxc-acts"><button type="button" class="nm2-b wa" onclick="cxcWa()">📲 Mandar a lista para conferir</button><button type="button" class="nm2-b" onclick="cxcTodos(true)">✅ Todos deram OK</button><button type="button" class="nm2-b ghost sm" onclick="cxcTodos(false)">Limpar</button>'+
       (m.msgEm?'<small>📲 lista mandada em '+e(nm2Br(m.msgEm.slice(0,10)))+'</small>':'')+'</div>';
     h+='<div class="cxc-l">'+l.map(function(n){ var pid=n.colaborador_id, x=m.ok[pid], v=cxVinc(pid);
-      return '<label class="cxc-r'+(x?' on':'')+'"><input type="checkbox"'+(x?' checked':'')+' onchange="cxcUm(\''+pid+'\',this.checked)"><span class="cxc-n"><b>'+e(nmPrest(pid).nome||'—')+'</b>'+(v?'<i class="cxv cxv-'+v.toLowerCase()+'">'+v+'</i>':'')+'<small>'+e(((NM.dados.emp||{})[nmPrest(pid).empresa_id]||{}).nome||'sem empresa')+'</small></span>'+
+      return '<label class="cxc-r'+(x?' on':'')+'"><input type="checkbox"'+(x?' checked':'')+' onchange="cxcUm(\''+pid+'\',this.checked)"><span class="cxc-n"><b>'+e(nmPrest(pid).nome||'—')+'</b>'+(v?'<i class="cxtag cxtag-'+v.toLowerCase()+'">'+v+'</i>':'')+'<small>'+e(((NM.dados.emp||{})[nmPrest(pid).empresa_id]||{}).nome||'sem empresa')+'</small></span>'+
         '<span class="cxc-v">'+R(parseFloat(n.valor)||0)+'</span><span class="cxc-s">'+(x?'👍 OK '+e(nm2Br((x.em||'').slice(0,10)).slice(0,5)):'⏳ aguardando')+'</span></label>'; }).join('')+'</div>';
     h+='<div class="cxc-g"><label>Quem deu o OK<input class="nm-in" id="cxcQuem" value="'+e(CXC.quem)+'" placeholder="Ex.: coordenação de operação / grupo da equipe"></label><label>Observação<input class="nm-in" id="cxcObs" value="'+e(CXC.obs)+'" placeholder="Ex.: ajuste de R$ 50 no João combinado no grupo"></label></div>';
   }
@@ -21699,8 +21699,8 @@ opRelatorio=function(M){ cxrRelatorio(M); };
     var h=_al.apply(this,arguments); if(!n) return h;
     var tags='';
     if(n.tipo==='cache'){
-      if(cxEhCLT(n.colaborador_id)) tags+=' <i class="cxv cxv-clt" title="Colaborador CLT recebendo cachê por NF: veja os pontos de atenção no relatório">🏷️ CLT</i>';
-      if(CXC.kv&&fila!=='pronto'){ var M=(''+n.mes_referencia).slice(0,7); tags+=cxcOk(M,n.colaborador_id)?' <i class="cxv cxv-ok">👍 OK equipe</i>':' <i class="cxv cxv-sem">⏳ sem OK da equipe</i>'; }
+      if(cxEhCLT(n.colaborador_id)) tags+=' <i class="cxtag cxtag-clt" title="Colaborador CLT recebendo cachê por NF: veja os pontos de atenção no relatório">🏷️ CLT</i>';
+      if(CXC.kv&&fila!=='pronto'){ var M=(''+n.mes_referencia).slice(0,7); tags+=cxcOk(M,n.colaborador_id)?' <i class="cxtag cxtag-ok">👍 OK equipe</i>':' <i class="cxtag cxtag-sem">⏳ sem OK da equipe</i>'; }
     }
     if(tags) h=h.replace(/(<span class="af-nm"><b>[\s\S]*?)(<\/b>)/,'$1'+tags+'$2');
     if(fila==='pronto') h=h.replace('<button type="button" class="nm-mais"','<button type="button" class="nm2-b ghost sm" title="Copiar o nome do arquivo para o Drive" onclick="cxCopiarNome(\''+n.id+'\')">📁</button><button type="button" class="nm-mais"');
@@ -21745,9 +21745,9 @@ opRelatorio=function(M){ cxrRelatorio(M); };
 (function(){
   var st=document.createElement('style');
   st.textContent=
-  '.cxv{font-style:normal;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap}'+
-  '.cxv-clt{background:rgba(255,80,80,.16);color:#ff7b72;border:1px solid rgba(255,80,80,.45)}.cxv-pj{background:rgba(255,255,255,.07);color:var(--mut)}'+
-  '.cxv-ok{background:rgba(61,220,132,.12);color:#7ee2a3}.cxv-sem{background:rgba(255,195,90,.12);color:#ffc35a}'+
+  '.cxtag{font-style:normal;font-size:10.5px;font-weight:800;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px;white-space:nowrap}'+
+  '.cxtag-clt{background:rgba(255,80,80,.16);color:#ff7b72;border:1px solid rgba(255,80,80,.45)}.cxtag-pj{background:rgba(255,255,255,.07);color:var(--mut)}'+
+  '.cxtag-ok{background:rgba(61,220,132,.12);color:#7ee2a3}.cxtag-sem{background:rgba(255,195,90,.12);color:#ffc35a}'+
   '.cxc-bar-w{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}.cxc-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,195,90,.4);background:rgba(255,195,90,.07);font-size:13px}'+
   '.cxc-bar.ok{border-color:rgba(61,220,132,.35);background:rgba(61,220,132,.06)}'+
   '.cxc-box{width:min(760px,100%)}.cxc-top{display:flex;gap:12px;align-items:center;margin:6px 0 12px}.cxc-top select{flex:1}.cxc-pl{border:1px solid var(--line);border-left:4px solid #ffc35a;border-radius:10px;padding:6px 14px;text-align:right}.cxc-pl.ok{border-left-color:#3ddc84}.cxc-pl b{display:block;font-size:17px}.cxc-pl span{font-size:11px;color:var(--mut)}'+
