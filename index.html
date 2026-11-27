@@ -19151,11 +19151,11 @@ function pagDesenhar(c){
     h+='<div style="overflow-x:auto"><table class="rec-tb" style="width:100%"><thead><tr><th>Mês</th><th>Tipo</th><th class="r">Valor</th><th>Documento</th><th>Situação</th><th>Cobranças</th></tr></thead><tbody>';
     ns.forEach(function(n){
       var r=recDe(n.id), cb=D.cob[n.id];
-      var doc=n.numero&&n.numero!=='RECIBO'?'✅ NF '+esc(n.numero)+(n.data_emissao?' <small>· '+fmtData(n.data_emissao)+'</small>':''):(r?'🧾 '+esc(r.num)+(r.nfRecebida?' <small>· NF '+esc(r.nfNum||'')+' chegou</small>':' <small style="color:#ffc766">· NF pendente</small>'):'<span style="color:#ff8a84">⏳ sem NF</span>');
-      var st=n.status==='paga'?'💸 Paga':(n.data_envio||n.status==='financeiro'?'💼 No financeiro':'Em aberto');
+      var doc=n.numero&&n.numero!=='RECIBO'?'✅ NF '+esc(n.numero)+(n.data_emissao?' <small>· '+fmtData(n.data_emissao)+'</small>':''):(r?'🧾 '+esc(r.num)+(r.nfRecebida?' <small>· NF '+esc(r.nfNum||'')+' chegou</small>':' '+(r.prazoNF&&!r.semPrazo?'<small style="color:#ffc766">· NF pendente até '+fmtData(r.prazoNF).slice(0,5)+'</small>':'<small>· recibo'+(r.assinadoEm?' assinado':'')+'</small>')):'<span style="color:#ff8a84">⏳ sem NF</span>');
+      var st=(n.status==='paga'||n.status==='enviada'||n.data_envio||n.status==='financeiro')?'🔔 Enviado ao Financeiro':'Em aberto';
       h+='<tr><td>'+esc(typeof nomeMes==='function'?nomeMes((''+n.mes_referencia).slice(0,7)):(''+n.mes_referencia).slice(0,7))+'</td><td>'+(n.tipo==='cache'?'🎤 Cachê':'📄 Serviço')+'</td><td class="r">'+moedaBR(v(n))+'</td><td>'+doc+'</td><td>'+st+'</td><td>'+(cb&&cb.n?cb.n+'x <small>· última '+fmtData((cb.em||'').slice(0,10)).slice(0,5)+'</small>':'—')+'</td></tr>';
     });
-    soltos.forEach(function(r){ h+='<tr><td>'+fmtData(r.dataPag)+'</td><td>🧾 Recibo avulso</td><td class="r">'+moedaBR(r.liquido)+'</td><td>🧾 '+esc(r.num)+'</td><td>💸 Pago</td><td>—</td></tr>'; });
+    soltos.forEach(function(r){ h+='<tr><td>'+fmtData(r.dataPag)+'</td><td>🧾 Recibo avulso</td><td class="r">'+moedaBR(r.liquido)+'</td><td>🧾 '+esc(r.num)+'</td><td>🔔 Enviado ao Financeiro</td><td>—</td></tr>'; });
     h+='</tbody></table></div>';
   }
   bx.innerHTML=h;
@@ -21578,7 +21578,7 @@ function cxcSalvar(){
 (function(){
   var _imp=opImportar; opImportar=function(){
     var O=OP.lida, r=_imp.apply(this,arguments);
-    try{ if(O&&O.manual&&O.R&&O.R.fim){ var pids=O.linhas.map(function(L){ return L.pid; }).filter(Boolean); setTimeout(function(){ cxcMarcar(O.R.fim.slice(0,7),pids,'conferido no lançamento manual').catch(function(){}); },1500); } }catch(e){}
+    try{ if(O&&O.manual&&O.R&&O.R.fim&&CXM.conf){ var pids=O.linhas.map(function(L){ return L.pid; }).filter(Boolean); setTimeout(function(){ cxcMarcar(O.R.fim.slice(0,7),pids,'conferido no lançamento manual').catch(function(){}); },1500); } }catch(e){}
     return r;
   };
 })();
@@ -21621,8 +21621,7 @@ function cxrHtml(M,meses,todas,ops){
   var conf=(CXC.kv||{})[M]||{ok:{}}, okN=L.filter(function(n){ return conf.ok&&conf.ok[n.colaborador_id]; }).length;
   var sit=function(n){
     var rc=recDaNota(n.id);
-    if(n.status==='paga') return ['💸 pago '+br(n.data_pagamento).slice(0,5),'vd'];
-    if(n.status==='enviada') return ['🔔 liberado','az'];
+    if(n.status==='paga'||n.status==='enviada') return ['✔️ enviado '+(n.data_envio?br(n.data_envio).slice(0,5):''),'vd'];
     if(n.numero&&n.numero!=='RECIBO') return ['NF recebida · liberar','az'];
     if(n.numero==='RECIBO') return ['recibo assinado · liberar','az'];
     if(rc||(NM.semNF||{})[n.colaborador_id]) return ['recibo p/ assinar','am'];
@@ -21650,7 +21649,7 @@ function cxrHtml(M,meses,todas,ops){
   if(recibos.length) atencao.push('<div class="al ala"><b>🧾 '+recibos.length+' pagamento(s) com recibo, sem NF · '+R(soma(recibos))+'</b><p>'+e(recibos.map(function(n){ return nome(n); }).join(', '))+'. O recibo comprova o pagamento, mas não substitui a nota fiscal: para PJ, cobrar a NF; quem nunca emite reforça o risco de vínculo.</p></div>');
   var recPJ=pj.filter(function(n){ return seguidos(n.colaborador_id)>=6; });
   if(recPJ.length) atencao.push('<div class="al ala"><b>🔁 '+recPJ.length+' PJ com cachê em todos os últimos 6 meses</b><p>'+e(recPJ.map(nome).join(', '))+'. Cachê todo mês somado ao contrato PJ é normal na operação, mas vale manter o contrato atualizado e sem subordinação/horário fixo.</p></div>');
-  if(L.length&&okN<L.length) atencao.push('<div class="al ala"><b>👍 Conferência da equipe: '+okN+' de '+L.length+' com OK</b><p>Pagamentos sem o OK registrado ficam sem prova de que a pessoa concordou com o valor.</p></div>');
+  if(L.length&&okN<L.length) atencao.push('<div class="al ala"><b>👍 OK dos colaboradores: '+okN+' de '+L.length+'</b><p>Pagamento sem o OK do colaborador fica sem prova de que ele concordou com o valor.</p></div>');
   var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+e(M+' - RELATORIO CACHES DIRETORIA')+'</title><style>'+
     '@page{size:A4;margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;color:#222;margin:0;font-size:11px}'+
     '.top{background:#0d0d0f;color:#fff;display:flex;align-items:center;gap:14px;padding:16px 30px;border-bottom:4px solid #d60000}.top img{width:58px;height:46px;object-fit:contain;background:#262628;padding:3px}'+
@@ -21670,7 +21669,7 @@ function cxrHtml(M,meses,todas,ops){
     '</style></head><body><div class="top"><img src="'+NM_LOGO+'" alt="ILED"><div><h1>Relatório de Cachês · '+e(nomeMes(M))+'</h1><p>Departamento Pessoal · para a Diretoria · ILED Produções</p></div><div class="dir"><b>'+L.length+' pessoa(s) · '+R(tot)+'</b><br>'+(ops.length?ops.length+' OP/lançamento(s): '+e(ops.map(function(o){ return o.numero; }).join(', ')):'')+'<br>Emitido em '+e(agora.split(',')[0])+'</div></div><div class="cx">'+
     '<div class="ks">'+kpi('Total de cachês',R(tot),(dif==null?'sem mês anterior':(dif>=0?'▲ ':'▼ ')+Math.abs(dif).toString().replace('.',',')+'% vs '+cxMesCurto(nmSomaMes(M,-1))),'red')+
       kpi('Pessoas',L.length,clt.length+' CLT · '+pj.length+' PJ'+(L.length-clt.length-pj.length?' · '+(L.length-clt.length-pj.length)+' outros':''))+
-      kpi('Pago / liberado',R(soma(pago)+soma(lib)),(pago.length+lib.length)+' de '+L.length+' pessoa(s)','vd')+
+      kpi('Enviado ao Financeiro',R(soma(pago)+soma(lib)),(pago.length+lib.length)+' de '+L.length+' pessoa(s)','vd')+
       kpi('Pendente',R(soma(pend)),pend.length+' aguardando NF/recibo','am')+'</div>'+
     '<h2>Evolução · últimos 6 meses</h2>'+serie.map(function(s){ return '<div class="bar'+(s.m===M?' at':'')+'"><span>'+cxMesCurto(s.m)+' · '+s.n+'p</span><i style="width:'+Math.max(1,Math.round(s.v/mx*100))+'%"></i><b>'+R(s.v)+'</b></div>'; }).join('')+
       (med?'<p style="color:#5f6269;margin:4px 0 0">Média dos meses anteriores: <b>'+R(med)+'</b> · este mês: <b>'+(tot>=med?'+':'')+R(tot-med)+'</b></p>':'')+
@@ -21682,7 +21681,7 @@ function cxrHtml(M,meses,todas,ops){
       L.slice().sort(function(a,b){ return empN(a).localeCompare(empN(b))||nome(a).localeCompare(nome(b)); }).map(function(n,i){ var s=sit(n), v=cxVinc(n.colaborador_id), rc=recDaNota(n.id);
         return '<tr><td>'+(i+1)+'</td><td>'+e(nome(n))+(v?'<span class="tg '+v.toLowerCase()+'">'+v+'</span>':'')+'</td><td>'+e(empN(n))+'</td><td>'+(n.numero&&n.numero!=='RECIBO'?'NF '+e(n.numero):(rc?'Recibo '+e(rc.num||''):(n.numero==='RECIBO'?'Recibo':'—')))+'</td><td class="c">'+qtd(n.colaborador_id)+'</td><td><span class="st '+s[1]+'">'+e(s[0])+'</span></td><td class="r">'+R(n.valor)+'</td></tr>'; }).join('')+
       '<tr class="tot"><td colspan="6" class="r">Total do mês</td><td class="r">'+R(tot)+'</td></tr></tbody></table>'+
-    '<div class="cf"><div><b>👍 Conferência da equipe:</b> '+okN+' de '+L.length+' com OK'+(conf.quem?' · por '+e(conf.quem):'')+(conf.em?' · '+e(br(conf.em.slice(0,10))):'')+(conf.obs?'<br><small>'+e(conf.obs)+'</small>':'')+'</div><div class="tt"><small>Total do mês</small><b>'+R(tot)+'</b></div></div>'+
+    '<div class="cf"><div><b>👍 OK dos colaboradores:</b> '+okN+' de '+L.length+(conf.em?' · '+e(br(conf.em.slice(0,10))):'')+(conf.obs?'<br><small>'+e(conf.obs)+'</small>':'')+'</div><div class="tt"><small>Total do mês</small><b>'+R(tot)+'</b></div></div>'+
     '<div class="ass">Departamento Pessoal'+(quem?'<br>'+e(quem):'')+'</div></div>'+
     '<div class="rod"><span>Gerado pela Central DP · ILED Produções · '+e(agora)+'</span><span>Cachês · '+e(nomeMes(M))+'</span></div>'+
     '<script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
@@ -21700,32 +21699,21 @@ opRelatorio=function(M){ cxrRelatorio(M); };
     var tags='';
     if(n.tipo==='cache'){
       if(cxEhCLT(n.colaborador_id)) tags+=' <i class="cxtag cxtag-clt" title="Colaborador CLT recebendo cachê por NF: veja os pontos de atenção no relatório">🏷️ CLT</i>';
-      if(CXC.kv&&fila!=='pronto'){ var M=(''+n.mes_referencia).slice(0,7); tags+=cxcOk(M,n.colaborador_id)?' <i class="cxtag cxtag-ok">👍 OK equipe</i>':' <i class="cxtag cxtag-sem">⏳ sem OK da equipe</i>'; }
+      if(CXC.kv&&fila!=='pronto'){ var M=(''+n.mes_referencia).slice(0,7); tags+=cxcOk(M,n.colaborador_id)?' <i class="cxtag cxtag-ok">👍 OK do colaborador</i>':' <i class="cxtag cxtag-sem">⏳ falta o OK</i>'; }
     }
     if(tags) h=h.replace(/(<span class="af-nm"><b>[\s\S]*?)(<\/b>)/,'$1'+tags+'$2');
-    if(fila==='pronto') h=h.replace('<button type="button" class="nm-mais"','<button type="button" class="nm2-b ghost sm" title="Copiar o nome do arquivo para o Drive" onclick="cxCopiarNome(\''+n.id+'\')">📁</button><button type="button" class="nm-mais"');
     return h;
   };
   var _ad=afDesenhar; afDesenhar=function(){
     if(!CXC.kv&&!CXC.carregando) cxcLer().then(function(){ try{ if(!NM.tela) desenharNotasMes(); }catch(e){} });
     var r=_ad.apply(this,arguments), bx=el('nmApp'); if(!bx) return r;
     try{
-      // barra da conferência da equipe (meses com cachê em aberto)
-      var ms={}; (NM.dados.abertas||[]).forEach(function(n){ if(n.tipo==='cache'&&n.status!=='enviada'&&n.status!=='paga'&&!(typeof nmZerada==='function'&&nmZerada(n))) (ms[(''+n.mes_referencia).slice(0,7)]=ms[(''+n.mes_referencia).slice(0,7)]||[]).push(n); });
-      var mk=Object.keys(ms).sort().reverse().slice(0,2), bar=bx.querySelector('.af-bar');
-      if(bar&&CXC.kv&&AF.tipo!=='servico'&&!bx.querySelector('.cxc-bar')){
-        var d=document.createElement('div'); d.className='cxc-bar-w';
-        d.innerHTML=mk.map(function(M){ var l=ms[M], ok=l.filter(function(n){ return cxcOk(M,n.colaborador_id); }).length, t=l.length, all=ok===t;
-          return '<div class="cxc-bar'+(all?' ok':'')+'"><span>'+(all?'✅':'👍')+' <b>Conferência da equipe · '+esc(nomeMes(M).toLowerCase())+'</b> · '+ok+' de '+t+' com OK'+(all?'':' · confira antes de cobrar as notas')+'</span><button type="button" class="nm2-b sm'+(all?' ghost':' pri')+'" onclick="cxcAbrir(\''+M+'\')">'+(all?'Ver':'👍 Conferir')+'</button></div>'; }).join('');
-        if(mk.length) bar.parentNode.insertBefore(d,bar.nextSibling);
-      }
       // menu "Mais"
       var m=bx.querySelector('.af-bar .nm2-mais-m');
       if(m&&!m.querySelector('.cxr-mi')){
-        m.insertAdjacentHTML('afterbegin','<button class="nm2-mi cxr-mi" onclick="cxrRelatorio()">📊 Relatório de cachês (Diretoria)</button><button class="nm2-mi" onclick="cxcAbrir()">👍 Conferência da equipe</button><button class="nm2-mi" onclick="cxDriveAjuda()">📁 Padrão do Drive</button>');
+        m.insertAdjacentHTML('afterbegin','<button class="nm2-mi cxr-mi" onclick="cxrRelatorio()">📊 Relatório de cachês (Diretoria)</button><button class="nm2-mi" onclick="cxfAbrir()">📋 Situação do fechamento</button>');
       }
     }catch(e){}
-    setTimeout(cxBaixaAuto,400);
     return r;
   };
   // lançamento manual: CLT / PJ ao lado do nome
@@ -21738,7 +21726,6 @@ opRelatorio=function(M){ cxrRelatorio(M); };
     return h;
   };
   // Pagamentos e Histórico também disparam a baixa
-  var _dn=desenharNotasMes; desenharNotasMes=function(){ var r=_dn.apply(this,arguments); setTimeout(cxBaixaAuto,600); return r; };
 })();
 
 /* ---------- estilo ---------- */
@@ -21764,10 +21751,829 @@ opRelatorio=function(M){ cxrRelatorio(M); };
 
 try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v127'; })) NOVIDADES.unshift({v:'v127',data:'27/11/2026',itens:[
   ['🏷️','CLT recebendo cachê','Quem é CLT e recebe cachê por NF aparece marcado nas notas, no lançamento e no relatório da Diretoria (risco de salário por fora).'],
-  ['👍','Conferência da equipe','Antes de cobrar as notas: mande a lista para conferir no WhatsApp e marque o OK de cada pessoa. Fica registrado quem e quando.'],
-  ['💸','Baixa automática','Liberado ao Financeiro e passou a data de pagamento → a nota vira PAGA sozinha.'],
-  ['📊','Relatório de cachês (Diretoria)','6 meses, por empresa e por pessoa, CLT × PJ, pontos de atenção e conferência da equipe.'],
-  ['📁','Padrão do Drive','Os PDFs já saem com o nome certo, 📁 copia o nome da NF/recibo e Mais → 📁 Padrão do Drive mostra as pastas.']
+  ['👍','OK de cada colaborador','Cada colaborador confere o próprio valor e dá o OK. Fica registrado quando.'],
+  ['📊','Relatório de cachês (Diretoria)','6 meses, por empresa e por pessoa, CLT × PJ, pontos de atenção e o OK dos colaboradores.']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v128 · FECHAMENTO DO CACHÊ EM 4 ETAPAS · OK DE CADA COLABORADOR · MENU LIMPO =================
+   O trabalho do DP termina ao ENVIAR ao Financeiro (enviado = pago; não existe mais baixa automática).
+   Cada cachê do mês passa por 4 etapas, sempre na mesma ordem:
+     ① Lançado   → veio da OP ou do ✍️ lançamento sem OP
+     ② OK        → o próprio colaborador conferiu o valor e deu o OK (📲 pedir OK no WhatsApp dele)
+     ③ Recebido  → a NF chegou (nº) ou o recibo voltou assinado
+     ④ Enviado   → liberado ao Financeiro (WhatsApp e/ou Ordem de Pagamento em PDF) = concluído
+   • "📋 Situação do fechamento": tabela do mês com as 4 etapas de cada pessoa, filtros e ações.
+   • Barra do mês no A fazer com o placar das etapas.
+   • Cada linha de cachê mostra as etapas (✓ feito · ○ falta).
+   • Saem: Nota avulsa e Padrão do Drive. */
+
+cxBaixaAuto=function(){};   // enviado ao Financeiro já é o fim: nada vira "pago" sozinho
+
+/* ---------- etapas de uma nota de cachê ---------- */
+function cxfEtapas(n){
+  var M=(''+n.mes_referencia).slice(0,7), pid=n.colaborador_id, br=function(i){ return i?nm2Br((''+i).slice(0,10)).slice(0,5):''; };
+  var rc=(typeof recDaNota==='function')?recDaNota(n.id):null, okR=(CXC.kv&&CXC.kv[M]&&CXC.kv[M].ok)?CXC.kv[M].ok[pid]:null;
+  var ped=(CXC.kv&&CXC.kv[M]&&CXC.kv[M].ped)?CXC.kv[M].ped[pid]:null;
+  var env=n.status==='enviada'||n.status==='paga';
+  var orig=((n.obs||'').match(/^Gerada pela (\S+)/)||[])[1]||'';
+  var rec=null, et=(typeof nmEtapa==='function')?nmEtapa(n):'';
+  if(n.numero&&n.numero!=='RECIBO') rec={ok:true,t:'NF '+n.numero,d:br(n.data_emissao)};
+  else if(n.numero==='RECIBO'||(rc&&rc.assinadoEm)||(env&&rc)) rec={ok:true,t:'recibo'+(rc&&rc.num?' '+rc.num:'')+' assinado',d:br((rc&&(rc.assinadoEm||rc.criado))||n.data_emissao)};
+  else if(env||(et==='rec'&&!rc)) rec={ok:true,t:'recebido',d:br(n.data_emissao)};
+  else if(rc) rec={ok:false,t:rc.assinEnv?'recibo enviado p/ assinar':'recibo p/ mandar assinar',d:''};
+  else rec={ok:false,t:(NM.semNF||{})[pid]?'falta o recibo':'aguardando a NF',d:''};
+  return {
+    lanc:{ok:true,t:/^MANUAL-/.test(orig)?'sem OP':(orig||'lançado'),d:''},
+    ok:{ok:!!okR,t:okR?'OK':(ped?'OK pedido '+br(ped):'falta o OK'),d:okR?br(okR.em):''},
+    rec:rec,
+    env:{ok:env,t:env?'enviado':'falta enviar',d:env?br(n.data_envio):''}
+  };
+}
+function cxfPasso(e){ var s=0; if(e.ok.ok) s++; if(e.rec.ok) s++; if(e.env.ok) s++; return s; }
+
+/* ---------- pedir o OK ao colaborador ---------- */
+function cxfMsgOk(n){
+  var p=nmPrest(n.colaborador_id)||{}, M=(''+n.mes_referencia).slice(0,7), nm=(typeof opPrimeiroNome==='function')?opPrimeiroNome(p.nome):String(p.nome||'').split(' ')[0];
+  return 'Oi, '+nm+'! Tudo bem? 😊\n\nSegue o valor do seu cachê de '+nomeMes(M).toLowerCase()+' (eventos de 01/'+M.slice(5,7)+' a '+nm2Br(nmUltimoDia(M))+'):\n\n*'+moedaBR(parseFloat(n.valor)||0)+'*\n\n'+
+    'Pode conferir e me dar um OK por aqui? Se algo estiver diferente, me avisa antes de emitir a nota. Obrigada!';
+}
+function cxfPedirOk(id){
+  var n=(CXF.notas||[]).find(function(x){ return x.id===id; })||nmNota(id); if(!n) return;
+  var M=(''+n.mes_referencia).slice(0,7), tel=soDig((typeof nmTelDe==='function'?nmTelDe(n.colaborador_id):'')||''), msg=cxfMsgOk(n);
+  if(tel.length===10||tel.length===11) tel='55'+tel;
+  try{ navigator.clipboard&&navigator.clipboard.writeText(msg).catch(function(){}); }catch(e){}
+  window.open((tel?'https://wa.me/'+tel:'https://wa.me/')+'?text='+encodeURIComponent(msg),'_blank');
+  cxcLer().then(function(){ var m=cxcMes(M); m.ped=m.ped||{}; m.ped[n.colaborador_id]=new Date().toISOString(); return cxcGravar(); })
+    .then(function(){ aviso((tel?'📲 WhatsApp aberto':'Sem telefone no cadastro: escolha a conversa')+' · quando ele responder, marque ✅ OK.'); cxfRedesenhar(); },function(){});
+}
+function cxfMarcarOk(id,on){
+  var n=(CXF.notas||[]).find(function(x){ return x.id===id; })||nmNota(id); if(!n) return;
+  var M=(''+n.mes_referencia).slice(0,7);
+  cxcLer().then(function(){ var m=cxcMes(M); if(on) m.ok[n.colaborador_id]={em:new Date().toISOString(),por:(EU&&EU.nome)||''}; else delete m.ok[n.colaborador_id]; return cxcGravar(); })
+    .then(function(){ aviso(on?'✅ OK de '+nomeCurto(nmPrest(n.colaborador_id).nome||'')+' registrado.':'OK desmarcado.'); cxfRedesenhar(); })
+    .catch(function(){ aviso('Não consegui salvar o OK agora.',true); });
+}
+function cxfRedesenhar(){ try{ if(el('cxfOv')&&el('cxfOv').classList.contains('on')) cxfDesenhar(); }catch(e){} try{ if(!NM.tela) desenharNotasMes(); }catch(e){} }
+
+/* ---------- 📋 Situação do fechamento (tabela do mês) ---------- */
+var CXF={M:'',notas:[],f:''};
+function cxfAbrir(M){
+  M=M||CXF.M||cxMesTrab(); CXF.M=M;
+  Promise.all([cxcLer(),sb.from('nf_notas').select(NM_COLS).eq('tipo','cache').eq('mes_referencia',M)]).then(function(rs){
+    CXF.notas=((rs[1]&&rs[1].data)||[]).filter(function(n){ return !(typeof nmZerada==='function'&&nmZerada(n)); });
+    // usa a versão da tela (mais nova) quando a nota já está carregada
+    CXF.notas=CXF.notas.map(function(n){ var x=nmNota(n.id); return x||n; });
+    cxfDesenhar();
+  }).catch(function(){ aviso('Não consegui abrir a situação do fechamento agora.',true); });
+}
+cxcAbrir=cxfAbrir;
+function cxfDesenhar(){
+  var ov=el('cxfOv'); if(!ov){ ov=document.createElement('div'); ov.id='cxfOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('on'); }); }
+  var e=esc, R=moedaBR, M=CXF.M, nome=function(n){ return (nmPrest(n.colaborador_id)||{}).nome||'—'; };
+  var L=CXF.notas.slice().sort(function(a,b){ return nome(a).localeCompare(nome(b)); }).map(function(n){ return {n:n,e:cxfEtapas(n)}; });
+  var c={tot:L.length,ok:0,rec:0,env:0}; L.forEach(function(x){ if(x.e.ok.ok) c.ok++; if(x.e.rec.ok) c.rec++; if(x.e.env.ok) c.env++; });
+  var flt={'':function(){ return true; },ok:function(x){ return !x.e.ok.ok; },rec:function(x){ return !x.e.rec.ok; },pronto:function(x){ return x.e.rec.ok&&!x.e.env.ok; },env:function(x){ return x.e.env.ok; }};
+  var vis=L.filter(flt[CXF.f]||flt['']);
+  var ms=[]; for(var i=-3;i<=1;i++) ms.push(nmSomaMes(cxMesTrab(),i)); if(ms.indexOf(M)<0) ms.push(M); ms.sort().reverse();
+  var tot=L.reduce(function(a,x){ return a+(parseFloat(x.n.valor)||0); },0);
+  var passo=function(k,ic,t,v,sub){ var pc=c.tot?Math.round(v/c.tot*100):0; return '<div class="cxf-st'+(c.tot&&v===c.tot?' ok':'')+'"><span class="cxf-n">'+k+'</span><div><small>'+ic+' '+t+'</small><b>'+v+' <i>de '+c.tot+'</i></b><em style="--p:'+pc+'%"></em><span>'+sub+'</span></div></div>'; };
+  var h='<div class="rec-box cxf-box" role="dialog"><div class="rec-hd"><div><b>📋 Situação do fechamento · cachês</b><small>Lançado › OK do colaborador › Recebido (NF ou recibo) › Enviado ao Financeiro. Enviado = concluído.</small></div><button type="button" class="rec-x" onclick="el(\'cxfOv\').classList.remove(\'on\')">✕</button></div><div class="rec-bd">'+
+    '<div class="cxf-top"><select class="nm-in" onchange="CXF.f=\'\';cxfAbrir(this.value)">'+ms.map(function(x){ return '<option value="'+x+'"'+(x===M?' selected':'')+'>🎤 Cachês de '+e(nomeMes(x).toLowerCase())+'</option>'; }).join('')+'</select><div class="cxf-tt"><small>Total do mês</small><b>'+R(Math.round(tot*100)/100)+'</b></div></div>';
+  if(!L.length) h+='<div class="cxc-vz">Nenhum cachê lançado em '+e(nomeMes(M).toLowerCase())+'. Suba a OP ou use ✍️ Lançar cachê sem OP.</div>';
+  else {
+    h+='<div class="cxf-sts">'+passo('1','📥','Lançados',c.tot,'OP ou sem OP')+passo('2','👍','OK do colaborador',c.ok,c.tot-c.ok?(c.tot-c.ok)+' falta(m)':'todos conferiram')+
+      passo('3','🧾','Recebidos',c.rec,c.tot-c.rec?(c.tot-c.rec)+' falta(m) NF/recibo':'todas as notas/recibos')+passo('4','🔔','Enviados',c.env,c.tot-c.env?(c.tot-c.env)+' falta(m) enviar':'mês concluído ✓')+'</div>';
+    var ch=function(k,t,n){ return '<button type="button" class="'+(CXF.f===k?'on':'')+'" onclick="CXF.f=\''+k+'\';cxfDesenhar()">'+t+(n!=null?' <b>'+n+'</b>':'')+'</button>'; };
+    h+='<div class="cxf-fl hi-seg">'+ch('','Todos',c.tot)+ch('ok','Falta o OK',c.tot-c.ok)+ch('rec','Falta NF/recibo',c.tot-c.rec)+ch('pronto','Pronto p/ enviar',L.filter(flt.pronto).length)+ch('env','Enviados',c.env)+'</div>';
+    h+='<div class="cxf-tb"><div class="cxf-r cxf-h"><span>Colaborador</span><span class="r">Valor</span><span>① Lançado</span><span>② OK</span><span>③ Recebido</span><span>④ Enviado</span></div>';
+    h+=vis.map(function(x){
+      var n=x.n, E=x.e, id=n.id, v=cxVinc(n.colaborador_id);
+      var cel=function(o,acao){ return '<span class="cxf-c'+(o.ok?' ok':'')+'"><i>'+(o.ok?'✓':'○')+'</i><b>'+e(o.t)+'</b>'+(o.d?'<small>'+e(o.d)+'</small>':'')+(acao||'')+'</span>'; };
+      var aOk=E.ok.ok?'<button type="button" class="cxf-x" title="Desmarcar o OK" onclick="cxfMarcarOk(\''+id+'\',false)">desfazer</button>':
+        '<span class="cxf-ac"><button type="button" class="nm2-b wa sm" onclick="cxfPedirOk(\''+id+'\')" title="Manda o valor no WhatsApp dele">📲 Pedir</button><button type="button" class="nm2-b pri sm" onclick="cxfMarcarOk(\''+id+'\',true)">✅ OK</button></span>';
+      return '<div class="cxf-r s'+cxfPasso(E)+'"><span class="cxf-p"><b>'+e(nome(n))+(v?' <i class="cxtag cxtag-'+v.toLowerCase()+'">'+v+'</i>':'')+'</b><small>'+e(((NM.dados.emp||{})[(nmPrest(n.colaborador_id)||{}).empresa_id]||{}).nome||'sem empresa')+'</small></span>'+
+        '<span class="r cxf-v">'+R(parseFloat(n.valor)||0)+'</span>'+cel(E.lanc)+cel(E.ok,aOk)+cel(E.rec)+cel(E.env)+'</div>';
+    }).join('')+(vis.length?'':'<div class="cxc-vz">Ninguém neste filtro. ✓</div>')+'</div>';
+  }
+  h+='</div><div class="rec-ft cxm-ft"><div class="cxm-tot"><small>Concluído (enviado)</small><b>'+c.env+'/'+c.tot+'</b></div>'+
+    (L.length&&c.ok<c.tot?'<button type="button" class="nm2-b ghost" onclick="cxfTodosOk()">✅ Marcar OK de todos</button>':'')+
+    '<button type="button" class="nm2-b pri" onclick="el(\'cxfOv\').classList.remove(\'on\')">Fechar</button></div></div>';
+  ov.innerHTML=h; ov.classList.add('on');
+}
+function cxfTodosOk(){
+  var falta=CXF.notas.filter(function(n){ return !cxcOk(CXF.M,n.colaborador_id); }); if(!falta.length) return;
+  dialogo('Marcar o OK de '+falta.length+' colaborador(es) de '+nomeMes(CXF.M).toLowerCase()+'? Use só se todos já confirmaram o valor.',{sim:function(){
+    cxcMarcar(CXF.M,falta.map(function(n){ return n.colaborador_id; })).then(function(){ aviso('✅ OK registrado para '+falta.length+' colaborador(es).'); cxfRedesenhar(); },function(){ aviso('Não consegui salvar agora.',true); });
+  }});
+}
+
+/* ---------- na tela "A fazer" ---------- */
+(function(){
+  var _ff=afFila; afFila=function(n){
+    var f=_ff.apply(this,arguments);
+    if(f==='pronto'&&n&&n.tipo==='cache'&&!n.numero&&typeof recDaNota==='function'){ var rc=recDaNota(n.id); if(rc&&!rc.assinadoEm) return 'recibo'; }
+    return f;
+  };
+  // etapas em cada linha de cachê + botão do OK quando falta
+  var _al=afLinha; afLinha=function(n,fila){
+    var h=_al.apply(this,arguments); if(!n||n.tipo!=='cache') return h;
+    h=h.replace(/ <i class="cxtag cxtag-(ok|sem)">[^<]*<\/i>/,'');
+    if(!CXC.kv) return h;
+    var E=cxfEtapas(n);
+    if(!E.ok.ok&&fila!=='pronto') h=h.replace(/(<span class="af-nm"><b>[\s\S]*?)(<\/b>)/,'$1 <i class="cxtag cxtag-sem">⏳ falta o OK</i>$2');
+    if(!E.ok.ok&&fila!=='pronto') h=h.replace('<span class="af-ac">','<span class="af-ac"><button type="button" class="nm2-b ghost sm" title="Pedir/registrar o OK do colaborador" onclick="cxfOkRapido(\''+n.id+'\')">👍 OK?</button>');
+    return h;
+  };
+  var _ad=afDesenhar; afDesenhar=function(){
+    var r=_ad.apply(this,arguments), bx=el('nmApp'); if(!bx) return r;
+    try{
+      // menu Mais: sai Nota avulsa (e qualquer sobra do Drive)
+      bx.querySelectorAll('.nm2-mi').forEach(function(b){ var o=b.getAttribute('onclick')||''; if(/nmNovaAvulsa|cxDriveAjuda/.test(o)) b.remove(); });
+      var av=el('nmAvulsaBox'); if(av) av.remove();
+      // sai "Quem vê as notas" (só a gestora mexe)
+      bx.querySelectorAll('.nm2-mi').forEach(function(b){ if(/nfQuemVe/.test(b.getAttribute('onclick')||'')) b.remove(); });
+      // botões com o nome da etapa: recebido
+      bx.querySelectorAll('.af-row .nm2-b').forEach(function(b){ var t=b.textContent.trim();
+        if(t==='✅ Chegou'){ b.textContent='✅ NF recebida'; b.title='A nota chegou: registre o nº'; }
+        else if(t==='✍️ Assinado'){ b.textContent='✅ Recibo recebido'; b.title='O recibo voltou assinado'; }
+        else if(t==='✅ Já chegou') b.textContent='✅ NF recebida'; });
+      var ra=[].slice.call(bx.querySelectorAll('.af-bl.b-rc .af-bh button')).find(function(b){ return /Todos assinados/.test(b.textContent); }); if(ra) ra.textContent='✅ Todos recebidos';
+      var sm=bx.querySelector('.af-bl.b-rc .af-bh small'); if(sm) sm.textContent='não emitem NF · 🧾 gere o recibo › 📲 mande para assinar › ✅ Recibo recebido';
+    }catch(e){}
+    return r;
+  };
+  // lançamento sem OP: o OK é dos colaboradores
+  var _cd=cxmDesenhar; cxmDesenhar=function(){
+    var r=_cd.apply(this,arguments);
+    try{ var l=document.querySelector('#cxmOv .cxm-ok'); if(l){ var i=l.querySelector('input'); l.innerHTML=''; l.appendChild(i); l.insertAdjacentHTML('beforeend',' 👍 Os colaboradores já conferiram e deram o OK nos valores <small style="font-weight:500;color:var(--mut)">(se não marcar, você pede o OK de cada um depois)</small>'); } }catch(e){}
+    return r;
+  };
+  // sem o ✅ marcado, o lançamento manual pode ser gravado (o OK vem depois, por pessoa)
+  var _sv=cxmSalvar; cxmSalvar=function(){ var era=CXM.conf; if(!CXM.conf){ CXM.conf=true; CXM.__semOk=true; } else CXM.__semOk=false; var r=_sv.apply(this,arguments); if(CXM.__semOk) CXM.conf=era; return r; };
+  var _imp=opImportar; opImportar=function(){ var O=OP.lida; if(O&&O.manual&&CXM.__semOk){ CXM.conf=false; } return _imp.apply(this,arguments); };
+})();
+// "👍 OK?" na linha: pergunta se é para pedir no WhatsApp ou registrar o OK
+function cxfOkRapido(id){
+  var n=nmNota(id); if(!n) return;
+  var ov=el('cxfQOv'); if(!ov){ ov=document.createElement('div'); ov.id='cxfQOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('on'); }); }
+  var p=nmPrest(n.colaborador_id)||{};
+  ov.innerHTML='<div class="rec-box cxf-q"><div class="rec-hd"><div><b>👍 OK de '+esc(nomeCurto(p.nome||''))+'</b><small>Cachê de '+esc(nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase())+' · '+moedaBR(parseFloat(n.valor)||0)+'</small></div><button type="button" class="rec-x" onclick="el(\'cxfQOv\').classList.remove(\'on\')">✕</button></div>'+
+    '<div class="rec-bd"><p class="cxd-p">O colaborador confere o próprio valor. Peça no WhatsApp e, quando ele responder, registre o OK.</p></div>'+
+    '<div class="rec-ft cxm-ft"><button type="button" class="nm2-b wa" onclick="el(\'cxfQOv\').classList.remove(\'on\');cxfPedirOk(\''+id+'\')">📲 Pedir o OK no WhatsApp</button><button type="button" class="nm2-b pri" onclick="el(\'cxfQOv\').classList.remove(\'on\');cxfMarcarOk(\''+id+'\',true)">✅ Ele já deu o OK</button></div></div>';
+  ov.classList.add('on');
+}
+
+/* ---------- estilo ---------- */
+(function(){
+  var st=document.createElement('style');
+  st.textContent=
+  '.cxf-li{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:11px;color:#ffc35a}.cxf-li span.ok{color:#7ee2a3}'+
+  '.cxf-bar-w{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}.cxf-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-radius:12px;border:1px solid var(--line2);background:rgba(255,255,255,.02);font-size:13px}'+
+  '.cxf-bar>b{margin-right:4px}.cxf-bar span{color:#ffc35a}.cxf-bar span.ok{color:#7ee2a3}.cxf-bar span b{color:inherit}.cxf-bar em{font-style:normal;color:var(--mut)}.cxf-bar .nm2-b{margin-left:auto}'+
+  '.cxf-box{width:min(1120px,100%)}.cxf-box .rec-bd{max-height:68vh}.cxf-top{display:flex;gap:12px;align-items:center;margin:6px 0 12px}.cxf-top select{flex:1}.cxf-tt{border:1px solid var(--line);border-left:4px solid var(--red,#d60000);border-radius:10px;padding:6px 14px;text-align:right}.cxf-tt small{display:block;font-size:11px;color:var(--mut)}.cxf-tt b{font-size:17px}'+
+  '.cxf-sts{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.cxf-st{display:flex;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(255,195,90,.04)}.cxf-st.ok{background:rgba(61,220,132,.06);border-color:rgba(61,220,132,.35)}'+
+  '.cxf-n{width:24px;height:24px;flex:0 0 24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;background:var(--panel2);border:1px solid var(--line2)}.cxf-st.ok .cxf-n{background:#1f9d57;border-color:#1f9d57;color:#fff}'+
+  '.cxf-st>div{flex:1;min-width:0}.cxf-st small{display:block;font-size:11.5px;color:var(--mut)}.cxf-st b{font-size:18px}.cxf-st b i{font-style:normal;font-size:12px;color:var(--mut);font-weight:600}.cxf-st span{display:block;font-size:11px;color:var(--mut)}'+
+  '.cxf-st em{display:block;height:5px;border-radius:9px;background:rgba(255,255,255,.08);margin:5px 0 4px;position:relative;overflow:hidden}.cxf-st em::after{content:"";position:absolute;inset:0;width:var(--p);background:#ffc35a}.cxf-st.ok em::after{background:#3ddc84}'+
+  '.cxf-fl{display:inline-flex;margin-bottom:10px;flex-wrap:wrap}'+
+  '.cxf-tb{border:1px solid var(--line);border-radius:12px;overflow:hidden}.cxf-r{display:grid;grid-template-columns:minmax(180px,1.5fr) 100px 1fr 1.3fr 1.2fr 1fr;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)}.cxf-r:first-child{border-top:0}'+
+  '.cxf-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);background:rgba(255,255,255,.03)}.cxf-r .r{text-align:right}.cxf-r.s3{background:rgba(61,220,132,.04)}'+
+  '.cxf-p b{display:block;font-size:13.5px}.cxf-p small{color:var(--mut);font-size:11.5px}.cxf-v{font-weight:800}'+
+  '.cxf-c{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:12px;color:#ffc35a}.cxf-c i{font-style:normal;font-weight:800}.cxf-c.ok{color:#7ee2a3}.cxf-c b{font-weight:700}.cxf-c small{color:var(--mut);font-size:11px}'+
+  '.cxf-ac{display:flex;gap:6px;width:100%;margin-top:4px}.cxf-x{border:0;background:transparent;color:var(--mut);font-size:11px;text-decoration:underline;cursor:pointer;padding:0}'+
+  '.cxf-q{width:min(480px,100%)}'+
+  '.nf-quem{display:none!important}'+
+  '@media (max-width:900px){.cxf-sts{grid-template-columns:1fr 1fr}.cxf-r{grid-template-columns:1fr 1fr}.cxf-h{display:none}}';
+  document.head.appendChild(st);
+})();
+
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v128'; })) NOVIDADES.unshift({v:'v128',data:'27/11/2026',itens:[
+  ['📋','Fechamento do cachê em 4 etapas','① Lançado › ② OK do colaborador › ③ Recebido (NF ou recibo) › ④ Enviado ao Financeiro. Enviado = concluído. Veja tudo em 📋 Situação do fechamento.'],
+  ['👍','OK de cada colaborador','📲 Pedir o OK manda o valor no WhatsApp dele; quando ele responder, ✅ OK. Fica registrado quando.'],
+  ['✅','Recebido com um clique','Na fila Cobrar NF: ✅ NF recebida (digite o nº). Na fila do recibo: ✅ Recibo recebido. Depois é só 🔔 Liberar.'],
+  ['🧹','Tela mais limpa','Saíram a Nota avulsa, o Padrão do Drive e o "Quem vê as notas".']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v129 · LANÇAR CACHÊ SEM OP: SÓ QUEM EMITE NF DE CACHÊ =================
+   A lista do lançamento mostra só os colaboradores (CLT e PJ ativos) cuja ficha diz
+   "Nota fiscal: Cachê" ou "Serviço + cachê" — a mesma regra da ficha (tipoNF). */
+var CXM_COLS=null;
+function cxmCarregarCols(){
+  if(CXM_COLS) return Promise.resolve(CXM_COLS);
+  return sb.from('dp_colaboradores').select('*').then(function(r){ var m={}; ((r&&r.data)||[]).forEach(function(c){ m[c.id]=c; }); CXM_COLS=m; return m; },function(){ CXM_COLS={}; return CXM_COLS; });
+}
+function cxmEmiteCache(c){ if(!c||typeof tipoNF!=='function') return false; var t=tipoNF(c).t; return t==='CACHE'||t==='AMBOS'; }
+cxmPermitidos=function(){
+  var fx=(NM.dados&&NM.dados.fixos)||{}, cols=CXM_COLS||{};
+  return opPessoas().filter(function(x){
+    if(x.p) return !!fx[x.p.id]&&cxmEmiteCache(cols[fx[x.p.id].id]||fx[x.p.id]);
+    if(x.c) return cxmEmiteCache(cols[x.c.id]||x.c);
+    return false;
+  });
+};
+(function(){
+  // carrega as fichas completas antes de abrir o lançamento
+  var _ab=cxmAbrir; cxmAbrir=function(){ var a=arguments, s=this; cxmCarregarCols().then(function(){ _ab.apply(s,a); }); };
+  var _inf=cxmInfo; cxmInfo=function(l,i){
+    var h=_inf.apply(this,arguments).replace('⚠️ não está no cadastro de colaboradores CLT/PJ ativos','⚠️ a ficha não diz que emite NF de cachê').replace('🔎 não achei no cadastro CLT/PJ:','🔎 não achei entre quem emite NF de cachê:');
+    return h;
+  };
+  var _sv=cxmSalvar; cxmSalvar=function(){
+    for(var i=0;i<CXM.linhas.length;i++){ var l=CXM.linhas[i]; if(l.sel&&!CXM.editando&&!cxmPermitido(l.sel)){ aviso('Linha '+(i+1)+': na ficha dessa pessoa a Nota fiscal não está como Cachê. Ajuste a ficha ou escolha outra pessoa.',true); return; } }
+    return _sv.apply(this,arguments);
+  };
+  var _des=cxmDesenhar; cxmDesenhar=function(){
+    var r=_des.apply(this,arguments);
+    try{ var s=document.querySelector('#cxmOv .rec-hd small'); if(s) s.textContent='Só aparecem os colaboradores cuja ficha diz que emitem NF de cachê (Nota fiscal: Cachê ou Serviço + cachê).';
+      var o=document.querySelectorAll('#cxmOv .cxm-p select option[value=""]'); o.forEach(function(x){ x.textContent='Escolha quem emite NF de cachê…'; });
+      if(!cxmPermitidos().length){ var hd=document.querySelector('#cxmOv .cxm-hd'); if(hd&&!document.querySelector('#cxmOv .cxm-sem')) hd.insertAdjacentHTML('beforebegin','<div class="nm2-alerta cxm-sem">⚠️ <span>Nenhuma ficha está marcada com <b>Nota fiscal: Cachê</b>. Ajuste nas fichas (Internos ou PJ) e abra de novo.</span></div>'); } }catch(e){}
+    return r;
+  };
+  // ficha salva → recarrega a lista na próxima abertura
+  var _car=carregarNotasMes; carregarNotasMes=function(){ CXM_COLS=null; return _car.apply(this,arguments); };
+})();
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v129'; })) NOVIDADES.unshift({v:'v129',data:'27/11/2026',itens:[
+  ['🎤','Lançar cachê: só quem emite NF de cachê','A lista mostra só os colaboradores com "Nota fiscal: Cachê" ou "Serviço + cachê" na ficha.']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v130 · NFs RECEBIDAS PARA A CONTABILIDADE · "NF PENDENTE" SÓ COM PRAZO =================
+   1) Recibo: "NF pendente" só quando foi combinado um prazo para a NF chegar (fora isso, é só recibo).
+      Na ficha, "Paga"/"No financeiro" viram "🔔 Enviado ao Financeiro".
+   2) 📑 NFs recebidas · contabilidade (Notas fiscais → Mais): todas as NFs que chegaram (serviço e cachê),
+      com filtro por empresa, período (competência ou data de emissão), tipo e "falta mandar / já mandei".
+      Marque o que já foi para a contabilidade (kv 'nf-contabilidade'), gere o PDF (padrão ILED) ou a planilha (CSV). */
+recPendentesNF=function(){ return recLista().filter(function(r){ return r.notaId&&!r.nfRecebida&&r.prazoNF&&!r.semPrazo; }); };
+
+var NFC={todas:null,env:null,emp:'',tipo:'',por:'comp',de:'',ate:'',sit:'',sel:{}};
+function nfcAbrir(){
+  if(!NM.dados){ aviso('Abra as Notas fiscais primeiro.'); return; }
+  if(!NFC.de){ var M=(typeof cxMesTrab==='function')?cxMesTrab():nmSomaMes(nmMesAtual(),-1); NFC.de=M; NFC.ate=M; }
+  aviso('Carregando as notas recebidas…');
+  Promise.all([sb.from('nf_notas').select(NM_COLS),kvLer('nf-contabilidade',{})]).then(function(rs){
+    if(rs[0].error) throw rs[0].error;
+    NFC.todas=(rs[0].data||[]).filter(function(n){ return n.numero&&n.numero!=='RECIBO'&&!(typeof nmZerada==='function'&&nmZerada(n)); });
+    NFC.env=rs[1]&&typeof rs[1]==='object'?rs[1]:{}; NFC.sel={};
+    nfcDesenhar();
+  }).catch(function(){ aviso('Não consegui carregar as notas agora.',true); });
+}
+function nfcEmpId(n){ return (nmPrest(n.colaborador_id)||{}).empresa_id||''; }
+function nfcEmpNome(n){ return ((NM.dados.emp||{})[nfcEmpId(n)]||{}).nome||'Sem empresa'; }
+function nfcMesDe(n){ return NFC.por==='emis'?(''+(n.data_emissao||'')).slice(0,7):(''+n.mes_referencia).slice(0,7); }
+function nfcFiltradas(){
+  return (NFC.todas||[]).filter(function(n){
+    var m=nfcMesDe(n); if(!m) return false;
+    if(NFC.de&&m<NFC.de) return false; if(NFC.ate&&m>NFC.ate) return false;
+    if(NFC.emp&&nfcEmpId(n)!==NFC.emp) return false;
+    if(NFC.tipo&&n.tipo!==NFC.tipo) return false;
+    if(NFC.sit==='falta'&&NFC.env[n.id]) return false; if(NFC.sit==='env'&&!NFC.env[n.id]) return false;
+    return true;
+  }).sort(function(a,b){ return nfcEmpNome(a).localeCompare(nfcEmpNome(b))||(a.tipo||'').localeCompare(b.tipo||'')||((nmPrest(a.colaborador_id)||{}).nome||'').localeCompare((nmPrest(b.colaborador_id)||{}).nome||''); });
+}
+function nfcPeriodoTxt(){ var f=function(m){ return m?nomeMes(m).toLowerCase():'…'; }; return (NFC.de===NFC.ate?f(NFC.de):f(NFC.de)+' a '+f(NFC.ate))+(NFC.por==='emis'?' (pela data de emissão)':' (pela competência)'); }
+function nfcDesenhar(){
+  var ov=el('nfcOv'); if(!ov){ ov=document.createElement('div'); ov.id='nfcOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('on'); }); }
+  var e=esc, R=moedaBR, br=function(i){ return i?nm2Br(i):'—'; }, E=NM.dados.emp||{};
+  var eids=Object.keys(E).sort(function(a,b){ return (E[a].nome||'').localeCompare(E[b].nome||''); });
+  var L=nfcFiltradas(), tot=L.reduce(function(a,n){ return a+(parseFloat(n.valor)||0); },0);
+  var envN=L.filter(function(n){ return NFC.env[n.id]; }).length, falta=L.length-envN, selN=Object.keys(NFC.sel).length;
+  var seg=function(k,t){ return '<button type="button" class="'+(NFC.sit===k?'on':'')+'" onclick="NFC.sit=\''+k+'\';NFC.sel={};nfcDesenhar()">'+t+'</button>'; };
+  var tp=function(k,t){ return '<button type="button" class="'+(NFC.tipo===k?'on':'')+'" onclick="NFC.tipo=\''+k+'\';NFC.sel={};nfcDesenhar()">'+t+'</button>'; };
+  var h='<div class="rec-box nfc-box" role="dialog"><div class="rec-hd"><div><b>📑 NFs recebidas · contabilidade</b><small>Todas as notas fiscais que chegaram. Marque as que você já mandou para a contabilidade e confira se não faltou nenhuma.</small></div><button type="button" class="rec-x" onclick="el(\'nfcOv\').classList.remove(\'on\')">✕</button></div><div class="rec-bd">'+
+    '<div class="nfc-f"><label>Empresa<select class="nm-in" onchange="NFC.emp=this.value;NFC.sel={};nfcDesenhar()"><option value="">🏢 Todas as empresas</option>'+eids.map(function(id){ return '<option value="'+id+'"'+(NFC.emp===id?' selected':'')+'>'+e(E[id].nome||'—')+'</option>'; }).join('')+'</select></label>'+
+    '<label>Período por<select class="nm-in" onchange="NFC.por=this.value;NFC.sel={};nfcDesenhar()"><option value="comp"'+(NFC.por==='comp'?' selected':'')+'>Competência (mês do serviço)</option><option value="emis"'+(NFC.por==='emis'?' selected':'')+'>Data de emissão da NF</option></select></label>'+
+    '<label>De<input type="month" class="nm-in" value="'+e(NFC.de)+'" onchange="NFC.de=this.value;NFC.sel={};nfcDesenhar()"></label>'+
+    '<label>Até<input type="month" class="nm-in" value="'+e(NFC.ate)+'" onchange="NFC.ate=this.value;NFC.sel={};nfcDesenhar()"></label></div>'+
+    '<div class="nfc-f2"><div class="hi-seg">'+tp('','Serviço e cachê')+tp('servico','🧾 Serviço')+tp('cache','🎤 Cachê')+'</div><div class="hi-seg">'+seg('','Todas')+seg('falta','📤 Falta mandar')+seg('env','✅ Já mandei')+'</div></div>'+
+    '<div class="nfc-k"><div><small>NFs no filtro</small><b>'+L.length+'</b></div><div class="tt"><small>Valor total</small><b>'+R(Math.round(tot*100)/100)+'</b></div><div class="'+(falta?'w':'ok')+'"><small>Falta mandar</small><b>'+falta+'</b></div><div class="ok"><small>Já mandei</small><b>'+envN+'</b></div></div>';
+  if(!L.length) h+='<div class="cxc-vz">Nenhuma NF recebida neste filtro.</div>';
+  else {
+    var todasSel=L.every(function(n){ return NFC.sel[n.id]; });
+    h+='<div class="nfc-tb"><div class="nfc-r nfc-h"><span><input type="checkbox"'+(todasSel?' checked':'')+' onchange="nfcSelTodas(this.checked)" title="Marcar todas"></span><span>Prestador</span><span>Empresa</span><span>Tipo · competência</span><span>NF · emissão</span><span class="r">Valor</span><span>Contabilidade</span></div>';
+    var emp='';
+    L.forEach(function(n){
+      var en=nfcEmpNome(n);
+      if(en!==emp){ emp=en; var le=L.filter(function(x){ return nfcEmpNome(x)===en; }); h+='<div class="nfc-g">🏢 '+e(en)+' <small>'+le.length+' NF(s) · '+R(Math.round(le.reduce(function(a,x){ return a+(parseFloat(x.valor)||0); },0)*100)/100)+'</small></div>'; }
+      var p=nmPrest(n.colaborador_id)||{}, x=NFC.env[n.id];
+      h+='<label class="nfc-r'+(x?' env':'')+'"><span><input type="checkbox"'+(NFC.sel[n.id]?' checked':'')+' onchange="nfcSel(\''+n.id+'\',this.checked)"></span>'+
+        '<span><b>'+e(p.nome||'—')+'</b><small>'+e(cxmFmtDoc?cxmFmtDoc(p.doc):(p.doc||''))+'</small></span><span>'+e(en)+'</span>'+
+        '<span>'+(n.tipo==='cache'?'🎤 Cachê':'🧾 Serviço')+'<small>'+e(nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase())+'</small></span>'+
+        '<span><b>NF '+e(n.numero)+'</b><small>'+e(br(n.data_emissao))+'</small></span><span class="r"><b>'+R(parseFloat(n.valor)||0)+'</b></span>'+
+        '<span>'+(x?'<i class="nfc-ok">✅ mandei '+e(br((x.em||'').slice(0,10)).slice(0,5))+'</i>':'<i class="nfc-no">📤 falta mandar</i>')+'</span></label>';
+    });
+    h+='</div>';
+  }
+  h+='</div><div class="rec-ft cxm-ft"><div class="cxm-tot"><small>'+(selN?selN+' selecionada(s)':'Período')+'</small><b>'+(selN?'':e(nfcPeriodoTxt()))+'</b></div>'+
+    (selN?'<button type="button" class="nm2-b ghost" onclick="nfcMarcar(false)">↩ Desmarcar envio</button><button type="button" class="nm2-b fin" onclick="nfcMarcar(true)">✅ Marcar como mandadas ('+selN+')</button>':'')+
+    '<button type="button" class="nm2-b" onclick="nfcCsv()">⬇ Planilha (CSV)</button><button type="button" class="nm2-b pri" onclick="nfcPdf()">📄 PDF para a contabilidade</button></div></div>';
+  ov.innerHTML=h; ov.classList.add('on');
+}
+function nfcSel(id,on){ if(on) NFC.sel[id]=1; else delete NFC.sel[id]; nfcDesenhar(); }
+function nfcSelTodas(on){ NFC.sel={}; if(on) nfcFiltradas().forEach(function(n){ NFC.sel[n.id]=1; }); nfcDesenhar(); }
+function nfcMarcar(on){
+  var ids=Object.keys(NFC.sel); if(!ids.length) return;
+  var go=function(){
+    var agora=new Date().toISOString(), por=(typeof EU!=='undefined'&&EU&&EU.nome)||'';
+    ids.forEach(function(id){ if(on) NFC.env[id]={em:agora,por:por}; else delete NFC.env[id]; });
+    kvSalvar('nf-contabilidade',NFC.env).then(function(){ aviso(on?'✅ '+ids.length+' NF(s) marcada(s) como mandadas à contabilidade.':'↩ Envio desmarcado em '+ids.length+' NF(s).'); NFC.sel={}; nfcDesenhar(); })
+      .catch(function(){ aviso('Não consegui salvar agora.',true); });
+  };
+  if(on) go(); else dialogo('Desmarcar o envio à contabilidade de '+ids.length+' NF(s)?',{sim:go});
+}
+function nfcCsv(){
+  var L=nfcFiltradas(); if(!L.length){ aviso('Nada no filtro.'); return; }
+  var q=function(t){ t=String(t==null?'':t); return /[;"\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
+  var linhas=[['Empresa','CNPJ da empresa','Prestador','CNPJ/CPF do prestador','Tipo','Competência','Nº NF','Emissão','Valor','Mandada à contabilidade']].concat(L.map(function(n){
+    var p=nmPrest(n.colaborador_id)||{}, E=(NM.dados.emp||{})[nfcEmpId(n)]||{}, x=NFC.env[n.id];
+    return [E.nome||'',E.cnpj||'',p.nome||'',cxmFmtDoc(p.doc),n.tipo==='cache'?'Cachê':'Serviço',(''+n.mes_referencia).slice(0,7),n.numero,nm2Br(n.data_emissao),(parseFloat(n.valor)||0).toFixed(2).replace('.',','),x?nm2Br((x.em||'').slice(0,10)):''];
+  }));
+  var csv='﻿'+linhas.map(function(l){ return l.map(q).join(';'); }).join('\r\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='NFs recebidas - '+NFC.de+(NFC.ate!==NFC.de?' a '+NFC.ate:'')+(NFC.emp?' - '+((NM.dados.emp||{})[NFC.emp]||{}).nome:'')+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  aviso('⬇ Planilha baixada ('+L.length+' NF(s)).');
+}
+function nfcPdf(){
+  var L=nfcFiltradas(); if(!L.length){ aviso('Nada no filtro.'); return; }
+  var e=esc, R=function(v){ return moedaBR(Math.round((v||0)*100)/100); }, br=function(i){ return i?nm2Br(i):'—'; };
+  var quem=(typeof EU!=='undefined'&&EU&&EU.nome)||'', agora=new Date();
+  var grupos={}, ordem=[]; L.forEach(function(n){ var k=nfcEmpNome(n); if(!grupos[k]){ grupos[k]=[]; ordem.push(k); } grupos[k].push(n); });
+  var tot=0, corpo='', resumo='', i=0, sv=0, ca=0;
+  ordem.forEach(function(k){
+    var g=grupos[k], E=(NM.dados.emp||{})[nfcEmpId(g[0])]||{}, st=0;
+    corpo+='<h2>'+e(k)+(E.cnpj?' <span>CNPJ '+e(E.cnpj)+'</span>':'')+'</h2><table><thead><tr><th class="c">#</th><th>Prestador</th><th>Tipo</th><th>Competência</th><th>Nº NF</th><th class="c">Emissão</th><th class="r">Valor</th><th class="c">Contab.</th></tr></thead><tbody>'+
+      g.map(function(n){ i++; var p=nmPrest(n.colaborador_id)||{}, v=parseFloat(n.valor)||0, x=NFC.env[n.id]; st+=v; if(n.tipo==='cache') ca+=v; else sv+=v;
+        return '<tr><td class="c">'+i+'</td><td><b>'+e(p.nome||'—')+'</b><small>'+e(cxmFmtDoc(p.doc))+'</small></td><td>'+(n.tipo==='cache'?'Cachê':'Serviço')+'</td><td>'+e(nomeMes((''+n.mes_referencia).slice(0,7)).toLowerCase())+'</td><td><b>'+e(n.numero)+'</b></td><td class="c">'+e(br(n.data_emissao))+'</td><td class="r">'+e(R(v))+'</td><td class="c">'+(x?'✓ '+e(br((x.em||'').slice(0,10)).slice(0,5)):'☐')+'</td></tr>'; }).join('')+
+      '<tr class="st"><td colspan="6" class="r">Subtotal '+e(k)+' · '+g.length+' NF(s)</td><td class="r">'+e(R(st))+'</td><td></td></tr></tbody></table>';
+    tot+=st; resumo+='<tr><td>'+e(k)+'</td><td class="c">'+g.length+'</td><td class="r">'+e(R(st))+'</td></tr>';
+  });
+  var filtros=[nfcPeriodoTxt(),NFC.emp?((NM.dados.emp||{})[NFC.emp]||{}).nome:'todas as empresas',NFC.tipo==='cache'?'só cachê':(NFC.tipo==='servico'?'só serviço':'serviço e cachê'),NFC.sit==='falta'?'só as que faltam mandar':(NFC.sit==='env'?'só as já mandadas':'')].filter(Boolean).join(' · ');
+  var titulo=(NFC.de===NFC.ate?NFC.de:NFC.de+' a '+NFC.ate)+' - NFS RECEBIDAS - CONTABILIDADE'+(NFC.emp?' - '+up(((NM.dados.emp||{})[NFC.emp]||{}).nome||''):'');
+  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+e(titulo)+'</title><style>'+
+    '@page{size:A4;margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}body{font-family:Helvetica,Arial,sans-serif;color:#222;margin:0;font-size:10.5px}'+
+    '.top{background:#0d0d0f;color:#fff;display:flex;align-items:center;gap:14px;padding:16px 30px;border-bottom:4px solid #d60000}.top img{width:58px;height:46px;object-fit:contain;background:#262628;padding:3px}'+
+    '.top h1{font-size:18px;margin:0}.top p{margin:3px 0 0;color:#b9babe;font-size:11px}.top .dir{margin-left:auto;text-align:right;color:#b9babe;font-size:11px;line-height:1.7}.top .dir b{color:#fff;font-size:12.5px}'+
+    '.cx{padding:14px 30px 60px}.vl{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;border:1px solid #e2e3e7;border-left:5px solid #d60000;padding:10px 14px;margin-bottom:6px}'+
+    '.vl small{display:block;color:#5f6269;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px}.vl b{font-size:20px}.vl .i{display:flex;gap:22px;text-align:right}.vl .i b{font-size:13px}.flt{color:#5f6269;margin:4px 0 0}'+
+    'h2{font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin:14px 0 5px;color:#0d0d0f;border-bottom:2px solid #0d0d0f;padding-bottom:3px}h2 span{font-weight:400;color:#5f6269;letter-spacing:0;text-transform:none;margin-left:6px}'+
+    'table{width:100%;border-collapse:collapse}th{background:#0d0d0f;color:#fff;text-align:left;padding:5px 6px;font-size:9.5px;font-weight:600}td{padding:4px 6px;border:1px solid #e2e3e7;vertical-align:top}tbody tr:nth-child(even) td{background:#f6f6f8}'+
+    'td small{display:block;color:#666;font-size:9px}.r{text-align:right;white-space:nowrap}.c{text-align:center;white-space:nowrap}.st td{background:#ecedf0!important;font-weight:bold}'+
+    '.fim{display:flex;justify-content:flex-end;gap:16px;margin-top:16px;align-items:flex-start}.fim table{width:300px}.tt{border:2px solid #d60000;padding:10px 16px;min-width:220px;text-align:right}.tt small{display:block;color:#5f6269;font-size:9.5px;text-transform:uppercase}.tt b{font-size:19px}'+
+    '.ass{margin-top:40px;display:flex;justify-content:space-between;gap:40px;font-size:10px;color:#444}.ass div{flex:1;border-top:1px solid #333;padding-top:5px;line-height:1.6}'+
+    '.rod{position:fixed;bottom:10px;left:30px;right:30px;font-size:8.5px;color:#999;display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:5px}'+
+    '</style></head><body><div class="top"><img src="'+NM_LOGO+'" alt="ILED"><div><h1>Notas Fiscais Recebidas</h1><p>Envio à contabilidade · Departamento Pessoal · ILED Produções</p></div><div class="dir"><b>'+L.length+' NF(s) · '+e(R(tot))+'</b><br>Emitido em '+e(agora.toLocaleDateString('pt-BR'))+'</div></div>'+
+    '<div class="cx"><div class="vl"><div><small>Total das notas</small><b>'+e(R(tot))+'</b></div><div class="i"><div><small>NFs</small><b>'+L.length+'</b></div><div><small>Serviço</small><b>'+e(R(sv))+'</b></div><div><small>Cachê</small><b>'+e(R(ca))+'</b></div></div></div><p class="flt">Filtro: '+e(filtros)+'</p>'+
+    corpo+'<div class="fim"><table><thead><tr><th>Por empresa (tomadora)</th><th class="c">NFs</th><th class="r">Valor</th></tr></thead><tbody>'+resumo+'</tbody></table><div class="tt"><small>Total</small><b>'+e(R(tot))+'</b></div></div>'+
+    '<div class="ass"><div>Enviado por (Departamento Pessoal)<br>'+e(quem)+'</div><div>Recebido por (Contabilidade)<br>Data: ____/____/________</div></div></div>'+
+    '<div class="rod"><span>Gerado pela Central DP · ILED Produções · '+e(agora.toLocaleString('pt-BR'))+'</span><span>Os PDFs das NFs seguem anexos / na pasta compartilhada.</span></div>'+
+    '<script>window.onload=function(){ setTimeout(function(){ window.print(); },300); };<\/script></body></html>';
+  var w=window.open('','_blank'); if(!w){ aviso('O navegador bloqueou a janela do PDF. Permita pop-ups para esta página.',true); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+}
+(function(){
+  var _ad=afDesenhar; afDesenhar=function(){
+    var r=_ad.apply(this,arguments), bx=el('nmApp');
+    try{ var m=bx&&bx.querySelector('.af-bar .nm2-mais-m'); if(m&&!m.querySelector('.nfc-mi')) m.insertAdjacentHTML('afterbegin','<button class="nm2-mi nfc-mi" onclick="nfcAbrir()">📑 NFs recebidas · contabilidade</button>'); }catch(e){}
+    return r;
+  };
+  var st=document.createElement('style');
+  st.textContent='.nfc-box{width:min(1100px,100%)}.nfc-box .rec-bd{max-height:62vh}'+
+    '.nfc-f{display:grid;grid-template-columns:1.4fr 1.4fr 1fr 1fr;gap:10px;margin:6px 0 10px}.nfc-f label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mut)}.nfc-f input{color-scheme:dark}'+
+    '.nfc-f2{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}'+
+    '.nfc-k{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.nfc-k>div{border:1px solid var(--line);border-radius:12px;padding:8px 12px}.nfc-k small{display:block;font-size:11px;color:var(--mut)}.nfc-k b{font-size:18px}'+
+    '.nfc-k .tt{border-left:4px solid var(--red,#d60000)}.nfc-k .w b{color:#ffc35a}.nfc-k .ok b{color:#7ee2a3}'+
+    '.nfc-tb{border:1px solid var(--line);border-radius:12px;overflow:hidden}.nfc-r{display:grid;grid-template-columns:28px 1.6fr 1.2fr 1fr 1fr 110px 120px;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:12.5px}'+
+    '.nfc-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);background:rgba(255,255,255,.03);cursor:default;border-top:0}.nfc-r small{display:block;color:var(--mut);font-size:11px}.nfc-r .r{text-align:right}.nfc-r input{width:16px;height:16px;accent-color:#1f9d57}'+
+    '.nfc-r.env{background:rgba(61,220,132,.04)}.nfc-g{padding:8px 12px;border-top:1px solid var(--line);background:rgba(255,255,255,.04);font-weight:800;font-size:12.5px}.nfc-g small{font-weight:600;color:var(--mut);margin-left:6px}'+
+    '.nfc-ok{font-style:normal;color:#7ee2a3;font-weight:700}.nfc-no{font-style:normal;color:#ffc35a;font-weight:700}'+
+    '@media (max-width:900px){.nfc-f,.nfc-k{grid-template-columns:1fr 1fr}.nfc-r{grid-template-columns:28px 1fr 1fr}.nfc-h{display:none}}';
+  document.head.appendChild(st);
+})();
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v130'; })) NOVIDADES.unshift({v:'v130',data:'27/11/2026',itens:[
+  ['📑','NFs recebidas · contabilidade','Notas fiscais → Mais: todas as NFs que chegaram (serviço e cachê), com filtro por empresa e período. Marque as que já mandou para a contabilidade e gere o PDF ou a planilha.'],
+  ['🧾','Recibo sem "NF pendente" à toa','"NF pendente" só aparece quando foi combinado um prazo para a NF chegar. Na ficha, "Paga" virou "Enviado ao Financeiro".']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v131 · EPI E UNIFORME: QUADRO ENXUTO · ALERTA DE PEDIDO REPETIDO · ENTREGA PELAS MENINAS =================
+   1) Cartões compactos e colunas que recolhem (toque no título da coluna). "Entregue" começa recolhida.
+   2) Pedido para a mesma pessoa em menos de 3 meses: NÃO bloqueia, mas mostra o relatório do que já foi
+      pedido (data, itens, motivo, situação) — no formulário e antes de registrar. O cartão ganha 🔁.
+   3) "Entregue" pode ser marcado por qualquer uma (Andreia, Karina ou a gestora). "Solicitado" continua só da gestora. */
+
+var EPI_DIAS_REP=90;
+try{ EPI.rec=JSON.parse(localStorage.getItem('epi_rec')||'null')||{entregue:true}; }catch(e){ EPI.rec={entregue:true}; }
+function epiRecolher(st){ EPI.rec[st]=!EPI.rec[st]; try{ localStorage.setItem('epi_rec',JSON.stringify(EPI.rec)); }catch(e){} epiCorpo(); }
+function epiDiasEntre(a,b){ return Math.round(Math.abs(new Date((''+a).slice(0,10)+'T12:00:00')-new Date((''+b).slice(0,10)+'T12:00:00'))/864e5); }
+// outros pedidos da mesma pessoa a menos de 3 meses da data de referência
+function epiRecentes(colabId,ref,exceto){
+  if(!colabId) return [];
+  ref=(''+(ref||hoje())).slice(0,10);
+  return (EPI.ped||[]).filter(function(p){ return String(p.colaborador_id)===String(colabId)&&String(p.id)!==String(exceto||'')&&dataOk(p.data_pedido)&&epiDiasEntre(p.data_pedido,ref)<=EPI_DIAS_REP; })
+    .sort(function(a,b){ return (''+b.data_pedido).localeCompare(''+a.data_pedido); });
+}
+function epiRelRepetido(l,itensAgora){
+  var ids={}; (itensAgora||[]).forEach(function(i){ if(i.produto_id) ids[String(i.produto_id)]=1; });
+  return '<table class="epi-rep"><thead><tr><th>Pedido</th><th>Itens</th><th>Motivo</th><th>Situação</th></tr></thead><tbody>'+
+    l.map(function(p){ var si=epiStInfo(p.status);
+      return '<tr><td>'+epiData(p.data_pedido)+'<small>'+esc(epiPrimeiro(p.pedido_por_nome))+'</small></td><td>'+(p.itens||[]).map(function(i){ var rep=ids[String(i.produto_id)]; return '<span class="'+(rep?'rp':'')+'">'+(rep?'⚠ ':'')+(i.qtd>1?i.qtd+'× ':'')+esc(i.nome)+(i.tamanho?' '+esc(i.tamanho):'')+'</span>'; }).join('')+'</td>'+
+        '<td>'+esc(p.motivo||'—')+'</td><td><span class="epi-st" style="--k:'+si[2]+'">'+si[1]+'</span>'+(p.data_entregue?'<small>entregue '+epiData(p.data_entregue)+'</small>':'')+'</td></tr>'; }).join('')+'</tbody></table>';
+}
+
+/* ---------- 3) entregue: qualquer uma marca ---------- */
+epiMover=function(id,st,data){
+  var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }); if(!p||p.status===st) return;
+  var M=epiMaster();
+  if(!M&&!(st==='entregue'&&p.status==='solicitado')){ aviso(st==='entregue'?'Primeiro a gestora marca Solicitado; depois qualquer uma marca Entregue.':'Só a gestora marca Solicitado (e volta etapas).',true); return; }
+  var eu=epiPrimeiro(EU&&EU.nome)||epiEu(), d=data||hoje();
+  var patch={status:st,atualizado_em:new Date().toISOString(),atualizado_por:epiEu()};
+  if(st==='pedido'){ patch.data_solicitado=null; patch.solicitado_por=null; patch.data_entregue=null; patch.entregue_por=null; }
+  if(st==='solicitado'){ patch.data_solicitado=p.data_solicitado||d; patch.solicitado_por=p.solicitado_por||eu; patch.data_entregue=null; patch.entregue_por=null; }
+  if(st==='entregue'){ patch.data_entregue=d; patch.entregue_por=eu; if(!p.data_solicitado){ patch.data_solicitado=d; patch.solicitado_por=eu; } }
+  sb.from('dp_epi_pedidos').update(patch).eq('id',p.id).select().then(function(r){
+    if(r.error||!r.data||!r.data.length){ aviso('Não consegui mudar a etapa: '+((r.error&&r.error.message)||'sem permissão no banco')+(M?'':' · peça para a gestora liberar a entrega para você'),true); return; }
+    Object.assign(p,r.data[0]); dmDesenhar(); if(EPI.aberto===p.id) epiAbrir(p.id);
+    aviso(st==='entregue'?'✓ Entregue por '+eu+'. Lembre de registrar a entrega (ficha assinada) no sistema da empresa.':(st==='solicitado'?'✓ Marcado como solicitado em '+fmtData(patch.data_solicitado):'↩ Voltou para Pedido'));
+  },function(){ aviso('Sem conexão. Tente de novo.',true); });
+};
+(function(){
+  // cartão: botão "Entregue hoje" também para as meninas + marca de pedido repetido
+  var _c=epiCartao; epiCartao=function(p){
+    var h=_c.apply(this,arguments), st=p.status||'pedido', id=esc(p.id);
+    if(!epiMaster()&&st==='solicitado'){ var i=h.lastIndexOf('</div>'); h=h.slice(0,i)+'<button type="button" class="epi-ac e" onclick="event.stopPropagation();epiMover(\''+id+'\',\'entregue\')">📦 Entregue hoje</button>'+h.slice(i); }
+    var ant=epiRecentes(p.colaborador_id,p.data_pedido,p.id).filter(function(x){ return (''+x.data_pedido)<(''+p.data_pedido)||((''+x.data_pedido)===(''+p.data_pedido)&&(''+(x.criado_em||''))<(''+(p.criado_em||''))); });
+    if(ant.length) h=h.replace('<div class="dm95-t">','<div class="dm95-t"><i class="epi-rp" title="'+esc(ant.length+' pedido(s) anterior(es) a menos de 3 meses: '+ant.map(function(x){ return epiData(x.data_pedido)+' ('+epiItensTxt(x)+')'; }).join(' · '))+'">🔁 '+(ant.length+1)+'º em 3 meses</i>');
+    return h;
+  };
+  // janela do pedido: botão para as meninas + histórico recente
+  var _ab=epiAbrir; epiAbrir=function(id){
+    var r=_ab.apply(this,arguments);
+    try{
+      var p=(EPI.ped||[]).find(function(x){ return String(x.id)===String(id); }), ov=el('epiOv'); if(!p||!ov) return r;
+      var rod=ov.querySelector('.epi-rod');
+      if(rod&&!epiMaster()&&p.status==='solicitado'&&!rod.querySelector('.epi-okb')) rod.insertAdjacentHTML('beforeend','<button type="button" class="nm-b pri epi-okb" onclick="epiMover(\''+esc(p.id)+'\',\'entregue\')">📦 Marcar entregue hoje</button>');
+      var l=epiRecentes(p.colaborador_id,p.data_pedido,p.id);
+      if(l.length&&rod&&!ov.querySelector('.epi-repw')) rod.insertAdjacentHTML('beforebegin','<div class="epi-repw"><b>🔁 Outros pedidos de '+esc(epiPrimeiro(p.colaborador_nome))+' a menos de 3 meses</b>'+epiRelRepetido(l,p.itens)+'</div>');
+    }catch(e){}
+    return r;
+  };
+  // texto de ajuda conforme quem está usando
+  var _h=epiHTML; epiHTML=function(){
+    var h=_h.apply(this,arguments);
+    return h.replace(/<p class="dm-sub">[\s\S]*?<\/p>/,'<p class="dm-sub">'+(epiMaster()?
+      'As meninas registram o pedido. Você marca <b style="color:#fff">🛒 Solicitado</b> quando pedir. <b style="color:#fff">📦 Entregue</b> pode ser marcado por você ou por elas. Toque no título da coluna para recolher.':
+      'Registre o pedido de EPI ou uniforme. A gestora marca <b style="color:#fff">🛒 Solicitado</b>; quando a pessoa receber, você mesma marca <b style="color:#fff">📦 Entregue hoje</b>.')+'</p>');
+  };
+  // colunas que recolhem
+  var _q=epiQuadro; epiQuadro=function(l){
+    var h=_q.apply(this,arguments);
+    EPI_ST.forEach(function(c){
+      var rec=!!EPI.rec[c[0]];
+      h=h.replace('<section class="dm95-col" style="--k:'+c[2]+'"','<section class="dm95-col epi-col'+(rec?' epi-rc':'')+'" style="--k:'+c[2]+'"');
+      h=h.replace('<header><i></i><b>'+c[1]+'</b>','<header class="epi-hd" onclick="epiRecolher(\''+c[0]+'\')" title="'+(rec?'Mostrar':'Recolher')+' a coluna"><i></i><b>'+c[1]+'</b><em class="epi-cv">'+(rec?'▸ mostrar':'▾')+'</em>');
+    });
+    return h;
+  };
+  // formulário: aviso com o relatório quando a pessoa já pediu há menos de 3 meses
+  var _fp=epiFormPintar; epiFormPintar=function(){
+    var r=_fp.apply(this,arguments), f=EPI.form; if(!f) return r;
+    try{
+      var l=epiRecentes(f.colab,f.data_pedido,f.id), bx=el('epiFOv'), fg=bx&&bx.querySelector('.epi-fg');
+      if(l.length&&fg&&!bx.querySelector('.epi-repw')){ var c=epiColab(f.colab);
+        fg.insertAdjacentHTML('afterend','<div class="epi-repw"><b>⚠️ '+esc(epiPrimeiro((c&&c.nome)||f.colabNome||''))+' já teve '+l.length+' pedido(s) nos últimos 3 meses</b><small>Não bloqueia: confira se não é repetido antes de registrar. Itens com ⚠ são os mesmos deste pedido.</small>'+epiRelRepetido(l,f.itens)+'</div>'); }
+    }catch(e){}
+    return r;
+  };
+  // ao registrar: confirma vendo o relatório (sem bloquear)
+  var _sv=epiSalvar; epiSalvar=function(){
+    epiFormLer(); var f=EPI.form; if(!f) return;
+    var l=(!f.id&&!f._repOk)?epiRecentes(f.colab,f.data_pedido,null):[];
+    if(!l.length) return _sv.apply(this,arguments);
+    var c=epiColab(f.colab), nome=(c&&c.nome)||'';
+    var ov=el('epiRepOv'); if(!ov){ ov=document.createElement('div'); ov.id='epiRepOv'; ov.className='rec-ov epi-repov'; document.body.appendChild(ov); }
+    ov.innerHTML='<div class="rec-box epi-repbox"><div class="rec-hd"><div><b>🔁 '+esc(nome)+' já teve '+l.length+' pedido(s) em menos de 3 meses</b><small>O pedido não é bloqueado. Confira abaixo o que já foi pedido e decida.</small></div><button type="button" class="rec-x" onclick="el(\'epiRepOv\').classList.remove(\'on\')">✕</button></div>'+
+      '<div class="rec-bd">'+epiRelRepetido(l,f.itens)+'<p class="epi-nota" style="margin-top:10px">Itens com <b>⚠</b> são os mesmos que você está pedindo agora. Se for troca por perda ou dano, vale anotar o motivo na observação.</p></div>'+
+      '<div class="rec-ft cxm-ft"><button type="button" class="nm2-b ghost" onclick="el(\'epiRepOv\').classList.remove(\'on\')">↩ Voltar e revisar</button><button type="button" class="nm2-b pri" id="epiRepOk">✓ Registrar mesmo assim</button></div></div>';
+    ov.classList.add('on');
+    el('epiRepOk').onclick=function(){ ov.classList.remove('on'); if(EPI.form) EPI.form._repOk=true; epiSalvar(); };
+  };
+  var st=document.createElement('style');
+  st.textContent=
+    /* cartões compactos */
+    '.epi-q .dm95-c.epi-c{padding:7px 9px 7px 11px;border-radius:9px}.epi-q .epi-c .dm95-t{font-size:12.5px;-webkit-line-clamp:1}'+
+    '.epi-q .epi-quem{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}'+
+    '.epi-q .epi-itens{margin-top:5px;gap:4px}.epi-q .epi-itens span{font-size:11px;padding:1px 6px;border-radius:6px}'+
+    '.epi-q .epi-mot{margin-top:5px;font-size:10.5px;padding:1px 7px}.epi-q .epi-dts{margin-top:5px;gap:4px}.epi-q .epi-dt{font-size:10px;padding:0 5px}'+
+    '.epi-q .epi-ac{margin-top:6px;padding:4px 8px;font-size:11.5px;border-radius:7px}.epi-q .epi-colsub{display:none}'+
+    '.epi-q .dm95-cs{gap:6px;max-height:64vh;overflow-y:auto;padding-right:2px}.epi-q .dm95-col{padding:8px}'+
+    '.epi-ac.e{border-color:#2ecc71;background:rgba(46,204,113,.12);color:#bff3d3}'+
+    /* colunas que recolhem */
+    '.epi-hd{cursor:pointer;user-select:none}.epi-hd:hover b{text-decoration:underline}.epi-cv{margin-left:auto;font-style:normal;font-size:11px;color:var(--mut)}'+
+    '.epi-col.epi-rc{min-height:0}.epi-col.epi-rc .dm95-cs,.epi-col.epi-rc .epi-colsub,.epi-col.epi-rc .dm95-vt{display:none}.epi-col.epi-rc header{margin-bottom:2px}'+
+    /* pedido repetido */
+    '.epi-rp{display:inline-block;font-style:normal;font-size:10px;font-weight:800;padding:0 6px;margin-right:6px;border-radius:999px;background:rgba(255,176,32,.16);color:#ffc35a;border:1px solid rgba(255,176,32,.45);vertical-align:1px}'+
+    '.epi-repw{margin:12px 0;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,176,32,.45);background:rgba(255,176,32,.07)}.epi-repw>b{display:block;font-size:13px;color:#ffc35a}.epi-repw>small{display:block;font-size:12px;color:var(--mut);margin:2px 0 6px}'+
+    '.epi-rep{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}.epi-rep th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);padding:5px 6px;border-bottom:1px solid var(--line)}'+
+    '.epi-rep td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}.epi-rep td small{display:block;color:var(--mut);font-size:11px}.epi-rep td span{display:inline-block;margin:0 4px 3px 0;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.06)}.epi-rep td span.rp{background:rgba(255,80,80,.15);color:#ff9a94;font-weight:700}'+
+    '.epi-repov{z-index:9600}.epi-repbox{width:min(680px,100%)}';
+  document.head.appendChild(st);
+})();
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v131'; })) NOVIDADES.unshift({v:'v131',data:'27/11/2026',itens:[
+  ['🦺','EPI: quadro mais enxuto','Cartões menores e colunas que recolhem (toque no título). "Entregue" começa recolhida.'],
+  ['🔁','Pedido repetido em menos de 3 meses','Não bloqueia: aparece o relatório do que a pessoa já pediu (itens iguais marcados com ⚠) e o cartão ganha 🔁.'],
+  ['📦','Entrega pelas meninas','Depois que a gestora marca Solicitado, Andreia e Karina também podem marcar 📦 Entregue hoje.']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v132 · CUSTOS ADICIONAIS: MENSAGEM NO GRUPO DO WHATSAPP + COMPROVANTE =================
+   • "Detalhe" passa a ser obrigatório (descrição curta do que se trata).
+   • Ao salvar um custo novo: opção "📲 Enviar no grupo do WhatsApp" (marcada) e
+     "🧾 Pedir o comprovante de pagamento no grupo". A mensagem leva tipo, detalhe, quem, empresa, valor e data de pagamento.
+   • Grupo do Financeiro: cole uma vez o link de convite do grupo (chat.whatsapp.com/…) em "⚙️ Grupo".
+     O WhatsApp não deixa um site escrever direto dentro de um grupo: a Central copia a mensagem e abre o grupo;
+     é só colar (Ctrl+V) e enviar. Sem o link, abre o WhatsApp para você escolher o grupo.
+   • Comprovante: o custo mostra "🧾 comprovante pedido"; quando chegar no grupo, toque para marcar "✅ comprovante recebido".
+     (kv 'cs-grupo-wa' e 'cs-comprovantes') */
+var CSW={link:null,comp:null};
+function cswLer(){ if(CSW.link!==null&&CSW.comp) return Promise.resolve();
+  return Promise.all([kvLer('cs-grupo-wa',{}),kvLer('cs-comprovantes',{})]).then(function(r){ CSW.link=(r[0]&&r[0].link)||''; CSW.comp=r[1]&&typeof r[1]==='object'?r[1]:{}; }); }
+// copia a mensagem e abre o grupo (link de convite) ou o WhatsApp para escolher
+function cswEnviar(msg){
+  try{ navigator.clipboard&&navigator.clipboard.writeText(msg).catch(function(){}); }catch(e){}
+  if(CSW.link){ window.open(CSW.link,'_blank'); aviso('📋 Mensagem copiada e grupo aberto: cole (Ctrl+V) e envie.'); }
+  else { wa2('',msg); aviso('📲 WhatsApp aberto (mensagem também copiada). Escolha o grupo do Financeiro. Dica: cadastre o link do grupo em ⚙️ Grupo.'); }
+}
+function cswGrupo(){
+  cswLer().then(function(){
+    var ov=el('cswOv'); if(!ov){ ov=document.createElement('div'); ov.id='cswOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('on'); }); }
+    ov.innerHTML='<div class="rec-box" style="width:min(560px,100%)"><div class="rec-hd"><div><b>⚙️ Grupo do WhatsApp do Financeiro</b><small>Usado para mandar os custos adicionais e pedir os comprovantes.</small></div><button type="button" class="rec-x" onclick="el(\'cswOv\').classList.remove(\'on\')">✕</button></div>'+
+      '<div class="rec-bd"><label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--mut)">Link de convite do grupo<input id="cswLink" class="nm-in" placeholder="https://chat.whatsapp.com/…" value="'+esc(CSW.link||'')+'"></label>'+
+      '<p class="cs-nota" style="margin-top:10px">Como pegar: no WhatsApp, abra o grupo → nome do grupo → <b>Convidar via link</b> → <b>Copiar link</b>. Com o link, a Central abre o grupo direto; você só cola a mensagem (Ctrl+V) e envia.</p></div>'+
+      '<div class="rec-ft cxm-ft"><button type="button" class="nm2-b ghost" onclick="el(\'cswOv\').classList.remove(\'on\')">Cancelar</button><button type="button" class="nm2-b pri" onclick="cswGrupoSalvar()">💾 Salvar</button></div></div>';
+    ov.classList.add('on');
+  });
+}
+function cswGrupoSalvar(){
+  var v=((el('cswLink')||{}).value||'').trim();
+  if(v&&!/^https:\/\/(chat\.whatsapp\.com|wa\.me)\//i.test(v)){ aviso('O link precisa começar com https://chat.whatsapp.com/',true); return; }
+  kvSalvar('cs-grupo-wa',{link:v}).then(function(){ CSW.link=v; el('cswOv').classList.remove('on'); aviso(v?'✓ Grupo salvo.':'Link do grupo removido.'); },function(){ aviso('Não consegui salvar agora.',true); });
+}
+function cswAg(on){ if(!CS.form) return; CS.form.cswAgendado=on; var w=el('csFVencW'), n=el('csFDia'), d=el('csFVenc'); if(w) w.style.display=on?'':'none'; if(n) n.style.display=on?'none':''; if(!on&&d) d.value=''; if(on&&d) d.focus();
+  document.querySelectorAll('.csw-seg button').forEach(function(b,i){ b.classList.toggle('on',on?i===1:i===0); }); }
+function cswMsg(r,comp){
+  var t=csTipo(r), d=csDetalhe(r), l=['💰 *Pagamento · Custos adicionais*','','🏷️ *Tipo:* '+t];
+  if(d&&d!==t) l.push('📝 *Detalhe:* '+d);
+  if(r.colaborador) l.push('👤 *Colaborador:* '+r.colaborador);
+  if(r.empresa) l.push('🏢 *Empresa:* '+r.empresa);
+  l.push('💵 *Valor:* '+moedaBR(v9Num(r.valor)));
+  if(r.vencimento) l.push('📅 *Pagamento agendado para:* '+v9BR(r.vencimento));
+  if(r.obs) l.push('','Obs.: '+r.obs);
+  if(comp) l.push('','🧾 Por favor, assim que pagar, enviem o *comprovante* aqui no grupo. Obrigada!');
+  return l.join('\n');
+}
+function cswComp(id,acao){
+  var c=CSW.comp||(CSW.comp={}), agora=new Date().toISOString();
+  if(acao==='pedido') c[id]=Object.assign({},c[id]||{},{pedido:agora});
+  else if(acao==='recebido') c[id]=Object.assign({},c[id]||{},{recebido:agora});
+  else if(acao==='desfaz'&&c[id]) delete c[id].recebido;
+  return kvSalvar('cs-comprovantes',c);
+}
+function cswCompToggle(id){
+  var x=(CSW.comp||{})[id]; if(!x) return;
+  var go=function(a,m){ cswComp(id,a).then(function(){ aviso(m); csDesenhar(); },function(){ aviso('Não consegui salvar agora.',true); }); };
+  if(x.recebido) dialogo('Desmarcar "comprovante recebido"?',{sim:function(){ go('desfaz','Comprovante voltou para pendente.'); }});
+  else go('recebido','✅ Comprovante recebido.');
+}
+// mandar um custo já salvo, a qualquer momento
+function cswUm(id){
+  var r=csAcha(id); if(!r) return;
+  cswLer().then(function(){
+    var ov=el('cswUmOv'); if(!ov){ ov=document.createElement('div'); ov.id='cswUmOv'; ov.className='rec-ov'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('on'); }); }
+    var comp=!((CSW.comp||{})[id]&&(CSW.comp||{})[id].recebido);
+    ov.innerHTML='<div class="rec-box" style="width:min(560px,100%)"><div class="rec-hd"><div><b>📲 Enviar no grupo do Financeiro</b><small>'+esc(csTipo(r))+(r.colaborador?' · '+esc(r.colaborador):'')+' · '+moedaBR(v9Num(r.valor))+'</small></div><button type="button" class="rec-x" onclick="el(\'cswUmOv\').classList.remove(\'on\')">✕</button></div>'+
+      '<div class="rec-bd"><label class="csw-ck"><input type="checkbox" id="cswUmComp"'+(comp?' checked':'')+' onchange="el(\'cswUmTxt\').value=cswMsg(csAcha(\''+id+'\'),this.checked)"> 🧾 Pedir o comprovante de pagamento no grupo</label>'+
+      '<textarea id="cswUmTxt" class="nm-in" rows="11" spellcheck="false" style="margin-top:8px">'+esc(cswMsg(r,comp))+'</textarea></div>'+
+      '<div class="rec-ft cxm-ft"><button type="button" class="nm2-b ghost" onclick="el(\'cswUmOv\').classList.remove(\'on\')">Cancelar</button><button type="button" class="nm2-b wa" onclick="cswUmIr(\''+id+'\')">📲 Enviar no grupo</button></div></div>';
+    ov.classList.add('on');
+  });
+}
+function cswUmIr(id){
+  var r=csAcha(id), msg=el('cswUmTxt').value, comp=el('cswUmComp').checked; el('cswUmOv').classList.remove('on');
+  cswEnviar(msg);
+  var p=[]; if(comp) p.push(cswComp(id,'pedido'));
+  if(r&&csSit(r)==='lan'&&!v9Sim(r.bloqueado)) p.push(csSalvarUm(Object.assign({},r,{financeiro:csHojeBR(),pasta:'SIM'})));
+  Promise.all(p).then(function(){ csDesenhar(); },function(){ csDesenhar(); });
+}
+
+(function(){
+  // formulário: detalhe obrigatório + opções de envio
+  var _fh=csFormHtml; csFormHtml=function(){
+    var h=_fh.apply(this,arguments), f=CS.form||{};
+    h=h.replace('Detalhe (opcional)<input id="csFDet"','Detalhe (obrigatório)<input id="csFDet" required maxlength="80"')
+       .replace('placeholder="Ex.: exame complementar, uniforme…"','placeholder="Ex.: exame admissional do João"');
+    var ag=f.cswAgendado!=null?f.cswAgendado:!!f.vencimento;
+    h=h.replace(/<label>Data de pagamento<input id="csFVenc" type="date" value="([^"]*)"><\/label>/,function(all,v){
+      return '<div class="csw-pg"><span>Pagamento</span><div class="csw-ag"><div class="csw-seg"><button type="button" class="'+(ag?'':'on')+'" onclick="cswAg(false)">⚡ No dia</button><button type="button" class="'+(ag?'on':'')+'" onclick="cswAg(true)">📅 Agendado</button></div>'+
+        '<div id="csFVencW" class="csw-dw" style="'+(ag?'':'display:none')+'"><input id="csFVenc" type="date" value="'+v+'"></div><small id="csFDia" class="csw-dia" style="'+(ag?'display:none':'')+'">sem data = pagar no dia</small></div></div>'; });
+    if(f.novo){
+      var envia=f.cswEnvia!==false, comp=f.cswComp!==false;
+      h=h.replace('<div class="dm-acoes">','<div class="csw-opc"><label class="csw-ck"><input type="checkbox" id="csFWa"'+(envia?' checked':'')+' onchange="CS.form.cswEnvia=this.checked"> 📲 Enviar no grupo do WhatsApp do Financeiro ao salvar</label>'+
+        '<label class="csw-ck"><input type="checkbox" id="csFPedeComp"'+(comp?' checked':'')+' onchange="CS.form.cswComp=this.checked"> 🧾 Pedir o comprovante de pagamento no grupo</label>'+
+        '<button type="button" class="csw-lk" onclick="cswGrupo()">⚙️ Grupo'+(CSW.link?' ✓':'')+'</button></div><div class="dm-acoes">');
+    }
+    return h;
+  };
+  // salvar: valida o detalhe e, se marcado, já envia no grupo
+  csSalvar=function(){
+    var f=CS.form, g=function(i){ var x=el(i); return x?x.value.trim():''; };
+    var tipo=g('csFTipo').toUpperCase(), det=g('csFDet'), val=vfNum(g('csFVal')), comp=g('csFComp');
+    if(!tipo){ aviso('Escolha o tipo de despesa.',true); return; }
+    if(!det){ aviso('Escreva o detalhe: uma descrição curta do que se trata.',true); var d=el('csFDet'); if(d) d.focus(); return; }
+    if(val==null){ aviso('Informe o valor.',true); return; }
+    if(!/^\d{4}-\d{2}$/.test(comp)){ aviso('Informe a competência (mês).',true); return; }
+    var ini=g('csFIni'), fim=g('csFFim'), dias=g('csFDias');
+    if(!dias&&ini){ var a=new Date(ini+'T12:00:00'), b=new Date((fim||ini)+'T12:00:00'); var n=Math.round((b-a)/864e5)+1; if(n>0) dias=String(n); }
+    var o=Object.assign({},f.orig||{},{id:f.id,descricao:tipo+(det?' - '+det:''),empresa:g('csFEmp')||null,competencia:comp,colaborador:g('csFCol').toUpperCase()||null,periodo_inicio:ini||null,periodo_fim:fim||null,dias:dias?parseInt(dias,10):null,valor:val,vencimento:(CS.form&&CS.form.cswAgendado===false)||(CS.form&&CS.form.cswAgendado==null&&!CS.form.vencimento)?null:(g('csFVenc')||null),obs:g('csFObs')||null});
+    if(f.cswAgendado&&!o.vencimento){ aviso('Pagamento agendado: informe a data.',true); var dv=el('csFVenc'); if(dv) dv.focus(); return; }
+    if(!f.orig){ o.pasta='NÃO'; }
+    var envia=!!(f.novo&&el('csFWa')&&el('csFWa').checked), pedeComp=!!(f.novo&&el('csFPedeComp')&&el('csFPedeComp').checked);
+    if(envia){ o.financeiro=csHojeBR(); o.pasta='SIM'; }
+    v9ConfirmaDupl([o],function(){
+      CS.form=null; if(!CS.todos){ CS.mes=comp; SX.mes=comp; }
+      if(envia) cswEnviar(cswMsg(o,pedeComp));   // abre já no clique (o navegador não bloqueia)
+      var p=csSalvarUm(o,envia?'✓ Custo salvo e enviado ao grupo do Financeiro.':'✓ Custo salvo.');
+      if(envia&&pedeComp&&p&&p.then) p.then(function(){ return cswComp(o.id,'pedido'); }).then(function(){ csDesenhar(); },function(){});
+    });
+  };
+  // lista: 📲 por custo, etiqueta do comprovante e ⚙️ Grupo no topo
+  var _cd=csDesenhar; csDesenhar=function(){
+    if(CSW.link===null||!CSW.comp){ cswLer().then(function(){ try{ if(ATUAL==='custosx') csDesenhar(); }catch(e){} }); }
+    var r=_cd.apply(this,arguments), a=el('cpApp'); if(!a) return r;
+    try{
+      var acs=a.querySelector('.cp-acs');
+      if(acs&&!acs.querySelector('.csw-gb')){ var b=document.createElement('button'); b.type='button'; b.className='nm-b csw-gb'; b.title='Link do grupo do WhatsApp do Financeiro'; b.textContent='⚙️ Grupo'+(CSW.link?' ✓':''); b.onclick=cswGrupo; acs.insertBefore(b,acs.firstChild.nextSibling); }
+      a.querySelectorAll('.cp-r').forEach(function(tr){
+        var ed=tr.querySelector('button[onclick^="csEditar("]'); if(!ed) return;
+        var id=(ed.getAttribute('onclick').match(/csEditar\('([^']+)'\)/)||[])[1]; if(!id) return;
+        var ac=tr.querySelector('.cp-ac'); if(ac&&!ac.querySelector('.csw-um')){ var w=document.createElement('button'); w.type='button'; w.className='cs-ic csw-um'; w.title='Enviar este custo no grupo do Financeiro'; w.textContent='📲'; w.onclick=function(){ cswUm(id); }; ac.insertBefore(w,ac.firstChild); }
+        var x=(CSW.comp||{})[id], td=tr.querySelector('td');
+        if(x&&x.pedido&&td&&!td.querySelector('.csw-tag')){ var t=document.createElement('button'); t.type='button'; t.className='csw-tag'+(x.recebido?' ok':''); t.textContent=x.recebido?'✅ comprovante':'🧾 comprovante pedido'; t.title=x.recebido?'Comprovante recebido em '+nm2Br(x.recebido.slice(0,10))+' · toque para desfazer':'Pedido em '+nm2Br(x.pedido.slice(0,10))+' · toque quando o comprovante chegar no grupo'; t.onclick=function(){ cswCompToggle(id); }; td.appendChild(t); }
+      });
+      var nota=a.querySelector('.cs-nota'); if(nota&&!nota.querySelector('.csw-n')) nota.insertAdjacentHTML('beforeend',' <span class="csw-n">📲 manda um custo no grupo · 🧾 marca quando o comprovante chegar.</span>');
+    }catch(e){}
+    return r;
+  };
+  // "📲 Financeiro" (todos de uma vez) também vai para o grupo cadastrado
+  var _wa=wa2; wa2=function(t,m){ if(CSW.link&&/^💰 \*Custos adicionais/.test(m||'')) return cswEnviar(m); return _wa.apply(this,arguments); };
+  var _cf=csFinanceiro; csFinanceiro=function(){ var self=this, a=arguments; return cswLer().then(function(){ return _cf.apply(self,a); }); };
+  var st=document.createElement('style');
+  st.textContent='.csw-opc{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:10px 0 4px;padding:10px 12px;border-radius:12px;border:1px solid rgba(61,220,132,.35);background:rgba(61,220,132,.05)}'+
+    '.csw-ck{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;cursor:pointer}.csw-ck input{width:16px;height:16px;accent-color:#1f9d57}'+
+    '.csw-lk{margin-left:auto;border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;cursor:pointer}'+
+    '.csw-tag{display:block;margin-top:4px;border:1px solid rgba(255,195,90,.45);background:rgba(255,195,90,.1);color:#ffc35a;border-radius:999px;padding:1px 8px;font:inherit;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap}'+
+    '.csw-pg{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--mut)}.csw-ag{display:flex;align-items:center;gap:10px;min-height:38px}.csw-ag input[type=date]{flex:1;min-width:0}.csw-seg{display:inline-flex;gap:3px;padding:3px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);flex:0 0 auto}.csw-seg button{border:0;background:transparent;color:var(--mut);font:inherit;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:7px;cursor:pointer;white-space:nowrap}.csw-seg button.on{background:rgba(61,220,132,.16);color:#7ee2a3}.csw-dw{flex:1;min-width:0}.csw-dia{font-size:12px;color:#7ee2a3;font-weight:600}'+
+    '.csw-tag.ok{border-color:rgba(61,220,132,.45);background:rgba(61,220,132,.1);color:#7ee2a3}';
+  document.head.appendChild(st);
+})();
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v132'; })) NOVIDADES.unshift({v:'v132',data:'27/11/2026',itens:[
+  ['📲','Custos adicionais no grupo do WhatsApp','Ao salvar um custo, a mensagem (tipo, detalhe, valor e data de pagamento) vai para o grupo do Financeiro. O 📲 de cada linha manda de novo. Cadastre o link do grupo em ⚙️ Grupo.'],
+  ['🧾','Comprovante pedido no grupo','Marque "Pedir o comprovante" e o custo fica com 🧾 comprovante pedido até você tocar em ✅ quando ele chegar.'],
+  ['📝','Detalhe obrigatório','Todo custo precisa de uma descrição curta do que se trata.'],
+  ['📅','Pagamento no dia ou agendado','Sem data = pagar no dia. Marque 📅 Agendado só quando tiver data marcada; aí a data vai na mensagem.']
+]}); }catch(e){}
+</script>
+
+<script>
+/* ================= v133 · TODAS AS MENSAGENS AUTOMÁTICAS NO CADASTRO + TELA MAIS ORGANIZADA =================
+   Entram em "💬 Mensagens do WhatsApp" as mensagens que ainda saíam com texto fixo:
+     ✍️ recibo para assinatura · 👍 pedir o OK do cachê · 🎤 NF de cachê pela OP (pessoa e grupo)
+     💰 custo adicional no grupo · 💰 custos do mês (lote) · 🦺 relatório SST · 📤 previsão da semana
+   Todas passam a usar o texto do cadastro (dá para ajustar e voltar ao padrão).
+   Tela: lista agrupada por destinatário, com busca e contador; itens mais compactos. */
+(function(){
+  var P=MSG_PADRAO;
+  var add={
+    recibo_assinatura:{t:'Enviar recibo para assinatura',onde:'Notas fiscais → Recibo para assinar → 📲 Mandar p/ assinar',para:'Prestador / colaborador',ic:'✍️',
+      campos:{primeiro_nome:'Primeiro nome',numero:'Número do recibo (REC-…)',valor:'Valor líquido',periodo:'Período / competência',servico:'Serviço descrito no recibo',data_pagamento:'Data do pagamento',empresa:'Empresa pagadora'},
+      texto:'Oi, {primeiro_nome}! Tudo bem? 😊\n\nSegue o seu recibo de pagamento nº {numero}, no valor de {valor}, referente a {periodo}.\n\nConfere os dados, assina e me devolve, por favor. Assim que voltar assinado eu libero o pagamento.\nObrigada!',
+      ex:{primeiro_nome:'Fernando',numero:'REC-2026-0061',valor:'R$ 1.280,00',periodo:'01/11/2026 a 30/11/2026',servico:'Cachê referente os cachês dos prestados em eventos',data_pagamento:'01/12/2026',empresa:'X-LED PRODUCOES'}},
+    cache_ok:{t:'Pedir o OK do valor do cachê',onde:'Notas fiscais → Cachê → 👍 OK? → Pedir o OK',para:'Prestador / colaborador',ic:'👍',
+      campos:{primeiro_nome:'Primeiro nome',mes:'Mês do cachê (ex.: outubro de 2026)',periodo:'Período dos eventos (01/10 a 31/10/2026)',valor:'Valor do cachê'},
+      texto:'Oi, {primeiro_nome}! Tudo bem? 😊\n\nSegue o valor do seu cachê de {mes} (eventos de {periodo}):\n\n*{valor}*\n\nPode conferir e me dar um OK por aqui? Se algo estiver diferente, me avisa antes de emitir a nota. Obrigada!',
+      ex:{primeiro_nome:'Maycon',mes:'outubro de 2026',periodo:'01/10 a 31/10/2026',valor:'R$ 2.300,00'}},
+    op_cobranca:{t:'NF de cachê pela OP (para cada pessoa)',onde:'Notas fiscais → 📥 Ordens de Pagamento → 📲 na pessoa',para:'Prestador / colaborador',ic:'🎤',
+      campos:{primeiro_nome:'Primeiro nome',mes:'Mês do cachê',periodo:'Período da OP',valor:'Valor da OP',tomador:'Empresa tomadora e CNPJ',descricao:'Descrição da nota',data_pagamento:'Data de pagamento'},
+      texto:'Oi, {primeiro_nome}! Tudo bem? 😊\n\nPreciso da sua nota fiscal de cachê de {mes} ({periodo}):\n\n💰 Valor: {valor}\n🏢 Tomador: {tomador}\n📝 Descrição: {descricao}\n📅 Pagamento: {data_pagamento}\n\nConsegue me mandar hoje? Obrigada!',
+      ex:{primeiro_nome:'Gabriel',mes:'outubro de 2026',periodo:'01/10/2026 a 31/10/2026',valor:'R$ 850,00',tomador:'X-LED PRODUCOES · CNPJ 66.023.926/0001-00',descricao:'Cachê referente a serviços prestados em eventos no período de 01/10/2026 a 31/10/2026',data_pagamento:'03/11/2026'}},
+    op_grupo:{t:'NF de cachê pela OP (resumo para o grupo)',onde:'Notas fiscais → 📥 Ordens de Pagamento → resumo no grupo',para:'Grupo da equipe de eventos',ic:'🎤',
+      campos:{mes:'Mês do cachê',periodo:'Período da OP',lista:'Pessoas e valores (montada sozinha)',total:'Total da OP',data_pagamento:'Data de pagamento'},
+      texto:'NF de cachê - {mes}\nPeríodo: {periodo}\n\n{lista}\n\nTotal: {total}\n\nPreciso que cada um emita a NF de cachê com o seu valor e me mande. Pagamento: {data_pagamento}.',
+      ex:{mes:'Outubro de 2026',periodo:'01/10/2026 a 31/10/2026',lista:'- GABRIEL SANTOS: R$ 850,00\n- JOÃO LIMA: R$ 600,00',total:'R$ 1.450,00',data_pagamento:'03/11/2026'}},
+    custo_grupo:{t:'Custo adicional · pagamento no grupo',onde:'Painel DP → Custos adicionais → Salvar / 📲',para:'Grupo do Financeiro',ic:'💰',
+      campos:{tipo:'Tipo de despesa',detalhe:'Detalhe (descrição curta)',colaborador:'Colaborador / candidato',empresa:'Empresa',valor:'Valor',agendado:'Data agendada (some quando é para pagar no dia)',obs:'Observação',pedir_comprovante:'Marca da linha do comprovante: a linha só aparece quando você marca "Pedir o comprovante"'},
+      texto:'💰 *Pagamento · Custos adicionais*\n\n🏷️ *Tipo:* {tipo}\n📝 *Detalhe:* {detalhe}\n👤 *Colaborador:* {colaborador}\n🏢 *Empresa:* {empresa}\n💵 *Valor:* {valor}\n📅 *Pagamento agendado para:* {agendado}\n\nObs.: {obs}\n\n{pedir_comprovante}🧾 Por favor, assim que pagar, enviem o *comprovante* aqui no grupo. Obrigada!',
+      ex:{tipo:'EXAME',detalhe:'exame admissional',colaborador:'MAYCON FERREIRA DA SILVA',empresa:'X-LED',valor:'R$ 150,00',agendado:'',obs:'',pedir_comprovante:'​'}},
+    custos_lote:{t:'Custos adicionais do mês (todos de uma vez)',onde:'Painel DP → Custos adicionais → 📲 Financeiro',para:'Grupo do Financeiro',ic:'💰',
+      campos:{conteudo:'Lista por empresa com subtotais e total (montada sozinha)'},
+      texto:'{conteudo}',
+      ex:{conteudo:'💰 *Custos adicionais · Novembro de 2026*\n\n🏢 *X-LED*\n• EXAME · MAYCON (exame admissional) — R$ 150,00\nSubtotal X-LED: *R$ 150,00*\n\n💵 *Total geral: R$ 150,00* (1 lançamento)\n\nObrigada!'}},
+    sst_financeiro:{t:'Relatório SST (técnico de segurança)',onde:'Painel DP → Custos adicionais → 🦺 Segurança do trabalho → Financeiro',para:'Grupo do Financeiro',ic:'🦺',
+      campos:{conteudo:'Serviços por empresa, total e PIX do técnico (montado sozinho)'},
+      texto:'{conteudo}',
+      ex:{conteudo:'🦺 *Relatório SST fechado · técnico de segurança*\n📅 Competência: Novembro de 2026\n\n🏢 *ILED BRASILIA*\n• NR-35 · MAURÍCIO — R$ 120,00\n\n💰 *Total: R$ 120,00*\n🔑 PIX: 000.000.000-00\n\nObrigada!'}},
+    pag_previsao:{t:'Previsão de pagamentos da semana',onde:'Notas fiscais → 📅 Pagamentos → Previsão da semana',para:'Grupo do Financeiro',ic:'📤',
+      campos:{conteudo:'Pagamentos da semana por dia (montado sozinho)'},
+      texto:'{conteudo}',
+      ex:{conteudo:'PREVISÃO DE PAGAMENTOS - SEMANA 01/12 A 05/12\n\n01/12 (seg)\n- MAYCON FERREIRA - R$ 2.300,00\n\nTotal da semana: R$ 2.300,00'}}
+  };
+  Object.keys(add).forEach(function(k){ P[k]=add[k]; });
+  // para quem: nomes padronizados para agrupar a lista
+  var para={'Prestador PJ / freelancer':'Prestador / colaborador'};
+  Object.keys(P).forEach(function(k){ if(para[P[k].para]) P[k].para=para[P[k].para]; });
+})();
+
+/* ---------- as mensagens passam a usar o cadastro ---------- */
+(function(){
+  var br=function(i){ return i?(''+i).slice(0,10).split('-').reverse().join('/'):''; };
+  // 👍 OK do cachê
+  cxfMsgOk=function(n){
+    var p=nmPrest(n.colaborador_id)||{}, M=(''+n.mes_referencia).slice(0,7), nm=(typeof opPrimeiroNome==='function')?opPrimeiroNome(p.nome):String(p.nome||'').split(' ')[0];
+    return msgMontar('cache_ok',{primeiro_nome:nm,mes:nomeMes(M).toLowerCase(),periodo:'01/'+M.slice(5,7)+' a '+nm2Br(nmUltimoDia(M)),valor:moedaBR(parseFloat(n.valor)||0)});
+  };
+  // 🎤 NF de cachê pela OP (pessoa)
+  opMsg=function(o,i){
+    var p=i.colaborador_id?nmPrest(i.colaborador_id):{}, E=(NM.dados.emp||{})[i.empresa_id||p.empresa_id]||{};
+    var per=o.periodo_ini&&o.periodo_fim?nm2Br(o.periodo_ini)+' a '+nm2Br(o.periodo_fim):nomeMes(o.mes_referencia).toLowerCase();
+    var desc=((NM.desc||{})[i.colaborador_id]||'').trim()||('Cachê referente a serviços prestados em eventos no período de '+per);
+    return msgMontar('op_cobranca',{primeiro_nome:opPrimeiroNome(i.nome),mes:nomeMes(o.mes_referencia).toLowerCase(),periodo:per,valor:moedaBR(i.valor),tomador:E.nome?E.nome+(E.cnpj?' · CNPJ '+E.cnpj:''):'',descricao:desc,data_pagamento:opPagamento(o,i)});
+  };
+  // 💰 custo adicional no grupo
+  cswMsg=function(r,comp){
+    var t=csTipo(r), d=csDetalhe(r);
+    return msgMontar('custo_grupo',{tipo:t,detalhe:d&&d!==t?d:'',colaborador:r.colaborador||'',empresa:r.empresa||'',valor:moedaBR(v9Num(r.valor)),agendado:r.vencimento?v9BR(r.vencimento):'',obs:r.obs||'',pedir_comprovante:comp?'​':''}).replace(/​/g,'');
+  };
+  // 📤 previsão da semana
+  var _nt=nfTexto; nfTexto=function(tit,sub,txt,cb){ if(/Previsão da semana/.test(tit||'')) txt=msgMontar('pag_previsao',{conteudo:txt}); return _nt.call(this,tit,sub,txt,cb); };
+  // textos montados em lote: custos do mês, SST e resumo da OP para o grupo (passam pelo cadastro na hora de abrir o WhatsApp)
+  var FEITAS=[];
+  var tpl=function(m){ if(!m||FEITAS.indexOf(m)>=0) return m; var n=tpl0(m); if(n!==m){ FEITAS.push(n); if(FEITAS.length>30) FEITAS.shift(); } return n; };
+  var tpl0=function(m){
+    if(/^💰 \*Custos adicionais/.test(m)) return msgMontar('custos_lote',{conteudo:m});
+    if(/^🦺 \*Relatório SST/.test(m)) return msgMontar('sst_financeiro',{conteudo:m});
+    var g=/^NF de cachê - (.+)\nPeríodo: (.+)\n\n([\s\S]*?)\n\nTotal: (.+)\n\nPreciso que cada um emita a NF de cachê com o seu valor e me mande\. Pagamento: (.+)\.$/.exec(m);
+    if(g) return msgMontar('op_grupo',{mes:g[1],periodo:g[2],lista:g[3],total:g[4],data_pagamento:g[5]});
+    return m;
+  };
+  var _wa=wa2; wa2=function(t,m){ return _wa.call(this,t,tpl(m||'')); };
+  var _ce=cswEnviar; cswEnviar=function(m){ return _ce.call(this,tpl(m||'')); };
+  var _op=window.open; window.open=function(u){
+    try{ if(typeof u==='string'&&/^https:\/\/wa\.me\/[^?]*\?text=/.test(u)){ var i=u.indexOf('?text='), m=decodeURIComponent(u.slice(i+6)), n=tpl(m);
+      if(n!==m){ arguments[0]=u.slice(0,i+6)+encodeURIComponent(n); try{ navigator.clipboard&&navigator.clipboard.writeText(n).catch(function(){}); }catch(e){} } } }catch(e){}
+    return _op.apply(window,arguments);
+  };
+})();
+
+/* ---------- tela "Mensagens do WhatsApp": agrupada, com busca ---------- */
+var MSGF={q:''};
+(function(){
+  var GR=[['Grupo do Financeiro','📤','Grupo do Financeiro'],['Prestador / colaborador','👤','Prestador / colaborador'],['Grupo da equipe de eventos','🎤','Equipe de eventos'],['Grupo da equipe','👥','Equipe do DP'],['Diretoria','🏛️','Diretoria'],['Operadora / fornecedor','🏥','Operadora / fornecedor']];
+  var _md=msgDesenhar; msgDesenhar=function(){
+    var r=_md.apply(this,arguments);
+    try{
+      var lst=document.querySelector('#msgOv .msg-lista'); if(!lst) return r;
+      var q=chaveNome(MSGF.q||''), ks=Object.keys(MSG_PADRAO), grupos={}, outros=[];
+      ks.forEach(function(k){ var p=MSG_PADRAO[k]; if(q&&chaveNome([p.t,p.onde,p.para].join(' ')).indexOf(q)<0) return; var g=GR.find(function(x){ return x[0]===p.para; }); (grupos[g?g[0]:'_']=grupos[g?g[0]:'_']||[]).push(k); });
+      var item=function(x){ var p=MSG_PADRAO[x], cx=MSG.custom[x], mx=!!(cx&&cx.texto&&cx.texto!==p.texto);
+        return '<button type="button" class="msgf-it'+(x===MSG.sel?' on':'')+'" onclick="MSG.sel=\''+x+'\';MSG.rasc=null;msgDesenhar()" title="'+esc(p.onde)+'"><span class="msg-ic">'+p.ic+'</span><span><b>'+esc(p.t)+'</b></span>'+(mx?'<em class="msgf-aj" title="Texto ajustado por vocês">✏️</em>':'')+'</button>'; };
+      var h='<div class="msgf-top"><input type="search" class="nm-in msgf-q" placeholder="🔎 Buscar mensagem…" value="'+esc(MSGF.q)+'" oninput="MSGF.q=this.value;clearTimeout(window._msgfT);window._msgfT=setTimeout(function(){msgDesenhar();var i=document.querySelector(\'#msgOv .msgf-q\');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},200)"><small>'+ks.length+' mensagens automáticas</small></div>';
+      GR.concat([['_','💬','Outras']]).forEach(function(g){ var l=grupos[g[0]]; if(!l||!l.length) return; h+='<div class="msgf-g"><span>'+g[1]+' '+g[2]+'</span><em>'+l.length+'</em></div>'+l.map(item).join(''); });
+      if(!Object.keys(grupos).length) h+='<p class="msgf-vz">Nenhuma mensagem com esse nome.</p>';
+      lst.innerHTML=h; lst.classList.add('msgf');
+      var on=lst.querySelector('.msgf-it.on'); if(on&&on.scrollIntoViewIfNeeded) on.scrollIntoViewIfNeeded(false);
+      var cab=document.querySelector('#msgOv .msg-ed-cab p'); if(cab&&!cab.querySelector('.msgf-onde')){ var P=MSG_PADRAO[MSG.sel]; cab.innerHTML='<span class="msgf-onde">📍 '+esc(P.onde)+'</span><span class="msgf-para">✉️ para: '+esc(P.para)+'</span>'; }
+    }catch(e){}
+    return r;
+  };
+  var st=document.createElement('style');
+  st.textContent='#msgOv .msg-lista.msgf{gap:3px;max-height:70vh;overflow-y:auto;padding-right:4px;flex-direction:column}'+
+    '.msgf-top{position:sticky;top:0;z-index:1;background:var(--panel,#14161d);padding-bottom:6px;display:flex;flex-direction:column;gap:4px}.msgf-top small{font-size:11.5px;color:var(--mut)}'+
+    '.msgf-g{display:flex;justify-content:space-between;align-items:center;margin:10px 4px 3px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}.msgf-g em{font-style:normal;font-weight:700;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.07)}'+
+    '#msgOv .msg-lista .msgf-it{padding:7px 10px;border-radius:9px;min-width:0;gap:8px}#msgOv .msgf-it .msg-ic{font-size:15px}#msgOv .msgf-it b{font-size:12.5px;font-weight:600;line-height:1.3}'+
+    '#msgOv .msgf-it.on b{font-weight:800}.msgf-aj{font-style:normal;font-size:12px;margin-left:auto}.msgf-vz{font-size:12.5px;color:var(--mut);padding:8px}'+
+    '.msgf-onde,.msgf-para{display:inline-block;margin:2px 8px 0 0;padding:2px 9px;border-radius:999px;background:rgba(255,255,255,.06);font-size:11.5px;color:var(--mut)}'+
+    '@media (max-width:900px){#msgOv .msg-lista.msgf{max-height:240px}}';
+  document.head.appendChild(st);
+})();
+try{ if(typeof NOVIDADES!=='undefined'&&!NOVIDADES.some(function(n){ return n.v==='v133'; })) NOVIDADES.unshift({v:'v133',data:'27/11/2026',itens:[
+  ['💬','Todas as mensagens automáticas no cadastro','Entraram: recibo para assinatura, OK do cachê, NF de cachê pela OP, custo adicional no grupo, custos do mês, relatório SST e previsão da semana. Todas ajustáveis em Configurações → Mensagens do WhatsApp.'],
+  ['🗂️','Tela de mensagens organizada','Lista agrupada por destinatário (Financeiro, prestador, equipe, Diretoria…), com busca.']
 ]}); }catch(e){}
 </script>
 
